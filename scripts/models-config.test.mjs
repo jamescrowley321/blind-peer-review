@@ -362,18 +362,33 @@ test("overriddenModelIds collects ids across providers, deduped", () => {
   assert.deepEqual(overriddenModelIds(cfg).sort(), ["a", "b", "c"]);
 });
 
-test("the example workflow's models_config matches its own model pin", () => {
-  // The example is what people copy. If its override key and its `model:` ever
-  // disagree, every copy ships with the routing floor detached.
+test("every model the example can emit has a models_config override", () => {
+  // The example is what people copy. Its `model:` is now `${{ matrix.model }}`,
+  // so the models the matrix can produce are LENS_MODELS plus DEFAULT_MODEL —
+  // and EACH needs an override entry, because the overrides are keyed by model
+  // id and silently apply to nothing for a model that has none. One missing
+  // entry means every copy of this example runs that lens without the ZDR floor.
   const yml = readFileSync(join(import.meta.dirname, "..", "examples", "caller-workflow.yml"), "utf8");
   const keys = [...yml.matchAll(/^\s{20,}"([a-z0-9-]+\/[^"]+)":\s*\{/gim)].map((m) => m[1]);
   if (keys.length === 0) return; // no overrides in the example: nothing to pair
-  const pinned = yml.match(/^\s*model:\s*([^\s#]+)/m);
-  const active = pinned ? pinned[1] : null;
-  if (active) {
-    assert.ok(
-      keys.includes(active),
-      `example pins model: ${active} but its modelOverrides keys are ${keys.join(", ")}`,
-    );
+
+  const emitted = new Set();
+  const lensModels = yml.match(/^\s*LENS_MODELS:\s*\|\n([\s\S]*?)(?=^\s*[A-Z_]+:|\n\s*run:)/m);
+  if (lensModels) {
+    for (const line of lensModels[1].split("\n")) {
+      const row = line.replace(/#.*/, "").trim();
+      const eq = row.indexOf("=");
+      if (eq > 0) emitted.add(row.slice(eq + 1).trim());
+    }
   }
+  const dflt = yml.match(/^\s*DEFAULT_MODEL:\s*([^\s#]+)/m);
+  if (dflt) emitted.add(dflt[1]);
+
+  const uncovered = [...emitted].filter((m) => m && !keys.includes(m));
+  assert.deepEqual(
+    uncovered, [],
+    `the example can run these models with NO routing override: ${uncovered.join(", ")}. ` +
+    `modelOverrides keys are: ${keys.join(", ")}`,
+  );
+  assert.ok(emitted.size > 0, "expected the example to name at least one model");
 });

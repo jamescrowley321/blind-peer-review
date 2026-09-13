@@ -52,6 +52,24 @@ jobs:
             policy     # AI-provenance policy + your own rules
             # owasp_web    # OWASP Web Top 10 (2021) — optional, runs in parallel
             # owasp_llm    # OWASP GenAI/LLM Top 10 (2026) — optional, for LLM apps
+          # OPTIONAL: run each lens on the model that suits it, instead of one
+          # model for all of them. The lenses are not the same kind of work —
+          # Policy & Provenance checks whether a checkbox is ticked and two lines
+          # of the description exist; Cold Read and Red Team hunt defects nobody
+          # has found yet. Paying frontier rates for the first to get frontier
+          # quality on the second is the only reason to run one model everywhere.
+          #
+          # Any lens with no entry falls back to DEFAULT_MODEL below. Delete this
+          # block entirely to run one model for every lens (the original shape).
+          #
+          # Score models on YOUR fixtures before trusting a tier — see
+          # docs/model-selection.md. The split below is a cost illustration, not
+          # a quality claim.
+          LENS_MODELS: |
+            cold_read = anthropic/claude-sonnet-5
+            red_team  = anthropic/claude-sonnet-5
+            security  = anthropic/claude-sonnet-5
+          DEFAULT_MODEL: google/gemini-2.5-pro
         run: |
           const NAMES = {
             "cold_read": "Cold Read", "edge_case": "Edge Cases",
@@ -64,9 +82,34 @@ jobs:
           if (keys.length === 0) throw new Error("At least one review lens must be enabled");
           const unknown = keys.filter((k) => !Object.prototype.hasOwnProperty.call(NAMES, k));
           if (unknown.length > 0) throw new Error(`Unknown review lenses: ${unknown.join(", ")}`);
-          const include = keys.map((k) => ({ lens: k, name: NAMES[k] }));
+
+          // "<lens> = <model>" per line. A typo'd lens key here would otherwise
+          // be a silent no-op — the lens quietly runs on the default while the
+          // config says otherwise — so it is rejected the same way ENABLED is.
+          const defaultModel = (process.env.DEFAULT_MODEL || "").trim();
+          const models = {};
+          for (const line of (process.env.LENS_MODELS || "").split("\n")) {
+            const row = line.replace(/#.*/, "").trim();
+            if (!row) continue;
+            const eq = row.indexOf("=");
+            if (eq === -1) throw new Error(`LENS_MODELS line is not "<lens> = <model>": ${row}`);
+            const lens = row.slice(0, eq).trim();
+            const model = row.slice(eq + 1).trim();
+            if (!Object.prototype.hasOwnProperty.call(NAMES, lens)) {
+              throw new Error(`LENS_MODELS names an unknown lens: ${lens}`);
+            }
+            if (!model) throw new Error(`LENS_MODELS has no model for lens: ${lens}`);
+            models[lens] = model;
+          }
+
+          const include = keys.map((k) => ({
+            lens: k, name: NAMES[k], model: models[k] || defaultModel,
+          }));
           const fs = require("fs");
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({ include })}\n`);
+          const used = [...new Set(include.map((i) => i.model))].filter(Boolean);
+          console.log(`Lens models: ${include.map((i) => `${i.lens}=${i.model || "<action default>"}`).join(", ")}`);
+          console.log(`Distinct models: ${used.join(", ") || "<action default>"} — each needs a models_config entry.`);
 
   # Deterministic gate: the paid lenses (review) `needs:` this, so they never run
   # unless the cheap checks pass first. The fork/bot gate lives here and cascades.
@@ -121,16 +164,26 @@ jobs:
           lens: ${{ matrix.lens }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           api_key: ${{ secrets.OPENROUTER_API_KEY }}
-          # Default is the pinned google/gemini-2.5-pro. Enforce the ZDR floor on
-          # the request so it routes to a Zero-Data-Retention endpoint (e.g. Vertex).
-          # JSON for pi's ~/.pi/agent/models.json; omit to fall back to account settings,
-          # or set `model:` to pin a different slug. Match this key to `model:`.
+          model: ${{ matrix.model }}
+          # Enforce the ZDR floor on the request so it routes to a Zero-Data-Retention
+          # endpoint (e.g. Vertex). JSON for pi's ~/.pi/agent/models.json; omit to fall
+          # back to account settings.
+          #
+          # These overrides are keyed BY MODEL ID. They apply to nothing for a model
+          # that has no entry — silently: the JSON stays valid, the lens still runs,
+          # and the zdr/data_collection floor simply is not in force. So EVERY slug
+          # the matrix can emit needs an entry here, including DEFAULT_MODEL. The
+          # action warns when the model it runs is not covered; the config job prints
+          # the distinct slugs to cross-check against this block.
           models_config: |
             {
               "providers": {
                 "openrouter": {
                   "modelOverrides": {
                     "google/gemini-2.5-pro": {
+                      "compat": { "openRouterRouting": { "zdr": true, "data_collection": "deny" } }
+                    },
+                    "anthropic/claude-sonnet-5": {
                       "compat": { "openRouterRouting": { "zdr": true, "data_collection": "deny" } }
                     }
                   }

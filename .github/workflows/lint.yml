@@ -34,6 +34,7 @@ jobs:
             "scripts/models-config.test.mjs",
             "scripts/lens-matrix.mjs",
             "scripts/lens-matrix.test.mjs",
+            "scripts/yaml-block.mjs",
             "scripts/check-example.mjs",
           ];
           const missing = required.filter((f) => !fs.existsSync(f));
@@ -109,7 +110,9 @@ jobs:
         run: node --check scripts/models-config.mjs
 
       - name: Syntax-check the lens-matrix module
-        run: node --check scripts/lens-matrix.mjs
+        run: |
+          node --check scripts/lens-matrix.mjs
+          node --check scripts/yaml-block.mjs
 
       - name: Syntax-check the vendor script
         run: node --check scripts/vendor.mjs

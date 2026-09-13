@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { buildMatrix, parseList, parseLensModels, readRegistry } from "./lens-matrix.mjs";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
+import { readBlockScalar } from "./yaml-block.mjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const NAMES = readRegistry(ROOT);
@@ -97,10 +98,16 @@ test("readRegistry names the file when it cannot be read", () => {
 test("every lens the example enables is in the registry", () => {
   // The example is what people copy; an enabled key the registry lost would fail
   // every consumer's config job on their next run, not ours.
+  //
+  // Read with a block-scalar reader, not a regex with a hardcoded indentation:
+  // the earlier pattern assumed 10 spaces and a particular following key, so
+  // reformatting the example made it match nothing, the loop body never ran, and
+  // this test PASSED while checking nothing.
   const yml = readFileSync(join(ROOT, "examples", "caller-workflow.yml"), "utf8");
-  const block = yml.match(/^\s*enabled:\s*\|\n([\s\S]*?)(?=^\s{10}[a-z_]+:|\n\s*# OPTIONAL)/m);
-  assert.ok(block, "example has no `enabled:` block");
-  for (const key of parseList(block[1])) {
+  const keys = readBlockScalar(yml, "enabled");
+  assert.ok(keys !== null, "example has no `enabled:` block scalar");
+  assert.ok(keys.length > 0, "example's `enabled:` block is empty — this test would check nothing");
+  for (const key of keys) {
     assert.ok(NAMES[key], `example enables '${key}', which lenses/manifest.json does not define`);
   }
 });

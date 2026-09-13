@@ -26,6 +26,16 @@ export function readRegistry(actionPath) {
   } catch (e) {
     throw new Error(`Could not read the lens registry at ${p}: ${e.message}`);
   }
+  // Valid JSON that is not a registry (`{}`, an array, a renamed key) would
+  // otherwise surface as "Cannot read properties of undefined (reading 'map')",
+  // which names neither the file nor what is wrong with it.
+  if (!Array.isArray(parsed?.lenses)) {
+    throw new Error(`The lens registry at ${p} has no "lenses" array`);
+  }
+  const bad = parsed.lenses.filter((l) => !l?.key || !l?.name);
+  if (bad.length) {
+    throw new Error(`The lens registry at ${p} has ${bad.length} entr(y/ies) missing "key" or "name"`);
+  }
   return Object.fromEntries(parsed.lenses.map((l) => [l.key, l.name]));
 }
 

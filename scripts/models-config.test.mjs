@@ -14,6 +14,7 @@ import {
 import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import os from "node:os";
+import { readBlockScalar, readPairs } from "./yaml-block.mjs";
 
 const valid = JSON.stringify({
   providers: {
@@ -372,15 +373,11 @@ test("every model the example can emit has a models_config override", () => {
   const keys = [...yml.matchAll(/^\s{20,}"([a-z0-9-]+\/[^"]+)":\s*\{/gim)].map((m) => m[1]);
   if (keys.length === 0) return; // no overrides in the example: nothing to pair
 
+  // Block-scalar reader, not a regex that assumes what follows the key: the
+  // earlier pattern needed `lens_models:` to be followed by another input, and
+  // silently found nothing when that changed.
   const emitted = new Set();
-  const lensModels = yml.match(/^\s*lens_models:\s*\|\n([\s\S]*?)(?=^\s*[a-z_]+:\s)/m);
-  if (lensModels) {
-    for (const line of lensModels[1].split("\n")) {
-      const row = line.replace(/#.*/, "").trim();
-      const eq = row.indexOf("=");
-      if (eq > 0) emitted.add(row.slice(eq + 1).trim());
-    }
-  }
+  for (const [, model] of readPairs(yml, "lens_models") ?? []) emitted.add(model);
   const dflt = yml.match(/^\s*default_model:\s*([^\s#]+)/m);
   if (dflt) emitted.add(dflt[1]);
 

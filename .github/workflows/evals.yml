@@ -68,6 +68,10 @@ on:
         description: "In-flight model calls per run. 4 is polite for a scheduled baseline; raise it for an interactive comparison you are waiting on."
         type: string
         default: "4"
+      max_tokens:
+        description: "Per-call ceiling. Reasoning tokens count against it, so a reasoning model can exhaust it mid-JSON and score as a quality failure when the cause is this cap. Raise it before comparing models."
+        type: number
+        default: 8000
 
 permissions:
   contents: read
@@ -224,8 +228,11 @@ jobs:
         if: steps.key.outputs.have == 'true'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          # Dispatch may raise this; push/schedule keep the polite default.
+          # Dispatch may raise these; push/schedule keep the polite defaults.
           EVAL_CONCURRENCY: ${{ inputs.concurrency || '4' }}
+          # run.mjs already reads EVAL_MAX_TOKENS; it was simply never reachable
+          # from a dispatch, so every comparison silently ran at the 8000 default.
+          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '8000' }}
         shell: bash
         run: node evals/run.mjs --phase call
 

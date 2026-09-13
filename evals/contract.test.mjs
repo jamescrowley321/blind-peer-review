@@ -783,6 +783,24 @@ describe("scoring policy", () => {
     assert.equal(l.jsonValidityRate, 1, "2 of 2 delivered reps parsed — validity is 100%, not 67%");
   });
 
+  test("a rate that misses the threshold never prints AS the threshold", () => {
+    // Live, from the glm-5.2 comparison: 37 of 39 delivered reps parsed =
+    // 94.87%, and the line read "JSON validity 95% < 95%". Whole-percent
+    // rounding turned a real miss into what looks like a broken scorecard, and
+    // the reader's next move is to discount the scorecard rather than the model.
+    const reps = (ok) => [rep(false), rep(false), ok ? rep(false) : { parsed: false, parseError: "no JSON", blocked: null, findings: [] }];
+    const folded = [];
+    for (let i = 0; i < 13; i++) folded.push(foldReps(run({ id: `fx${i}` }), reps(true)));
+    // 39 reps, 2 unparseable — 37/39 = 94.87%, which rounds to the threshold.
+    folded[0] = foldReps(run({ id: "fx0" }), [rep(false), { parsed: false, parseError: "no JSON", blocked: null, findings: [] }, { parsed: false, parseError: "no JSON", blocked: null, findings: [] }]);
+    const byLens = score(folded);
+    assert.equal(byLens.acceptance.jsonValid, 37);
+    assert.ok(byLens.acceptance.jsonValidityRate < THRESHOLDS.jsonValidity, "the fixture must actually miss");
+    const line = violations(byLens, THRESHOLDS).find((v) => /JSON validity/.test(v));
+    assert.match(line, /94\.9%/, `a sub-threshold rate must not print as the threshold: ${line}`);
+    assert.match(line, /37\/39/, "the line must carry the fraction it was computed from");
+  });
+
   test("recall below threshold is a violation", () => {
     const mk = (pass) => foldReps(
       run({ id: pass ? "a" : "b", fx: { class: "must-block", guards: "g" }, expect: { block: true } }),

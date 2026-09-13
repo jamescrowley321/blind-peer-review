@@ -1596,17 +1596,25 @@ describe("extracted step modules stay wired to action.yml", () => {
     ["Wait for prerequisite checks", "scripts/preflight.cjs"],
     ["Resolve context and lens names", "scripts/resolve-context.cjs"],
     ["Compose lens prompt", "scripts/compose-prompt.cjs"],
+    ["Parse findings + post review", "scripts/parse-and-post.cjs"],
   ]) {
     test(`"${step}" requires ${mod}`, () => {
       const i = yml.indexOf(`- name: ${step}`);
       assert.ok(i !== -1, `action.yml has no step named "${step}"`);
-      const body = yml.slice(i, i + 1200);
+      // To the next step, not a fixed window: the parse step's env: block alone
+      // runs past 1200 characters, so a fixed slice cut the require() out of
+      // view and the guard failed on a correctly wired step.
+      const rest = yml.slice(i + 1);
+      const next = rest.indexOf("\n    - name: ");
+      const body = next === -1 ? rest : rest.slice(0, next);
       assert.ok(
         body.includes(mod),
         `step "${step}" no longer requires ${mod} — the evals below would keep ` +
         `passing against a module the action does not run`,
       );
-      if (mod.endsWith("gate.cjs") || mod.endsWith("preflight.cjs")) {
+      // Branch on what the step IS, not on a hardcoded list of module names —
+      // that list went stale the moment a third github-script step was extracted.
+      if (/uses: actions\/github-script/.test(body)) {
         assert.match(
           body, /await run\(\{ core, github, context, env: process\.env \}\)/,
           `step "${step}" must call run({core, github, context, env})`,
@@ -1635,9 +1643,58 @@ describe("extracted step modules stay wired to action.yml", () => {
 
   test("the modules export the run() the action calls", async () => {
     for (const m of ["../scripts/gate.cjs", "../scripts/preflight.cjs",
-                     "../scripts/resolve-context.cjs", "../scripts/compose-prompt.cjs"]) {
+                     "../scripts/resolve-context.cjs", "../scripts/compose-prompt.cjs",
+                     "../scripts/parse-and-post.cjs"]) {
       const mod = (await import(m)).default ?? (await import(m));
       assert.equal(typeof mod.run, "function", `${m} must export run()`);
     }
+  });
+});
+
+// ───────── runParseStep's historical-replay path stays a real second path ─────────
+// verify-guards.mjs proves each regression guard is load-bearing by replaying a
+// HISTORICAL action.yml through the parse step and asserting the guard trips on
+// the code that shipped the incident. Those commits predate the extraction and
+// hold the logic as an inline block, so the harness must LIFT it — importing the
+// module would run today's code under a historical label and report PASS while
+// proving nothing.
+//
+// That makes the `yml` branch load-bearing and invisible: delete it, every eval
+// here still passes, and verify-guards still prints "All guards verified" while
+// verifying only HEAD against itself. This test is what notices.
+
+describe("runParseStep honours a supplied historical action.yml", () => {
+  // A parse step that could only have come from the supplied YAML: the shipped
+  // module never emits this string.
+  const SENTINEL = "LIFTED-FROM-SUPPLIED-YML";
+  const fakeYml = [
+    "runs:",
+    "  steps:",
+    "    - name: Parse findings + post review",
+    "      with:",
+    "        script: |",
+    `          core.setFailed(${JSON.stringify(SENTINEL)});`,
+  ].join("\n");
+
+  test("a supplied yml is executed, not the shipped module", async () => {
+    const r = await runParseStep({
+      lensName: "Cold Read",
+      agentResponse: JSON.stringify({ lens: "Cold Read", summary: "s", findings: [] }),
+      yml: fakeYml,
+    });
+    assert.equal(
+      r.failed, SENTINEL,
+      "runParseStep ignored the supplied action.yml and ran the module — " +
+      "verify-guards would replay history against HEAD and still report PASS",
+    );
+  });
+
+  test("no yml runs the shipped module", async () => {
+    const r = await runParseStep({
+      lensName: "Cold Read",
+      agentResponse: JSON.stringify({ lens: "Cold Read", summary: "s", findings: [] }),
+    });
+    assert.equal(r.failed, null);
+    assert.equal(r.event, "COMMENT", "the module posts the review the action posts");
   });
 });

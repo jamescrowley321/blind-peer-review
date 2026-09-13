@@ -13,7 +13,13 @@ name: Blind Peer Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # `edited` matters when the `policy` lens is enabled: it blocks on PR-BODY
+    # content (AI-provenance disclosure, the human-accountability attestation),
+    # and the fix for those findings is editing the description — which changes no
+    # SHA and fires no other trigger. Without `edited`, the one action that clears
+    # the finding cannot re-run the check. The concurrency group above keeps the
+    # cost bounded: a burst of edits cancels its own superseded runs.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
     branches: [main]
 
 concurrency:

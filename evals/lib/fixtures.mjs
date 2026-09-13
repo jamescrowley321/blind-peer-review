@@ -12,9 +12,13 @@ import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, writeFileSy
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ROOT } from "./harness.mjs";
-import { extractStepScript, runNodeScript } from "./action-script.mjs";
 import { lensName } from "./lenses.mjs";
 import { truncateDiff, renderGetPrDiff } from "./pi-diff.mjs";
+
+import { createRequire } from "node:module";
+const require_ = createRequire(import.meta.url);
+const resolveContextModule = require_("../../scripts/resolve-context.cjs");
+const composePromptModule = require_("../../scripts/compose-prompt.cjs");
 
 export const FIXTURES_DIR = join(ROOT, "evals", "fixtures");
 const EVAL_PR = "42";
@@ -158,12 +162,11 @@ const TARGETING = new RegExp(
  */
 /** Run action.yml's real context step, which resolves the gate's expected set. */
 export async function resolveContext({ mode = "gate", lenses = "", lens = "" } = {}) {
-  const src = extractStepScript(readFileSync(join(ROOT, "action.yml"), "utf8"), "Resolve context and lens names", "run");
   const dir = mkdtempSync(join(tmpdir(), "bpr-ctx-"));
   const outFile = join(dir, "github_output");
   writeFileSync(outFile, "");
   try {
-    await runNodeScript(src, {
+    resolveContextModule.run({
       env: {
         IN_MODE: mode, IN_LENS: lens, IN_LENSES: lenses, IN_PR: String(EVAL_PR), ACTION_PATH: ROOT,
         EVENT_PR: String(EVAL_PR), IN_KEY: "test-key",
@@ -180,19 +183,20 @@ export async function resolveContext({ mode = "gate", lenses = "", lens = "" } =
 }
 
 export function composeFromAction(lensKey, diff = actionDiffDefaults()) {
-  const src = extractStepScript(readFileSync(join(ROOT, "action.yml"), "utf8"), "Compose lens prompt", "run");
   const dir = mkdtempSync(join(tmpdir(), "adv-eval-"));
   const envFile = join(dir, "github_env");
   try {
-    // The step is synchronous; runNodeScript resolves once it returns.
-    const done = runNodeScript(src, {
+    // The module is synchronous; wrap so the existing .then() shape still holds.
+    // async wrapper, not Promise.resolve(): the module throws SYNCHRONOUSLY on a
+    // bad lens key, and callers (and assert.rejects) expect a rejected promise.
+    const done = (async () => composePromptModule.run({
       env: {
         ACTION_PATH: ROOT, LENS_KEY: lensKey, PR: EVAL_PR, REPO: EVAL_REPO, GITHUB_ENV: envFile,
         IGNORED_PATHS: String(diff.ignoredPaths ?? ""),
         MAX_LINES: String(diff.maxLines ?? ""),
         MAX_BYTES: String(diff.maxBytes ?? ""),
       },
-    });
+    }))();
     return done.then(() => {
       const raw = readFileSync(envFile, "utf8");
       // Match the COMPOSED_PROMPT block wherever it sits: the compose step also

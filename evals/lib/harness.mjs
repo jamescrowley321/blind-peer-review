@@ -6,6 +6,11 @@
 // actually stops a merge — the review `event` a lens posts, and the gate verdict
 // that event produces.
 
+import { createRequire } from "node:module";
+const require_ = createRequire(import.meta.url);
+const gateModule = require_("../../scripts/gate.cjs");
+const preflightModule = require_("../../scripts/preflight.cjs");
+
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -148,11 +153,10 @@ export async function runParseStep({
 }
 
 /** Drive action.yml's "Aggregate lens results" (merge gate) step. */
-export async function runGateStep({ expected, reviews, headSha = HEAD_SHA, yml = null }) {
-  const src = extractStepScript(yml ?? actionYml(), "Aggregate lens results", "script");
+export async function runGateStep({ expected, reviews, headSha = HEAD_SHA }) {
   const core = makeCore();
   const github = makeGithub({ reviews });
-  await runGithubScript(src, {
+  await gateModule.run({
     core, github, context: makeContext({ headSha }),
     env: { EXPECTED: expected.join("|"), PR_NUMBER: String(PR_NUMBER) },
   });
@@ -165,12 +169,11 @@ export async function runGateStep({ expected, reviews, headSha = HEAD_SHA, yml =
  * instant rather than real time.
  */
 export async function runPreflightStep({
-  required, checkRuns = [], headSha = HEAD_SHA, timeoutS = "0", pollS = "0", graceS = null, yml = null,
+  required, checkRuns = [], headSha = HEAD_SHA, timeoutS = "0", pollS = "0", graceS = null,
 }) {
-  const src = extractStepScript(yml ?? actionYml(), "Wait for prerequisite checks", "script");
   const core = makeCore();
   const github = makeGithub({ checkRuns });
-  await runGithubScript(src, {
+  await preflightModule.run({
     core, github, context: makeContext({ headSha }),
     env: {
       REQUIRED_CHECKS: Array.isArray(required) ? required.join("\n") : String(required),

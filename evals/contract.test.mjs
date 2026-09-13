@@ -1580,3 +1580,42 @@ describe("preflight — missing check names", () => {
     assert.match(r.failed, /Timed out/, "it should time out, not early-fail");
   });
 });
+
+// ──────── Extracted step modules are still wired into action.yml ────────
+// The evals used to lift these blocks out of the YAML as strings, which meant a
+// renamed step made the harness throw — noisy, but it could not silently stop
+// testing the shipped code. Importing the module is cleaner and faster and
+// cannot target the wrong step, but it trades that property away: if action.yml
+// stopped calling the module, every test here would still pass against a module
+// CI no longer runs. These put the property back.
+
+describe("extracted step modules stay wired to action.yml", () => {
+  const yml = rf(pjoin(REPO_ROOT, "action.yml"), "utf8");
+
+  for (const [step, mod] of [
+    ["Aggregate lens results", "scripts/gate.cjs"],
+    ["Wait for prerequisite checks", "scripts/preflight.cjs"],
+  ]) {
+    test(`"${step}" requires ${mod}`, () => {
+      const i = yml.indexOf(`- name: ${step}`);
+      assert.ok(i !== -1, `action.yml has no step named "${step}"`);
+      const body = yml.slice(i, i + 1200);
+      assert.ok(
+        body.includes(mod),
+        `step "${step}" no longer requires ${mod} — the evals below would keep ` +
+        `passing against a module the action does not run`,
+      );
+      assert.match(
+        body, /await run\(\{ core, github, context, env: process\.env \}\)/,
+        `step "${step}" must call run({core, github, context, env})`,
+      );
+    });
+  }
+
+  test("the modules export the run() the action calls", async () => {
+    for (const m of ["../scripts/gate.cjs", "../scripts/preflight.cjs"]) {
+      const mod = (await import(m)).default ?? (await import(m));
+      assert.equal(typeof mod.run, "function", `${m} must export run()`);
+    }
+  });
+});

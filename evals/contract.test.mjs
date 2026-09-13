@@ -15,6 +15,8 @@ import { runParseStep, runGateStep, runPreflightStep, checkRun, botReview, agent
 import { LENS_KEYS, lensName, personaHeading, shippedLensKeys, readPersona, readShared } from "./lib/lenses.mjs";
 import { foldReps, score, violations, THRESHOLDS } from "./lib/scorecard.mjs";
 import { extractStepScript, runNodeScript } from "./lib/action-script.mjs";
+import { createRequire as _cr } from "node:module";
+const composePromptModule = _cr(import.meta.url)("../scripts/compose-prompt.cjs");
 import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureDiffPayload, actionDiffDefaults, evalPreamble, actionInputDefault, listFixtureIds } from "./lib/fixtures.mjs";
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
@@ -576,11 +578,10 @@ describe("agent-comment cleanup", () => {
 
 describe("diff scope disclosure", () => {
   const compose = async (env) => {
-    const src = extractStepScript(rf(pjoin(REPO_ROOT, "action.yml"), "utf8"), "Compose lens prompt", "run");
     const dir = mkdtempSync(pjoin(tmpdir(), "adv-scope-"));
     const envFile = pjoin(dir, "github_env");
     try {
-      await runNodeScript(src, {
+      composePromptModule.run({
         env: { ACTION_PATH: REPO_ROOT, LENS_KEY: "acceptance", PR: "7", REPO: "acme/widget", GITHUB_ENV: envFile, ...env },
       });
       const raw = rf(envFile, "utf8");
@@ -1202,11 +1203,10 @@ describe("submit_findings channel", () => {
 
 describe("submit_findings tool allowlist", () => {
   const composeTools = async (env) => {
-    const src = extractStepScript(rf(pjoin(REPO_ROOT, "action.yml"), "utf8"), "Compose lens prompt", "run");
     const dir = mkdtempSync(pjoin(tmpdir(), "adv-tools-"));
     const envFile = pjoin(dir, "github_env");
     try {
-      await runNodeScript(src, {
+      composePromptModule.run({
         env: { ACTION_PATH: REPO_ROOT, LENS_KEY: "acceptance", PR: "7", REPO: "acme/widget", GITHUB_ENV: envFile, ...env },
       });
       const m = rf(envFile, "utf8").match(/(?:^|\n)EFFECTIVE_LOADED_TOOLS<<(\S+)\n([\s\S]*?)\n\1\n/);
@@ -1253,11 +1253,10 @@ describe("submit_findings tool allowlist", () => {
 
 describe("diff cap validation", () => {
   const compose = async (env) => {
-    const src = extractStepScript(rf(pjoin(REPO_ROOT, "action.yml"), "utf8"), "Compose lens prompt", "run");
     const dir = mkdtempSync(pjoin(tmpdir(), "adv-caps-"));
     const envFile = pjoin(dir, "github_env");
     try {
-      await runNodeScript(src, {
+      composePromptModule.run({
         env: { ACTION_PATH: REPO_ROOT, LENS_KEY: "acceptance", PR: "7", REPO: "acme/widget", GITHUB_ENV: envFile, ...env },
       });
       const raw = rf(envFile, "utf8");
@@ -1595,6 +1594,8 @@ describe("extracted step modules stay wired to action.yml", () => {
   for (const [step, mod] of [
     ["Aggregate lens results", "scripts/gate.cjs"],
     ["Wait for prerequisite checks", "scripts/preflight.cjs"],
+    ["Resolve context and lens names", "scripts/resolve-context.cjs"],
+    ["Compose lens prompt", "scripts/compose-prompt.cjs"],
   ]) {
     test(`"${step}" requires ${mod}`, () => {
       const i = yml.indexOf(`- name: ${step}`);
@@ -1605,10 +1606,20 @@ describe("extracted step modules stay wired to action.yml", () => {
         `step "${step}" no longer requires ${mod} — the evals below would keep ` +
         `passing against a module the action does not run`,
       );
-      assert.match(
-        body, /await run\(\{ core, github, context, env: process\.env \}\)/,
-        `step "${step}" must call run({core, github, context, env})`,
-      );
+      if (mod.endsWith("gate.cjs") || mod.endsWith("preflight.cjs")) {
+        assert.match(
+          body, /await run\(\{ core, github, context, env: process\.env \}\)/,
+          `step "${step}" must call run({core, github, context, env})`,
+        );
+      } else {
+        // `shell: node {0}` would run the COMMAND as JavaScript. These steps
+        // invoke node on the module, so the shell must be bash.
+        assert.match(body, /shell: bash/, `step "${step}" must use shell: bash to invoke node`);
+        assert.match(
+          body, new RegExp(`run: node "\\$\\{\\{ github\\.action_path \\}\\}/${mod.replace("scripts/", "scripts/")}"`),
+          `step "${step}" must run node on ${mod} via the github.action_path context`,
+        );
+      }
       // The require path must come from the github.action_path CONTEXT, expanded
       // by the runner, not from an env var that a prior step in the same job
       // could rewrite through GITHUB_ENV. Defence in depth — anyone able to set
@@ -1623,7 +1634,8 @@ describe("extracted step modules stay wired to action.yml", () => {
   }
 
   test("the modules export the run() the action calls", async () => {
-    for (const m of ["../scripts/gate.cjs", "../scripts/preflight.cjs"]) {
+    for (const m of ["../scripts/gate.cjs", "../scripts/preflight.cjs",
+                     "../scripts/resolve-context.cjs", "../scripts/compose-prompt.cjs"]) {
       const mod = (await import(m)).default ?? (await import(m));
       assert.equal(typeof mod.run, "function", `${m} must export run()`);
     }

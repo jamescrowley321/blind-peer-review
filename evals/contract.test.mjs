@@ -11,7 +11,7 @@
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { runParseStep, runGateStep, botReview, agentJsonComment, HEAD_SHA } from "./lib/harness.mjs";
+import { runParseStep, runGateStep, runPreflightStep, checkRun, botReview, agentJsonComment, HEAD_SHA } from "./lib/harness.mjs";
 import { LENS_KEYS, lensName, personaHeading, shippedLensKeys, readPersona, readShared } from "./lib/lenses.mjs";
 import { foldReps, score, violations, THRESHOLDS } from "./lib/scorecard.mjs";
 import { extractStepScript, runNodeScript } from "./lib/action-script.mjs";
@@ -347,6 +347,104 @@ describe("merge gate", () => {
     }
     const gate = await runGateStep({ expected: shippedLensKeys().map(lensName), reviews });
     assert.equal(gate.passed, true);
+  });
+});
+
+// ────────── Preflight: a name that never reports vs one still running ──────────
+// The loop treated "missing" (no check by that name has EVER reported on this
+// SHA) exactly like "pending" (it exists and is still running), so a misspelt or
+// stale name waited out the entire timeout and then GUESSED in the error —
+// "(are these exact check names that run on every PR?)" — while `runs` held the
+// answer the whole time.
+//
+// identity-model burned 600s per push on every PR for days after a dependabot
+// bump left the pre-v3 comma-delimited value in place: split on newlines, that is
+// ONE check named "ci / lint, ci / unit-tests", which nothing ever reports.
+
+describe("preflight — missing check names", () => {
+  const CI = [checkRun({ name: "ci / lint" }), checkRun({ name: "ci / unit-tests" })];
+
+  test("passes when every required check has completed successfully", async () => {
+    const r = await runPreflightStep({ required: ["ci / lint", "ci / unit-tests"], checkRuns: CI });
+    assert.equal(r.passed, true);
+  });
+
+  test("names the checks that DID report when a required name never does", async () => {
+    const r = await runPreflightStep({ required: ["ci / lint, ci / unit-tests"], checkRuns: CI });
+    assert.equal(r.passed, false);
+    assert.match(r.failed, /ci \/ lint, ci \/ unit-tests/, "the unresolved name is named");
+    assert.match(r.failed, /Checks present/, "the error must say what IS reporting");
+    assert.match(r.failed, /ci \/ unit-tests/);
+  });
+
+  test("tells the caller that required_checks is one name per line", async () => {
+    const r = await runPreflightStep({ required: ["ci / lint, ci / unit-tests"], checkRuns: CI });
+    assert.match(
+      r.failed, /PER LINE/,
+      "a value with a comma and no newline is the pre-v3 form — the error should say so",
+    );
+  });
+
+  test("does not emit the comma hint when no required name contains a comma", async () => {
+    const r = await runPreflightStep({ required: ["ci / nope"], checkRuns: CI });
+    assert.equal(r.passed, false);
+    assert.ok(!/PER LINE/.test(r.failed), "irrelevant advice is noise");
+  });
+
+  test("distinguishes 'never reported' from 'still running' on timeout", async () => {
+    const runs = [checkRun({ name: "ci / lint" }), checkRun({ name: "ci / slow", status: "in_progress", conclusion: null })];
+    const r = await runPreflightStep({ required: ["ci / slow", "ci / ghost"], checkRuns: runs });
+    assert.equal(r.passed, false);
+    assert.match(r.failed, /never reported:.*ci \/ ghost/s);
+    assert.match(r.failed, /still running:.*ci \/ slow/s);
+  });
+
+  test("a failed prerequisite still short-circuits before any waiting", async () => {
+    const runs = [checkRun({ name: "ci / lint", conclusion: "failure" })];
+    const r = await runPreflightStep({ required: ["ci / lint"], checkRuns: runs });
+    assert.equal(r.passed, false);
+    assert.match(r.failed, /Prerequisite check\(s\) failed/);
+  });
+
+  test("no required_checks configured is still a pass", async () => {
+    const r = await runPreflightStep({ required: [], checkRuns: [] });
+    assert.equal(r.passed, true);
+  });
+
+  test("fails FAST — not at the timeout — once other checks have completed", async () => {
+    // The whole point: the answer was available on the first poll, so a timeout
+    // longer than the grace must still fail immediately — and say why.
+    // Bounded (3s / 1s poll) rather than realistic (600s / 30s): a regression here
+    // must FAIL the suite, not hang it.
+    const r = await runPreflightStep({
+      required: ["ci / lint, ci / unit-tests"], checkRuns: CI,
+      timeoutS: 3, pollS: 1, graceS: 0,
+    });
+    assert.equal(r.passed, false);
+    assert.match(r.failed, /No check has reported/);
+    assert.ok(!/Timed out/.test(r.failed), "it must not have waited out the timeout");
+    assert.match(r.failed, /already completed/);
+    assert.match(r.failed, /Checks present/);
+  });
+
+  test("does not early-fail while a required check is merely pending", async () => {
+    const runs = [
+      checkRun({ name: "ci / lint" }),
+      checkRun({ name: "ci / slow", status: "in_progress", conclusion: null }),
+    ];
+    const r = await runPreflightStep({
+      required: ["ci / slow", "ci / ghost"], checkRuns: runs, graceS: 0, timeoutS: 0, pollS: 0,
+    });
+    assert.match(r.failed, /Timed out/, "a real pending check still earns the full wait");
+  });
+
+  test("waits rather than failing when nothing has completed yet", async () => {
+    // Grace only applies once some OTHER check finished on the SHA; a check that
+    // is merely slow to register must still get its full wait.
+    const runs = [checkRun({ name: "ci / other", status: "in_progress", conclusion: null })];
+    const r = await runPreflightStep({ required: ["ci / lint"], checkRuns: runs });
+    assert.equal(r.passed, false);
+    assert.match(r.failed, /Timed out/, "it should time out, not early-fail");
   });
 });
 

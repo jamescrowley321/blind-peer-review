@@ -1033,6 +1033,14 @@ runs:
           const start = Date.now();
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           const FAIL = ["failure", "cancelled", "timed_out", "action_required", "stale"];
+          //: How long a required name may stay unseen before it is treated as wrong
+          //: rather than slow. Only applies once some OTHER check has completed on
+          //: the same SHA, so a genuinely slow-to-register check is unaffected.
+          //: Env-overridable so the contract evals can exercise the early-fail path
+          //: without waiting it out; deliberately NOT an action input.
+          const MISSING_GRACE_MS = Number(process.env.MISSING_GRACE_S ?? "90") * 1000;
+          //: Cap the diagnostic name list; a busy PR can carry dozens of checks.
+          const MAX_OBSERVED_SHOWN = 40;
 
           while (true) {
             const runs = await github.paginate(github.rest.checks.listForRef, {
@@ -1050,15 +1058,66 @@ runs:
               core.setFailed(`Prerequisite check(s) failed — skipping the agentic review: ${failed.map((n) => `${n}=${state[n]}`).join(", ")}`);
               return;
             }
-            const waiting = required.filter((n) => state[n] === "missing" || state[n] === "pending");
+            // "missing" (no check by that name has EVER reported on this SHA) and
+            // "pending" (it exists and is still running) are different problems with
+            // different fixes, and only one of them is worth waiting on. Conflating
+            // them is why a misspelt name burned the whole timeout and then GUESSED
+            // in the error — while `runs` held the answer the entire time.
+            const missing = required.filter((n) => state[n] === "missing");
+            const pending = required.filter((n) => state[n] === "pending");
+            const waiting = [...missing, ...pending];
             if (!waiting.length) {
               core.info(`All prerequisite checks passed: ${required.join(", ")}.`);
               return;
             }
-            if (Date.now() - start > timeoutMs) {
-              core.setFailed(`Timed out after ${Math.round(timeoutMs / 1000)}s waiting for: ${waiting.join(", ")} (are these exact check names that run on every PR?)`);
+
+            // What IS reporting on this SHA — the diagnosis for every "missing" name.
+            const observed = [...new Set(runs.map((r) => r.name))].sort();
+            const shown = observed.slice(0, MAX_OBSERVED_SHOWN);
+            const observedList = observed.length
+              ? shown.join(", ") + (observed.length > shown.length ? `, … (${observed.length} total)` : "")
+              : "(none yet)";
+            // One name per line is the contract, and a value carrying a comma but no
+            // newline is almost always the pre-v3 delimited form. Say so where it is
+            // read, not only in the input description.
+            const commaHint = required.some((n) => n.includes(","))
+              ? `\nOne name PER LINE — a required_checks value containing "," is read as a single name. ` +
+                `Use a block scalar (required_checks: |).`
+              : "";
+
+            const elapsedS = Math.round((Date.now() - start) / 1000);
+
+            // Fail fast on names that cannot resolve. Conservative on purpose: only
+            // when NO required name has ever reported, something else already finished
+            // on this SHA (so checks are demonstrably registering), and the grace
+            // period has passed — a check that is merely slow to register still gets
+            // its full wait.
+            const someoneFinished = runs.some((r) => r.status === "completed");
+            if (!pending.length && missing.length && someoneFinished && Date.now() - start > MISSING_GRACE_MS) {
+              core.setFailed(
+                `No check has reported under ${missing.length === 1 ? "this name" : "these names"} on ${headSha.slice(0, 12)} ` +
+                `after ${elapsedS}s, while other checks on the same commit have already completed: ${missing.join(", ")}\n` +
+                `Checks present: ${observedList}${commaHint}`,
+              );
               return;
             }
-            core.info(`Waiting on: ${waiting.join(", ")} — elapsed ${Math.round((Date.now() - start) / 1000)}s`);
+
+            if (Date.now() - start > timeoutMs) {
+              const detail = [
+                missing.length ? `  never reported: ${missing.join(", ")}` : null,
+                pending.length ? `  still running:  ${pending.join(", ")}` : null,
+              ].filter(Boolean).join("\n");
+              core.setFailed(
+                `Timed out after ${Math.round(timeoutMs / 1000)}s waiting for prerequisite checks.\n${detail}\n` +
+                `Checks present on ${headSha.slice(0, 12)}: ${observedList}${commaHint}`,
+              );
+              return;
+            }
+            const parts = [
+              missing.length ? `missing (never reported): ${missing.join(", ")}` : null,
+              pending.length ? `pending: ${pending.join(", ")}` : null,
+            ].filter(Boolean).join(" | ");
+            core.info(`Waiting on ${parts} — elapsed ${elapsedS}s`);
+            if (missing.length) core.info(`  checks present on ${headSha.slice(0, 12)}: ${observedList}`);
             await sleep(pollMs);
           }

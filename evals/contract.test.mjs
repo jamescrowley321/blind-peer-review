@@ -22,7 +22,8 @@ import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
-import { mkdtempSync, readFileSync as rf, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync as rf, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join as pjoin } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -1696,5 +1697,123 @@ describe("runParseStep honours a supplied historical action.yml", () => {
     });
     assert.equal(r.failed, null);
     assert.equal(r.event, "COMMENT", "the module posts the review the action posts");
+  });
+});
+
+// ───────── the dispatch inputs reach the phase that can act on them ─────────
+// `compose` writes plan.json; `call` and `score` read it. So the model and the
+// per-call ceiling are decided at compose time, and a value handed to a later
+// step is ignored rather than applied — silently, because the scorecard
+// faithfully reports the plan's value and nothing reports the one you asked for.
+//
+// That is not a hypothetical: evals.yml set EVAL_MAX_TOKENS on the `call` step,
+// and a comparison of eight models dispatched at 24000 ran every call at the
+// 8000 default. One model was written up as unable to emit parseable JSON when
+// the harness had been cutting it off.
+
+describe("evals.yml wires plan-frozen inputs to the compose step", () => {
+  // Frozen into plan.json by compose(). Anything here set only on a later step
+  // is a setting nobody can apply.
+  const FROZEN = ["EVAL_MODEL", "EVAL_REPS", "EVAL_MAX_TOKENS"];
+
+  const workflow = rf(pjoin(REPO_ROOT, ".github/workflows/evals.yml"), "utf8");
+
+  // Steps are `      - name: ...` at a fixed indent; env keys are `          KEY:`
+  // inside the step's `env:` block. No YAML parser: this repo ships zero runtime
+  // dependencies, and the shape being read here is two indents deep and stable.
+  const steps = workflow.split(/\n {6}- (?=name:|uses:)/).slice(1).map((chunk) => {
+    const phase = chunk.match(/--phase (\w+)/)?.[1] ?? null;
+    const env = chunk.match(/\n {8}env:\n((?: {10}[^\n]*\n|\n)*)/)?.[1] ?? "";
+    return { phase, env: [...env.matchAll(/^ {10}([A-Z_]+):/gm)].map((m) => m[1]) };
+  });
+
+  const composeStep = steps.find((s) => s.phase === "compose");
+
+  test("the workflow still runs the three phases as separate steps", () => {
+    assert.deepEqual(
+      steps.filter((s) => s.phase).map((s) => s.phase), ["compose", "call", "score"],
+      "the phase split is what keeps OPENROUTER_API_KEY out of the steps that run action.yml's script text",
+    );
+  });
+
+  for (const key of FROZEN) {
+    test(`${key} is set on the compose step`, () => {
+      assert.ok(
+        composeStep.env.includes(key),
+        `${key} is frozen into plan.json at compose time. Set anywhere else it is accepted, ` +
+        "ignored, and reported as the plan's value — which is how a whole model comparison " +
+        "ran at a ceiling nobody asked for.",
+      );
+    });
+  }
+
+  test("no plan-frozen input is set ONLY on a later phase", () => {
+    for (const s of steps.filter((s) => s.phase && s.phase !== "compose")) {
+      for (const key of s.env.filter((k) => FROZEN.includes(k))) {
+        assert.ok(
+          composeStep.env.includes(key),
+          `--phase ${s.phase} is handed ${key}, but the compose step is not. ` +
+          `${key} cannot take effect there.`,
+        );
+      }
+    }
+  });
+});
+
+// ───────── run.mjs refuses to run a plan under settings it cannot apply ─────────
+// The wiring test above guards evals.yml. This guards the harness itself, for
+// the local runs and any other caller: being told a ceiling the plan did not
+// freeze must fail loudly, not measure one value and report the other.
+
+describe("a plan-frozen setting cannot be overridden by a later phase", () => {
+  // A plan with no runs: the guard fires on reading the plan, before any
+  // prompt is looked for, so an empty one exercises it without a fixture or a
+  // network call.
+  const planWith = (meta) => {
+    const work = mkdtempSync(pjoin(tmpdir(), "bpr-plan-"));
+    const full = { model: "test/model", reps: 1, maxTokens: 8000, ref: "0000000", set: "smoke", fixtureCount: 0, ...meta };
+    writeFileSync(pjoin(work, "plan.json"), JSON.stringify({ meta: full, runs: [] }));
+    return work;
+  };
+  const runPhase = (work, phase, env) => spawnSync(
+    process.execPath, [pjoin(REPO_ROOT, "evals/run.mjs"), "--phase", phase],
+    { encoding: "utf8", env: { ...process.env, EVAL_WORK: work, OPENROUTER_API_KEY: "unused-no-runs-in-this-plan", ...env } },
+  );
+
+  test("a ceiling the plan did not freeze refuses the run", () => {
+    const work = planWith({ maxTokens: 8000 });
+    try {
+      const r = runPhase(work, "call", { EVAL_MAX_TOKENS: "24000" });
+      assert.equal(r.status, 2, `expected a refusal, got ${r.status}: ${r.stdout}${r.stderr}`);
+      assert.match(r.stderr, /can only use what the plan froze/);
+      assert.match(r.stderr, /24000[\s\S]*8000|8000[\s\S]*24000/, "the message must name both values");
+    } finally { rmSync(work, { recursive: true, force: true }); }
+  });
+
+  test("a model the plan did not freeze refuses the run", () => {
+    const work = planWith({ model: "test/model" });
+    try {
+      const r = runPhase(work, "score", { EVAL_MODEL: "someone/else" });
+      assert.equal(r.status, 2, `expected a refusal, got ${r.status}: ${r.stdout}${r.stderr}`);
+      assert.match(r.stderr, /can only use what the plan froze/);
+    } finally { rmSync(work, { recursive: true, force: true }); }
+  });
+
+  test("the SAME value is not a conflict — the workflow sets it on both steps", () => {
+    const work = planWith({ maxTokens: 24000, model: "test/model" });
+    try {
+      const r = runPhase(work, "call", { EVAL_MAX_TOKENS: "24000", EVAL_MODEL: "test/model" });
+      assert.equal(r.status, 0, `a matching value must proceed: ${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /Max tok: 24000/, "the banner must report the plan's ceiling, not the default");
+    } finally { rmSync(work, { recursive: true, force: true }); }
+  });
+
+  test("saying nothing inherits the plan, in every phase", () => {
+    const work = planWith({ maxTokens: 24000, model: "planned/model" });
+    try {
+      const r = runPhase(work, "call", {});
+      assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+      assert.match(r.stdout, /Model:\s+planned\/model/, "the banner must name the plan's model, not action.yml's default");
+    } finally { rmSync(work, { recursive: true, force: true }); }
   });
 });

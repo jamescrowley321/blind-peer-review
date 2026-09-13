@@ -78,6 +78,14 @@ function parseArgs(argv) {
     maxTokens: positiveInt(process.env.EVAL_MAX_TOKENS || "8000", "EVAL_MAX_TOKENS"),
     phase: process.env.EVAL_PHASE || "all",
     work: process.env.EVAL_WORK || join(ROOT, "evals", ".work"),
+    // Which of the plan-frozen settings the caller actually asked for, as
+    // opposed to inheriting from a default. `model` always holds a value, so
+    // the value alone cannot say whether anyone chose it — and a later phase
+    // must be able to tell "you asked for this" from "nobody said".
+    explicit: new Set(
+      [["model", process.env.EVAL_MODEL], ["maxTokens", process.env.EVAL_MAX_TOKENS]]
+        .filter(([, v]) => (v ?? "").trim() !== "").map(([k]) => k),
+    ),
   };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
@@ -86,10 +94,10 @@ function parseArgs(argv) {
     else if (k === "--write-baseline") a.writeBaseline = true;
     else if (k === "--reps") a.reps = positiveInt(value(argv, ++i, k), k);
     else if (k === "--concurrency") a.concurrency = positiveInt(value(argv, ++i, k), k);
-    else if (k === "--max-tokens") a.maxTokens = positiveInt(value(argv, ++i, k), k);
+    else if (k === "--max-tokens") { a.maxTokens = positiveInt(value(argv, ++i, k), k); a.explicit.add("maxTokens"); }
     else if (k === "--lens") a.lens = list(value(argv, ++i, k), k);
     else if (k === "--fixture") a.fixture = list(value(argv, ++i, k), k);
-    else if (k === "--model") a.model = value(argv, ++i, k);
+    else if (k === "--model") { a.model = value(argv, ++i, k); a.explicit.add("model"); }
     else if (k === "--out") a.out = value(argv, ++i, k);
     else if (k === "--work") a.work = value(argv, ++i, k);
     else if (k === "--phase") a.phase = value(argv, ++i, k);
@@ -147,7 +155,41 @@ async function compose() {
 
 function readPlan() {
   if (!existsSync(planPath)) die(`no plan at ${planPath} — run --phase compose first`);
-  return JSON.parse(readFileSync(planPath, "utf8"));
+  const plan = JSON.parse(readFileSync(planPath, "utf8"));
+  reconcile(plan);
+  return plan;
+}
+
+// `compose` freezes the model and the per-call ceiling into plan.json, and
+// `call` sends what the plan says. So a later phase can be TOLD a different
+// value and has no way to apply it.
+//
+// Being told and silently ignoring it is not hypothetical: evals.yml set
+// EVAL_MAX_TOKENS on the `call` step, the one phase that reads the frozen plan
+// instead of the environment, and a comparison of eight models dispatched at
+// 24000 ran every call at the 8000 default. The scorecards reported 8000
+// correctly and nobody read the line, so a model was written up as producing
+// output the action could not parse when the harness had cut it off.
+//
+// Refuse instead. Recomposing is offline and free; a re-measurement is neither.
+const PLAN_FROZEN = {
+  model: { label: "--model / EVAL_MODEL", get: (p) => p.meta.model },
+  maxTokens: { label: "--max-tokens / EVAL_MAX_TOKENS", get: (p) => p.meta.maxTokens },
+};
+
+function reconcile(plan) {
+  for (const [key, { label, get }] of Object.entries(PLAN_FROZEN)) {
+    if (!args.explicit.has(key)) continue;
+    const planned = get(plan);
+    if (String(planned) === String(args[key])) continue;
+    die(
+      `${label} says ${JSON.stringify(args[key])} but the plan at ${planPath} was composed with ` +
+      `${JSON.stringify(planned)}, and --phase ${args.phase} can only use what the plan froze. ` +
+      "Set it on --phase compose (in CI: the \"Compose prompts\" step) and recompose — composing " +
+      "is offline and costs nothing. Running on regardless would measure the plan's value and " +
+      "report yours.",
+    );
+  }
 }
 
 // ───────────────────────────────── call ─────────────────────────────────
@@ -261,10 +303,17 @@ async function scorePhase(plan) {
 
 // ───────────────────────────────── main ─────────────────────────────────
 
-console.log(`Model:   ${args.model}`);
-console.log(`Phase:   ${args.phase}\n`);
+// Report the plan's values, not this invocation's: in `call` and `score` the
+// plan is what runs, and a banner naming the default while the plan holds the
+// dispatched model is how a wrong-model run reads as a right one.
+function banner({ model, maxTokens }) {
+  console.log(`Model:   ${model}`);
+  console.log(`Phase:   ${args.phase}`);
+  console.log(`Max tok: ${maxTokens}\n`);
+}
 
 if (args.dryRun) {
+  banner(args);
   const plan = await compose();
   if (process.env.EVAL_PRINT_PROMPT) {
     for (const r of plan.runs) console.log("\n" + readFileSync(join(args.work, `${r.id}__${r.lensKey}.prompt.txt`), "utf8"));
@@ -273,10 +322,11 @@ if (args.dryRun) {
   process.exit(0);
 }
 
-if (args.phase === "compose") { await compose(); }
-else if (args.phase === "call") { await call(readPlan()); }
-else if (args.phase === "score") { await scorePhase(readPlan()); }
+if (args.phase === "compose") { banner(args); await compose(); }
+else if (args.phase === "call") { const plan = readPlan(); banner(plan.meta); await call(plan); }
+else if (args.phase === "score") { const plan = readPlan(); banner(plan.meta); await scorePhase(plan); }
 else {
+  banner(args);
   const plan = await compose();
   console.log("");
   await call(plan);

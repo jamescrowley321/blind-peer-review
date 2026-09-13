@@ -214,6 +214,13 @@ jobs:
           EVAL_MODEL: ${{ inputs.model }}
           EVAL_SET: ${{ needs.changes.outputs.set }}
           EVAL_REPS: ${{ inputs.reps }}
+          # Every setting `call` cannot change belongs HERE: compose freezes the
+          # model, the rep count and the ceiling into plan.json, and `call` sends
+          # what the plan says. This one was set on the `call` step instead, so
+          # eight dispatched model comparisons all ran at the 8000 default while
+          # the dispatch said 24000. run.mjs now refuses a mismatch rather than
+          # ignoring it, and contract.test.mjs asserts this wiring.
+          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '8000' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -228,10 +235,14 @@ jobs:
         if: steps.key.outputs.have == 'true'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          # Dispatch may raise these; push/schedule keep the polite defaults.
+          # In-flight calls are the one knob this phase genuinely owns — it is
+          # read at call time and changes nothing about what is measured.
+          # Dispatch may raise it; push keeps the polite default.
           EVAL_CONCURRENCY: ${{ inputs.concurrency || '4' }}
-          # run.mjs already reads EVAL_MAX_TOKENS; it was simply never reachable
-          # from a dispatch, so every comparison silently ran at the 8000 default.
+          # Repeated from compose on purpose, from the same expression, so the
+          # two can only differ if someone hand-edits one of them. When they do,
+          # run.mjs refuses the run rather than sending the plan's ceiling and
+          # reporting this one — which is the check this line exists to arm.
           EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '8000' }}
         shell: bash
         run: node evals/run.mjs --phase call

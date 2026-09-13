@@ -44,6 +44,13 @@ node evals/run.mjs --write-baseline   # record the scorecard and always exit 0
 | `call` | prompt files → model → response files | **yes** | no |
 | `score` | response files → the action's findings parser → scorecard | no | **yes** |
 
+`compose` writes `plan.json`, and `call` and `score` read it: the model, the rep
+count and the per-call ceiling are **decided at compose time**. Telling a later
+phase a different value is refused, not applied — the phase would otherwise
+measure the plan's value and report yours, which is exactly how eight dispatched
+model comparisons ran at the 8000 default while the dispatch said 24000. Change
+one and recompose; composing is offline and free.
+
 Locally `all` runs them back to back. CI runs them as three separate steps on
 purpose: the harness deliberately executes script text lifted from the pull
 request's own `action.yml`, so no step should hold `OPENROUTER_API_KEY` while

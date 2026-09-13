@@ -15,6 +15,8 @@
 
 import { execFileSync } from "node:child_process";
 import { runParseStep, ROOT } from "./lib/harness.mjs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const emit = (lens, findings = []) => JSON.stringify({ lens, summary: "s", findings });
 const at = (ref, path) => execFileSync("git", ["show", `${ref}:${path}`], { cwd: ROOT, encoding: "utf8" });
@@ -51,6 +53,27 @@ const GUARDS = [
     },
     expectAtHead: true, // this one SHOULD trip at HEAD — it is a rejection guard
   },
+  {
+    id: "max-tokens/dispatched-ceiling-never-applied",
+    file: ".github/workflows/evals.yml",
+    incident:
+      "evals.yml set EVAL_MAX_TOKENS on the `call` step. compose() freezes the ceiling into " +
+      "plan.json and call() sends plan.meta.maxTokens, so the dispatch input reached the one " +
+      "phase that cannot act on it. Eight model comparisons dispatched at 24000 ran every call " +
+      "at the 8000 default; one model was written up as unable to emit parseable JSON when the " +
+      "harness had been truncating it.",
+    prefixRef: "08d4d62", // the commit that added the input, believing it worked
+    guardedBy: 'contract.test.mjs → "EVAL_MAX_TOKENS is set on the compose step"',
+    // Reads the workflow rather than the action: this incident was wiring, and
+    // the step that consumes a setting is the claim under test.
+    async probe(yml) {
+      const wf = yml ?? readFileSync(join(ROOT, ".github/workflows/evals.yml"), "utf8");
+      const compose = wf.split(/\n {6}- (?=name:|uses:)/).slice(1).find((c) => /--phase compose/.test(c)) ?? "";
+      const env = compose.match(/\n {8}env:\n((?: {10}[^\n]*\n|\n)*)/)?.[1] ?? "";
+      const set = /^ {10}EVAL_MAX_TOKENS:/m.test(env);
+      return { tripped: !set, detail: set ? "compose receives EVAL_MAX_TOKENS" : "compose does NOT receive EVAL_MAX_TOKENS — the dispatched ceiling is silently dropped" };
+    },
+  },
 ];
 
 let failures = 0;
@@ -70,7 +93,7 @@ for (const g of GUARDS) {
   if (g.prefixRef) {
     let pre;
     try {
-      pre = await g.probe(at(g.prefixRef, "action.yml"));
+      pre = await g.probe(at(g.prefixRef, g.file ?? "action.yml"));
     } catch (e) {
       console.log(`      SKIP pre-fix replay at ${g.prefixRef}: ${e.message.split("\n")[0]}`);
       console.log("");

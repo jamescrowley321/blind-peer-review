@@ -373,7 +373,7 @@ test("every model the example can emit has a models_config override", () => {
   if (keys.length === 0) return; // no overrides in the example: nothing to pair
 
   const emitted = new Set();
-  const lensModels = yml.match(/^\s*LENS_MODELS:\s*\|\n([\s\S]*?)(?=^\s*[A-Z_]+:|\n\s*run:)/m);
+  const lensModels = yml.match(/^\s*lens_models:\s*\|\n([\s\S]*?)(?=^\s*[a-z_]+:\s)/m);
   if (lensModels) {
     for (const line of lensModels[1].split("\n")) {
       const row = line.replace(/#.*/, "").trim();
@@ -381,7 +381,7 @@ test("every model the example can emit has a models_config override", () => {
       if (eq > 0) emitted.add(row.slice(eq + 1).trim());
     }
   }
-  const dflt = yml.match(/^\s*DEFAULT_MODEL:\s*([^\s#]+)/m);
+  const dflt = yml.match(/^\s*default_model:\s*([^\s#]+)/m);
   if (dflt) emitted.add(dflt[1]);
 
   const uncovered = [...emitted].filter((m) => m && !keys.includes(m));

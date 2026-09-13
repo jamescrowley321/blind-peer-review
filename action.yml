@@ -24,10 +24,39 @@ branding:
   icon: 'shield'
   color: 'purple'
 
+outputs:
+  matrix:
+    description: "mode=config: {\"include\":[{lens,name,model}]} for the caller's review job `strategy.matrix`, and for this action's `lenses` input in mode=gate."
+    value: ${{ steps.lens_matrix.outputs.matrix }}
+
 inputs:
   mode:
-    description: "'lens' to run a single review persona, or 'gate' to aggregate and adjudicate."
+    description: "'config' to resolve the lens matrix, 'lens' to run a single review persona, 'gate' to aggregate and adjudicate, or 'preflight' to wait on prerequisite checks."
     required: true
+  enabled:
+    description: |
+      mode=config: the lens keys to run, ONE PER LINE, `#` comments allowed.
+      Unknown or repeated keys fail the job rather than being skipped: a lens the
+      caller believes is running but is not is the failure this input exists to
+      prevent. Display names come from lenses/manifest.json, so callers never
+      carry a copy of the registry.
+    required: false
+    default: ''
+  lens_models:
+    description: |
+      mode=config: optional per-lens model, `<lens> = <model>` ONE PER LINE.
+      Lenses are not the same kind of work — a policy lens checking a checkbox
+      does not need the model a red-team lens needs — and the review job's matrix
+      already carries a model per entry, so each lens can run on its own. Any lens
+      with no line here falls back to `default_model`. An unknown lens key fails
+      the job; ignoring it would leave that lens on the default while the config
+      claims otherwise.
+    required: false
+    default: ''
+  default_model:
+    description: "mode=config: model for any enabled lens with no `lens_models` line. Empty means the action's own default."
+    required: false
+    default: '' 
   lens:
     description: "Which persona to run when mode=lens: cold_read | edge_case | acceptance | security | red_team."
     required: false
@@ -140,9 +169,35 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # ── Config (mode=config): resolve the enabled lens set, and each lens's
+    #    model, into the matrix the caller's review job fans out over.
+    #
+    #    This lives here rather than in the caller's workflow because the caller's
+    #    config job used to be ~60 lines of inline Node that every consumer pasted
+    #    a copy of — untestable, unfixable centrally, and carrying a hardcoded
+    #    lens-key -> display-name table. lenses/manifest.json is the one list, and
+    #    a lint check already forbids action.yml from growing a second copy; the
+    #    example carried exactly the duplicate that check exists to prevent, just
+    #    outside its reach. Logic is in scripts/lens-matrix.mjs (unit-tested in
+    #    scripts/lens-matrix.test.mjs), same split as the models_config step. ──
+    - name: Resolve the lens matrix
+      id: lens_matrix
+      if: inputs.mode == 'config'
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        ENABLED: ${{ inputs.enabled }}
+        LENS_MODELS: ${{ inputs.lens_models }}
+        DEFAULT_MODEL: ${{ inputs.default_model }}
+      run: node "${{ github.action_path }}/scripts/lens-matrix.mjs"
+
     # ── Shared context: resolve the effective PR number and lens display names. ──
+    #    Skipped for mode=config: that mode resolves the matrix from the registry
+    #    alone and needs no PR, so requiring one would stop a caller resolving its
+    #    lens set outside a pull_request event.
     - name: Resolve context and lens names
       id: ctx
+      if: inputs.mode != 'config'
       shell: node {0}
       env:
         IN_MODE: ${{ inputs.mode }}

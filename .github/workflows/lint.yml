@@ -32,6 +32,8 @@ jobs:
             "scripts/run-local.mjs",
             "scripts/models-config.mjs",
             "scripts/models-config.test.mjs",
+            "scripts/lens-matrix.mjs",
+            "scripts/lens-matrix.test.mjs",
             "scripts/check-example.mjs",
           ];
           const missing = required.filter((f) => !fs.existsSync(f));
@@ -48,6 +50,17 @@ jobs:
           if (/const NAMES = \{/.test(action)) {
             console.log("::error::action.yml has grown a lens table again — it must read lenses/manifest.json");
             process.exit(1);
+          }
+          // Same ban, applied where the copy actually shipped. The example's config
+          // job carried a hardcoded key -> display-name table for as long as this
+          // check has existed, because the check only ever read action.yml — so the
+          // duplicate it exists to prevent lived in the file every consumer copies.
+          for (const f of ["examples/caller-workflow.yml", ".github/workflows/self-review.yml"]) {
+            const txt = fs.readFileSync(f, "utf8");
+            if (/const NAMES = \{/.test(txt)) {
+              console.log(`::error::${f} has grown a lens table — use the action's 'mode: config', which reads lenses/manifest.json`);
+              process.exit(1);
+            }
           }
           const missingPersona = LENSES.filter((l) => !fs.existsSync(`lenses/${l}.md`));
           if (missingPersona.length) {
@@ -95,6 +108,9 @@ jobs:
       - name: Syntax-check the models-config module
         run: node --check scripts/models-config.mjs
 
+      - name: Syntax-check the lens-matrix module
+        run: node --check scripts/lens-matrix.mjs
+
       - name: Syntax-check the vendor script
         run: node --check scripts/vendor.mjs
 
@@ -126,6 +142,9 @@ jobs:
 
       - name: Unit-test models-config validation (allowlist, types, clean-state)
         run: node --test scripts/models-config.test.mjs
+
+      - name: Unit-test the lens matrix resolver (mode=config)
+        run: node --test scripts/lens-matrix.test.mjs
 
       - name: Validate the example workflow's models_config against the allowlist
         run: node scripts/check-example.mjs

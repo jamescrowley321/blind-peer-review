@@ -7,6 +7,8 @@ import {
   validateModelsConfig,
   writeModelsConfig,
   modelsJsonPath,
+  modelKeyMismatch,
+  overriddenModelIds,
   MAX_BYTES,
 } from "./models-config.mjs";
 import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
@@ -285,5 +287,93 @@ test("writeModelsConfig rejects dangerous input before touching disk", () => {
     assert.ok(!existsSync(join(home, ".pi", "agent", "models.json")));
   } finally {
     rmSync(home, { recursive: true, force: true });
+  }
+});
+
+// ─────────── Routing overrides are keyed by model id (silent-detach) ───────────
+// `modelOverrides` is a map FROM MODEL ID, so a config written for one slug
+// applies to nothing once `model:` points elsewhere. The JSON stays valid, pi
+// still starts, the lens still reviews — and a `zdr: true` / `data_collection:
+// deny` floor the caller believes is in force is simply never applied. Nothing
+// used to notice. These pin the warning that now does.
+
+const overridesFor = (id) =>
+  JSON.stringify({
+    providers: {
+      openrouter: {
+        modelOverrides: { [id]: { compat: { openRouterRouting: { zdr: true } } } },
+      },
+    },
+  });
+
+test("modelKeyMismatch warns when the overrides name a different model", () => {
+  const cfg = validateModelsConfig(overridesFor("google/gemini-2.5-pro"));
+  const w = modelKeyMismatch(cfg, "anthropic/claude-sonnet-5");
+  assert.ok(w, "a config that applies to nothing must not pass silently");
+  assert.match(w, /google\/gemini-2\.5-pro/, "names the stale key");
+  assert.match(w, /anthropic\/claude-sonnet-5/, "names the model actually running");
+  assert.match(w, /zdr|data_collection/, "says what is silently not in force");
+});
+
+test("modelKeyMismatch is silent when the config covers the active model", () => {
+  const cfg = validateModelsConfig(overridesFor("anthropic/claude-sonnet-5"));
+  assert.equal(modelKeyMismatch(cfg, "anthropic/claude-sonnet-5"), null);
+});
+
+test("modelKeyMismatch is silent when one of several keys matches", () => {
+  // The per-lens model matrix pins overrides for a set wider than any one run.
+  const cfg = validateModelsConfig(
+    JSON.stringify({
+      providers: {
+        openrouter: {
+          modelOverrides: {
+            "anthropic/claude-sonnet-5": { compat: { openRouterRouting: { zdr: true } } },
+            "z-ai/glm-5.3-flash": { compat: { openRouterRouting: { zdr: true } } },
+          },
+        },
+      },
+    }),
+  );
+  assert.equal(modelKeyMismatch(cfg, "z-ai/glm-5.3-flash"), null);
+  assert.equal(modelKeyMismatch(cfg, "anthropic/claude-sonnet-5"), null);
+  assert.ok(modelKeyMismatch(cfg, "openai/gpt-5.6-luna-pro"));
+});
+
+test("modelKeyMismatch is silent when no model is pinned", () => {
+  // `model:` unset means the action default runs; the caller has not asserted a
+  // pairing, so there is nothing to contradict.
+  const cfg = validateModelsConfig(overridesFor("google/gemini-2.5-pro"));
+  assert.equal(modelKeyMismatch(cfg, ""), null);
+  assert.equal(modelKeyMismatch(cfg, undefined), null);
+});
+
+test("modelKeyMismatch is silent when the config carries no modelOverrides", () => {
+  assert.equal(modelKeyMismatch({ providers: { openrouter: {} } }, "anthropic/claude-sonnet-5"), null);
+  assert.equal(modelKeyMismatch({}, "anthropic/claude-sonnet-5"), null);
+});
+
+test("overriddenModelIds collects ids across providers, deduped", () => {
+  const cfg = {
+    providers: {
+      openrouter: { modelOverrides: { a: {}, b: {} } },
+      other: { modelOverrides: { b: {}, c: {} } },
+    },
+  };
+  assert.deepEqual(overriddenModelIds(cfg).sort(), ["a", "b", "c"]);
+});
+
+test("the example workflow's models_config matches its own model pin", () => {
+  // The example is what people copy. If its override key and its `model:` ever
+  // disagree, every copy ships with the routing floor detached.
+  const yml = readFileSync(join(import.meta.dirname, "..", "examples", "caller-workflow.yml"), "utf8");
+  const keys = [...yml.matchAll(/^\s{20,}"([a-z0-9-]+\/[^"]+)":\s*\{/gim)].map((m) => m[1]);
+  if (keys.length === 0) return; // no overrides in the example: nothing to pair
+  const pinned = yml.match(/^\s*model:\s*([^\s#]+)/m);
+  const active = pinned ? pinned[1] : null;
+  if (active) {
+    assert.ok(
+      keys.includes(active),
+      `example pins model: ${active} but its modelOverrides keys are ${keys.join(", ")}`,
+    );
   }
 });

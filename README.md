@@ -17,7 +17,7 @@ pre-push runner. Tune a lens once; every harness picks it up.
 
 ## The lenses
 
-Five adversarial defect-hunters, plus optional Compliance and OWASP lenses — all
+Five adversarial defect-hunters, plus optional Policy & Provenance and OWASP lenses — all
 run in parallel:
 
 | Lens | Looks for | Blocks merge on |
@@ -27,7 +27,7 @@ run in parallel:
 | **Acceptance Criteria** | Whether every acceptance criterion in the PR body is implemented *and* tested | Unmet / partial ACs |
 | **Security Review** | Exploitable vulnerabilities (OWASP-aligned), concrete attack scenario required | Confirmed/likely exploits |
 | **Red Team** | Red-team attack paths — only active when auth/crypto/middleware/infra changes | Critical/high exploit chains |
-| **Compliance** *(opt-in)* | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
+| **Policy & Provenance** *(opt-in)* | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
 | **OWASP Web Top 10** *(opt-in)* | The 2021 web risks (A01–A10), each finding tagged with its category | Exploitable A0x issues |
 | **OWASP LLM Top 10** *(opt-in)* | The GenAI/LLM 2026 risks (LLM01–LLM10); activates only on AI/LLM code | Exploitable LLM0x issues |
 
@@ -45,7 +45,7 @@ Findings use one severity vocabulary: **MUST FIX** (blocks), **SHOULD FIX**,
 That's it — every PR to `main` now gets a multi-lens adversarial review, and the
 merge is blocked until the MUST FIX findings are resolved.
 
-> The example already grants what the lenses need: **`issues: read`** (the Compliance
+> The example already grants what the lenses need: **`issues: read`** (the Policy & Provenance
 > lens reads the PR thread) and **`timeout-minutes: 15`** on the review job (verbose
 > security lenses run 6–8 min on a large diff). Keep both if you adapt it.
 
@@ -135,9 +135,9 @@ every PR). Preflight polls until they complete, **fails** if any fails (so the
 lenses are skipped), and gives up after `preflight_timeout_seconds` (default
 600). The preflight job needs `permissions: { checks: read }`.
 
-## Compliance & AI-provenance policy
+## Policy & Provenance (AI-provenance policy)
 
-The **Compliance** lens is a review agent for governance rather than defects. It
+The **Policy & Provenance** lens is a review agent for governance rather than defects. It
 reads the PR and enforces a built-in baseline:
 
 - **AI-provenance disclosure** — an AI-assisted PR must state the **harness/agent**
@@ -145,7 +145,7 @@ reads the PR and enforces a built-in baseline:
 - **Human accountability** — a named human is responsible for the change.
 - **No committed secrets or private data.**
 
-In CI the Compliance lens enforces **only** this trusted baseline — it does not
+In CI the Policy & Provenance lens enforces **only** this trusted baseline — it does not
 read any rules file out of the pull request under review, so a PR can't weaken its
 own policy check (prompt-injection safety). To add project-specific policy for
 **local** review, commit `.blind-peer-review/lenses/policy.md` (a trusted
@@ -156,6 +156,22 @@ block contributors fill in.
 Because it's an agent (not a regex), it catches undisclosed AI-authored PRs and
 policy violations the same way the other lenses catch bugs. Like the other
 lenses it runs on pi and needs the provider secret, so it can't run on fork PRs.
+
+> [!IMPORTANT]
+> **Enabling this lens? Add `edited` to your workflow's `types`.** It is the only
+> lens that blocks on the PR *body* rather than the diff, so the fix for its
+> findings — writing the provenance block, ticking the accountability box — changes
+> no SHA and fires none of the other triggers. Without `edited`, the one action
+> that clears the finding cannot re-run the check that is blocking you:
+>
+> ```yaml
+> on:
+>   pull_request:
+>     types: [opened, synchronize, reopened, ready_for_review, edited]
+> ```
+>
+> The `concurrency` block in the example keeps the cost bounded — a burst of edits
+> cancels its own superseded runs.
 
 ## Versioning
 

@@ -64,6 +64,10 @@ on:
         description: "Repetitions per fixture (a verdict must be unanimous to pass)"
         type: string
         default: "3"
+      concurrency:
+        description: "In-flight model calls per run. 4 is polite for a scheduled baseline; raise it for an interactive comparison you are waiting on."
+        type: string
+        default: "4"
 
 permissions:
   contents: read
@@ -72,8 +76,19 @@ permissions:
 # per-merge scorecard, and a burst of merges silently discarded one (the
 # 8d77928 baseline was killed 3 minutes in by the next merge). Losing the
 # measurement defeats the reason the paid layer runs on main at all.
+#
+# The model is part of the key so a MODEL COMPARISON can actually run. Without
+# it, every dispatch shares one group, and GitHub keeps only ONE pending run per
+# group — a third dispatch replaces the second, so fanning out N models silently
+# drops all but two and yields a comparison with holes that looks complete. The
+# only safe shape was one-at-a-time: scoring 7 models took 7 x 22 minutes when
+# the work is entirely independent.
+#
+# `inputs.model` is empty for push and pull_request, so those keep the exact
+# group they had and the no-cancel-on-main protection above is unchanged. Only
+# workflow_dispatch gains a per-model group.
 concurrency:
-  group: evals-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: evals-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.model }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -209,7 +224,8 @@ jobs:
         if: steps.key.outputs.have == 'true'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          EVAL_CONCURRENCY: "4"
+          # Dispatch may raise this; push/schedule keep the polite default.
+          EVAL_CONCURRENCY: ${{ inputs.concurrency || '4' }}
         shell: bash
         run: node evals/run.mjs --phase call
 

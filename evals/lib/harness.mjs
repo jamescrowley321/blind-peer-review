@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 const require_ = createRequire(import.meta.url);
 const gateModule = require_("../../scripts/gate.cjs");
 const preflightModule = require_("../../scripts/preflight.cjs");
+const parseModule = require_("../../scripts/parse-and-post.cjs");
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -111,7 +112,17 @@ export async function runParseStep({
   dismissSuperseded = "false", cleanupAgentComments = "true", agentSuccess = "true", yml = null,
   lensHeading = undefined, submitted = undefined,
 }) {
-  const src = extractStepScript(yml ?? actionYml(), "Parse findings + post review", "script");
+  // Dual path, and the asymmetry is deliberate.
+  //
+  // `yml` is supplied only by verify-guards.mjs, which proves each regression
+  // guard is load-bearing by replaying a HISTORICAL action.yml and asserting the
+  // guard trips on the code that shipped the incident. Those commits predate the
+  // extraction and contain the logic as an inline block, so the only way to run
+  // them is to lift the string — importing the module would run TODAY's code
+  // against a historical label and report PASS while proving nothing.
+  //
+  // Everything else runs the shipped module, so the ordinary path has no second
+  // copy of this logic and no step-name coupling.
   const core = makeCore();
   const github = makeGithub({ files, reviews, reviewComments, issueComments, failIssueList });
   // `submitted` stands in for the file submit_findings writes. A string is
@@ -120,22 +131,26 @@ export async function runParseStep({
   const dir = submitted === undefined ? null : mkdtempSync(join(tmpdir(), "adv-submit-"));
   const findingsPath = dir ? join(dir, "adversarial-findings.json") : "";
   if (dir) writeFileSync(findingsPath, typeof submitted === "string" ? submitted : JSON.stringify(submitted, null, 2));
+  const env = {
+    LENS_NAME: lensName,
+    PR_NUMBER: String(PR_NUMBER),
+    AGENT_RESPONSE: agentResponse,
+    AGENT_SUCCESS: agentSuccess,
+    DISMISS_SUPERSEDED: dismissSuperseded,
+    CLEANUP_AGENT_COMMENTS: cleanupAgentComments,
+    FINDINGS_PATH: findingsPath,
+    // CI publishes this from the compose step; default to the same value so
+    // the evals exercise what production actually passes.
+    LENS_HEADING: lensHeading === undefined ? headingForDisplayName(lensName) : lensHeading,
+  };
+  const context = makeContext();
   try {
-    await runGithubScript(src, {
-      core, github, context: makeContext(),
-      env: {
-        LENS_NAME: lensName,
-        PR_NUMBER: String(PR_NUMBER),
-        AGENT_RESPONSE: agentResponse,
-        AGENT_SUCCESS: agentSuccess,
-        DISMISS_SUPERSEDED: dismissSuperseded,
-        CLEANUP_AGENT_COMMENTS: cleanupAgentComments,
-        FINDINGS_PATH: findingsPath,
-        // CI publishes this from the compose step; default to the same value so
-        // the evals exercise what production actually passes.
-        LENS_HEADING: lensHeading === undefined ? headingForDisplayName(lensName) : lensHeading,
-      },
-    });
+    if (yml === null) {
+      await parseModule.run({ core, github, context, env });
+    } else {
+      const src = extractStepScript(yml, "Parse findings + post review", "script");
+      await runGithubScript(src, { core, github, context, env });
+    }
   } finally {
     if (dir) rmSync(dir, { recursive: true, force: true });
   }

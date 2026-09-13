@@ -39,6 +39,7 @@ jobs:
             "scripts/preflight.cjs",
             "scripts/resolve-context.cjs",
             "scripts/compose-prompt.cjs",
+            "scripts/parse-and-post.cjs",
             "scripts/check-example.mjs",
           ];
           const missing = required.filter((f) => !fs.existsSync(f));
@@ -123,6 +124,7 @@ jobs:
           node --check scripts/preflight.cjs
           node --check scripts/resolve-context.cjs
           node --check scripts/compose-prompt.cjs
+          node --check scripts/parse-and-post.cjs
 
       - name: Syntax-check the vendor script
         run: node --check scripts/vendor.mjs

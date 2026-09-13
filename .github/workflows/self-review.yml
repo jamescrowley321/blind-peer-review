@@ -74,10 +74,14 @@ jobs:
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - id: pick
-        shell: node {0}
-        env:
-          ENABLED: |
+        uses: ./
+        with:
+          mode: config
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # owasp_llm is enabled on purpose — this action is itself an LLM app.
+          enabled: |
             cold_read
             edge_case
             acceptance
@@ -86,28 +90,6 @@ jobs:
             policy
             owasp_web
             owasp_llm
-        run: |
-          const NAMES = {
-            "cold_read": "Cold Read", "edge_case": "Edge Cases",
-            acceptance: "Acceptance Criteria", security: "Security Review", "red_team": "Red Team",
-            policy: "Policy & Provenance", "owasp_web": "OWASP Web Top 10",
-            "owasp_llm": "OWASP LLM Top 10",
-          };
-          const keys = (process.env.ENABLED || "").split("\n")
-            .map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
-          if (keys.length === 0) throw new Error("At least one review lens must be enabled");
-          const unknown = keys.filter((k) => !Object.prototype.hasOwnProperty.call(NAMES, k));
-          if (unknown.length > 0) throw new Error(`Unknown review lenses: ${unknown.join(", ")}`);
-          const include = keys.map((k) => ({ lens: k, name: NAMES[k] }));
-          const fs = require("fs");
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({ include })}\n`);
-
-  # Spend controls (no approval gate — an approval environment can't stop the
-  # same-repo threat it appears to, because `on: pull_request` runs the workflow
-  # as edited by the PR's own commits; see SECURITY.md). Spend is bounded instead
-  # by: a budget-capped OpenRouter key, fork PRs getting no secret (+ the
-  # fork/dependabot `if:` guards below), the diff caps, `timeout-minutes`, and
-  # `concurrency: cancel-in-progress` + the `cancel-stale` job.
   review:
     name: ${{ matrix.name }}
     needs: config

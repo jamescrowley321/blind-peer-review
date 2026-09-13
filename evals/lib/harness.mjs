@@ -47,7 +47,7 @@ export function makeContext({ headSha = HEAD_SHA } = {}) {
  * Reviews created during the run are appended, so the post step's own
  * "did it land on head?" verification sees them — exactly as in production.
  */
-export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false } = {}) {
+export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false, checkRuns = [] } = {}) {
   const created = [];
   const dismissed = [];
   const minimized = [];
@@ -89,7 +89,7 @@ export function makeGithub({ files = [], reviews = [], reviewComments = [], issu
         },
         deleteComment: async (p) => { deletedComments.push(p.comment_id); return { data: {} }; },
       },
-      checks: { listForRef: async () => ({ data: [] }) },
+      checks: { listForRef: async () => ({ data: checkRuns }) },
     },
   };
   return gh;
@@ -157,6 +157,34 @@ export async function runGateStep({ expected, reviews, headSha = HEAD_SHA, yml =
     env: { EXPECTED: expected.join("|"), PR_NUMBER: String(PR_NUMBER) },
   });
   return { failed: core.failed, passed: core.failed == null, core };
+}
+
+/**
+ * Drive action.yml's "Wait for prerequisite checks" (preflight) step.
+ * `pollMs: 0` keeps the loop from actually sleeping, so a timeout case is
+ * instant rather than real time.
+ */
+export async function runPreflightStep({
+  required, checkRuns = [], headSha = HEAD_SHA, timeoutS = "0", pollS = "0", graceS = null, yml = null,
+}) {
+  const src = extractStepScript(yml ?? actionYml(), "Wait for prerequisite checks", "script");
+  const core = makeCore();
+  const github = makeGithub({ checkRuns });
+  await runGithubScript(src, {
+    core, github, context: makeContext({ headSha }),
+    env: {
+      REQUIRED_CHECKS: Array.isArray(required) ? required.join("\n") : String(required),
+      TIMEOUT_S: String(timeoutS),
+      POLL_S: String(pollS),
+      ...(graceS === null ? {} : { MISSING_GRACE_S: String(graceS) }),
+    },
+  });
+  return { failed: core.failed, passed: core.failed == null, log: core.infos.join("\n"), core };
+}
+
+/** One check run as GitHub's checks.listForRef returns it. */
+export function checkRun({ name, conclusion = "success", status = "completed", started_at = "2026-01-01T00:00:00Z" }) {
+  return { name, status, conclusion, started_at };
 }
 
 /** A minimal two-line PR file so inline-comment anchoring always has a target. */

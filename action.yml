@@ -479,6 +479,9 @@ runs:
       shell: bash
       env:
         MODELS_CONFIG: ${{ inputs.models_config }}
+        # The routing overrides are keyed by model id, so the step needs to know
+        # which model this lens actually runs to tell whether they apply at all.
+        MODEL: ${{ inputs.model }}
       run: node "${{ github.action_path }}/scripts/models-config.mjs"
 
     - name: Run adversarial lens

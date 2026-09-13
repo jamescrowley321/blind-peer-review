@@ -235,15 +235,61 @@ export function writeModelsConfig(raw, home) {
   return { path: file, action: "wrote" };
 }
 
-// CLI entrypoint for the action step: `node models-config.mjs` reads MODELS_CONFIG
-// and HOME from env, writes (or cleans), and prints a GitHub Actions summary.
+/**
+ * Model ids a validated models_config carries routing overrides for.
+ * `providers.<provider>.modelOverrides.<model>` — the <model> keys, deduped.
+ */
+export function overriddenModelIds(config) {
+  const ids = new Set();
+  for (const provider of Object.values(config?.providers ?? {})) {
+    for (const id of Object.keys(provider?.modelOverrides ?? {})) ids.add(id);
+  }
+  return [...ids];
+}
+
+/**
+ * Warn when the routing overrides name no model the lens will actually use.
+ *
+ * The overrides are keyed BY MODEL ID, so a config written for one slug applies
+ * to nothing once `model:` moves to another. Nothing else notices: the JSON is
+ * still structurally valid, pi still starts, the lens still reviews — and a
+ * `zdr: true` / `data_collection: deny` floor that the caller believes is in
+ * force is simply not applied to any request. A silently dropped privacy control
+ * is worth a loud warning even though it cannot fail the job: failing would break
+ * every caller who deliberately pins overrides for a model set wider than one
+ * lens run (the per-lens model matrix does exactly that).
+ *
+ * Returns the warning string, or null when the config covers this model.
+ */
+export function modelKeyMismatch(config, model) {
+  const active = (model || "").trim();
+  if (!active) return null;               // no model pinned: the default applies, nothing to check
+  const ids = overriddenModelIds(config);
+  if (ids.length === 0) return null;      // overrides for nothing in particular
+  if (ids.includes(active)) return null;
+  return (
+    `models_config has routing overrides for ${ids.map((i) => `'${i}'`).join(", ")} ` +
+    `but this lens runs '${active}', so NONE of them apply to this request — any ` +
+    `zdr/data_collection floor they set is silently not in force. Add a ` +
+    `'${active}' entry under providers.<provider>.modelOverrides (the keys are ` +
+    `model ids; changing 'model:' does not change them).`
+  );
+}
+
+// CLI entrypoint for the action step: `node models-config.mjs` reads MODELS_CONFIG,
+// MODEL and HOME from env, writes (or cleans), and prints a GitHub Actions summary.
 // Exits non-zero on any validation error (loud failure).
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
-    const { path: p, action } = writeModelsConfig(process.env.MODELS_CONFIG || "", process.env.HOME);
+    const raw = process.env.MODELS_CONFIG || "";
+    const { path: p, action } = writeModelsConfig(raw, process.env.HOME);
     if (action === "wrote") console.log(`Wrote ${p}`);
     else if (action === "removed") console.log(`Removed stale ${p}`);
     else console.log(`No models_config supplied; no ${p} to remove.`);
+    if (action === "wrote") {
+      const warning = modelKeyMismatch(validateModelsConfig(raw), process.env.MODEL);
+      if (warning) console.log(`::warning::${warning}`);
+    }
   } catch (e) {
     console.log(`::error::${e.message}`);
     process.exit(1);

@@ -11,6 +11,21 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.0.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.0.0...v3.0.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **evals:** let a model comparison actually run in parallel ([#64](https://github.com/jamescrowley321/blind-peer-review/issues/64)) ([269b3e1](https://github.com/jamescrowley321/blind-peer-review/commit/269b3e167f54b66b2c6063ef09dc578b49d402d7))
+* **preflight:** tell a missing check name apart from a pending one ([#60](https://github.com/jamescrowley321/blind-peer-review/issues/60)) ([6cc75b0](https://github.com/jamescrowley321/blind-peer-review/commit/6cc75b036325bc30a1e78e13751940bb343563d0))
+* supersede a lens's prior reviews on the same commit ([#59](https://github.com/jamescrowley321/blind-peer-review/issues/59)) ([6d800ff](https://github.com/jamescrowley321/blind-peer-review/commit/6d800ff1ac3277730e368e8e101b7d00107d2bd3))
+* warn when models_config routing applies to no model the lens runs ([#62](https://github.com/jamescrowley321/blind-peer-review/issues/62)) ([63bbba1](https://github.com/jamescrowley321/blind-peer-review/commit/63bbba1b53da2dfc77501ebb778d5749934f36db))
+
+
+### Documentation
+
+* add `edited` to the trigger types, and call the policy lens by its name ([#61](https://github.com/jamescrowley321/blind-peer-review/issues/61)) ([e80cc9c](https://github.com/jamescrowley321/blind-peer-review/commit/e80cc9ceeda11a8998be962d2bcfb28e6a79a18c))
+
 ## [3.0.0](https://github.com/jamescrowley321/blind-peer-review/compare/v2.0.0...v3.0.0) (2026-09-08)
 
 

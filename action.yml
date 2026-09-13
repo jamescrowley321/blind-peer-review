@@ -1023,7 +1023,7 @@ runs:
         PR_NUMBER: ${{ steps.ctx.outputs.pr_number }}
       with:
         script: |
-          const { run } = require(`${process.env.GITHUB_ACTION_PATH}/scripts/gate.cjs`);
+          const { run } = require("${{ github.action_path }}/scripts/gate.cjs");
           await run({ core, github, context, env: process.env });
 
     # ── Preflight (mode=preflight): wait for the cheap deterministic checks to
@@ -1037,5 +1037,5 @@ runs:
         POLL_S: ${{ inputs.preflight_poll_seconds }}
       with:
         script: |
-          const { run } = require(`${process.env.GITHUB_ACTION_PATH}/scripts/preflight.cjs`);
+          const { run } = require("${{ github.action_path }}/scripts/preflight.cjs");
           await run({ core, github, context, env: process.env });

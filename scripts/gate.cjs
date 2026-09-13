@@ -15,9 +15,23 @@
 // is passed for the same reason: the module never touches process.env.
 
 async function run({ core, github, context, env }) {
+  // Validated here, not assumed. action.yml always sets both, but a module that
+  // crashes on a TypeError when it does not is a module whose failure mode is a
+  // stack trace in a log nobody reads to the end — and the gate FAILS CLOSED, so
+  // that trace is what stands between a PR and a merge.
   const prNumber = Number(env.PR_NUMBER);
+  if (!Number.isInteger(prNumber) || prNumber < 1) {
+    core.setFailed(`PR_NUMBER must be a positive integer (got ${JSON.stringify(env.PR_NUMBER)})`);
+    return;
+  }
   const headSha = context.payload.pull_request.head.sha;
-  const EXPECTED = env.EXPECTED.split("|").filter(Boolean);
+  const EXPECTED = (env.EXPECTED || "").split("|").filter(Boolean);
+  if (EXPECTED.length === 0) {
+    // No expected lenses means every lens "reported" vacuously — a gate that
+    // passes because it was asked to check nothing.
+    core.setFailed("EXPECTED is empty — the gate would pass without checking any lens.");
+    return;
+  }
 
   const reviews = await github.paginate(github.rest.pulls.listReviews, {
     owner: context.repo.owner,

@@ -1609,6 +1609,16 @@ describe("extracted step modules stay wired to action.yml", () => {
         body, /await run\(\{ core, github, context, env: process\.env \}\)/,
         `step "${step}" must call run({core, github, context, env})`,
       );
+      // The require path must come from the github.action_path CONTEXT, expanded
+      // by the runner, not from an env var that a prior step in the same job
+      // could rewrite through GITHUB_ENV. Defence in depth — anyone able to set
+      // that already runs code in this job — but it costs nothing not to depend
+      // on it, so the dependency should not come back.
+      assert.ok(
+        !/process\.env\.GITHUB_ACTION_PATH/.test(body),
+        `step "${step}" builds its require() path from process.env.GITHUB_ACTION_PATH — ` +
+        "use the github.action_path context instead",
+      );
     });
   }
 

@@ -23,8 +23,18 @@ async function run({ core, github, context, env }) {
   if (!required.length) { core.info("No required_checks configured — preflight passes."); return; }
 
   const headSha = context.payload.pull_request.head.sha;
-  const timeoutMs = Number(env.TIMEOUT_S || "1500") * 1000;
-  const pollMs = Number(env.POLL_S || "30") * 1000;
+  // Number("abc") is NaN, and every comparison against NaN is false — so a
+  // mistyped timeout does not error, it silently disables the timeout and the
+  // loop polls until the job's own limit kills it.
+  const secs = (raw, dflt, name) => {
+    const n = Number(raw ?? dflt);
+    if (!Number.isFinite(n) || n < 0) {
+      throw new Error(`${name} must be a non-negative number of seconds (got ${JSON.stringify(raw)})`);
+    }
+    return n * 1000;
+  };
+  const timeoutMs = secs(env.TIMEOUT_S || "1500", "1500", "preflight_timeout_seconds");
+  const pollMs = secs(env.POLL_S || "30", "30", "preflight_poll_seconds");
   const start = Date.now();
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const FAIL = ["failure", "cancelled", "timed_out", "action_required", "stale"];
@@ -33,7 +43,7 @@ async function run({ core, github, context, env }) {
   //: the same SHA, so a genuinely slow-to-register check is unaffected.
   //: Env-overridable so the contract evals can exercise the early-fail path
   //: without waiting it out; deliberately NOT an action input.
-  const MISSING_GRACE_MS = Number(env.MISSING_GRACE_S ?? "90") * 1000;
+  const MISSING_GRACE_MS = secs(env.MISSING_GRACE_S ?? "90", "90", "MISSING_GRACE_S");
   //: Cap the diagnostic name list; a busy PR can carry dozens of checks.
   const MAX_OBSERVED_SHOWN = 40;
 

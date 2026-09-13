@@ -113,7 +113,7 @@ inputs:
     default: 'true'
 
   dismiss_superseded:
-    description: "mode=lens: when true (default), once the new review lands the lens dismisses its OWN prior reviews from earlier commits and collapses their inline comments as OUTDATED, so re-runs on new pushes do not pile up stale noise. Set to false to keep every historical review. Best-effort and cosmetic; needs pull-requests write (already required to post)."
+    description: "mode=lens: when true (default), once the new review lands the lens dismisses its OWN prior reviews and collapses their inline comments as OUTDATED, so re-runs do not pile up stale noise. Includes prior reviews on the SAME commit: a lens that blocks on PR-body content is cleared by an edit, which changes no SHA, so the clearing run supersedes a review on the commit it is already on. The lens never dismisses the review it just posted, and only ever its own. Set to false to keep every historical review. Best-effort and cosmetic; needs pull-requests write (already required to post)."
     required: false
     default: 'true'
   required_checks:
@@ -795,10 +795,19 @@ runs:
           }
 
           // ── 7. Reconcile: once the new review has landed, dismiss THIS lens's
-          //    superseded reviews (from earlier commits) and collapse their inline
-          //    comments as OUTDATED, so re-runs on new pushes don't pile up stale
-          //    noise. Best-effort and cosmetic — a failure here never fails the
-          //    lens, and the gate already scopes adjudication to the head SHA.
+          //    superseded reviews and collapse their inline comments as OUTDATED,
+          //    so re-runs don't pile up stale noise. Best-effort and cosmetic — a
+          //    failure here never fails the lens, and the gate already scopes
+          //    adjudication to the head SHA.
+          //    Superseding is NOT limited to earlier commits. A lens that blocks on
+          //    PR-body content (Policy & Provenance: provenance disclosure, the
+          //    accountability attestation) is cleared by editing the body, which
+          //    changes no SHA — so the clearing re-run lands on the same commit as
+          //    the review it supersedes. Skipping those left the old
+          //    CHANGES_REQUESTED live, and GitHub's aggregate reviewDecision kept
+          //    the PR BLOCKED behind a green Merge Gate. `r.id !== review.data.id`
+          //    below is what keeps this safe: a lens never dismisses the review it
+          //    just posted.
           //    Each lens only touches its OWN `## <Lens>` reviews (header match),
           //    so lenses running in parallel never collide. ──
           // Parse the opt-out explicitly and fail CLOSED: this collapses comments
@@ -819,7 +828,6 @@ runs:
                   isBot(r) &&
                   ownsReview(r) &&
                   r.commit_id &&
-                  r.commit_id !== headSha &&
                   r.state !== "DISMISSED" &&
                   r.id !== review.data.id,
               );

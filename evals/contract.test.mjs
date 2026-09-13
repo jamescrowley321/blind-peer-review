@@ -350,6 +350,120 @@ describe("merge gate", () => {
   });
 });
 
+// ──────────── Superseding: re-runs on ONE commit (identity-model #656) ────────────
+// `dismiss_superseded` filtered prior reviews with `r.commit_id !== headSha`, so
+// it could only ever supersede reviews from EARLIER commits. Two runs on the SAME
+// commit therefore both stood.
+//
+// That is not a corner case — it is the normal way a blocking finding gets
+// cleared. The Policy lens blocks on PR-BODY content (missing provenance, an
+// unchecked accountability box), and the fix for that is editing the body, which
+// changes no SHA. The author edits, re-runs, the lens now passes and posts
+// COMMENTED — and the old CHANGES_REQUESTED from the same SHA is still live, so
+// GitHub's aggregate reviewDecision stays CHANGES_REQUESTED and the PR stays
+// BLOCKED with a green Merge Gate. identity-model#656 sat exactly there, with two
+// Policy & Provenance CHANGES_REQUESTED on 7bee163 twenty-one minutes apart.
+//
+// The guard that makes dropping the SHA check safe is the `r.id !== review.data.id`
+// clause right beside it: a lens never dismisses the review it just posted.
+
+describe("superseded reviews — re-runs on the same commit", () => {
+  const clean = (lens) => JSON.stringify({ lens, summary: "s", findings: [] });
+
+  test("dismisses this lens's prior CHANGES_REQUESTED on the SAME head commit", async () => {
+    const stale = botReview({
+      lens: "Policy & Provenance", state: "CHANGES_REQUESTED", commit_id: HEAD_SHA, id: 4001,
+    });
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: clean("Policy & Provenance"),
+      reviews: [stale],
+      dismissSuperseded: "true",
+    });
+    assert.equal(r.failed, null);
+    assert.equal(r.event, "COMMENT", "the re-run found nothing, so it comments");
+    assert.deepEqual(
+      r.github.dismissed, [4001],
+      "the stale same-commit CHANGES_REQUESTED survived: reviewDecision stays " +
+      "CHANGES_REQUESTED and the PR stays BLOCKED even though the gate passes",
+    );
+  });
+
+  test("still dismisses this lens's reviews from earlier commits", async () => {
+    const older = botReview({
+      lens: "Policy & Provenance", state: "CHANGES_REQUESTED",
+      commit_id: "f".repeat(40), id: 4002,
+    });
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: clean("Policy & Provenance"),
+      reviews: [older],
+      dismissSuperseded: "true",
+    });
+    assert.deepEqual(r.github.dismissed, [4002]);
+  });
+
+  test("never dismisses the review it just posted", async () => {
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: JSON.stringify({
+        lens: "Policy & Provenance", summary: "s",
+        findings: [finding({ severity: "MUST FIX" })],
+      }),
+      reviews: [],
+      dismissSuperseded: "true",
+    });
+    assert.equal(r.event, "REQUEST_CHANGES");
+    const justPosted = r.github.created[0].id;
+    assert.ok(
+      !r.github.dismissed.includes(justPosted),
+      "a lens that dismissed its own new review would never be able to block anything",
+    );
+  });
+
+  test("does NOT touch another lens's review on the same commit", async () => {
+    const other = botReview({
+      lens: "Red Team", state: "CHANGES_REQUESTED", commit_id: HEAD_SHA, id: 4003,
+    });
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: clean("Policy & Provenance"),
+      reviews: [other],
+      dismissSuperseded: "true",
+    });
+    assert.deepEqual(
+      r.github.dismissed, [],
+      "lenses run in parallel on one commit; each may only supersede its own",
+    );
+  });
+
+  test("does NOT dismiss anything when dismiss_superseded is off", async () => {
+    const stale = botReview({
+      lens: "Policy & Provenance", state: "CHANGES_REQUESTED", commit_id: HEAD_SHA, id: 4004,
+    });
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: clean("Policy & Provenance"),
+      reviews: [stale],
+      dismissSuperseded: "false",
+    });
+    assert.deepEqual(r.github.dismissed, []);
+  });
+
+  test("does not re-dismiss a review already DISMISSED", async () => {
+    const already = botReview({
+      lens: "Policy & Provenance", state: "DISMISSED", commit_id: HEAD_SHA, id: 4005,
+    });
+    const r = await runParseStep({
+      lensName: "Policy & Provenance",
+      agentResponse: clean("Policy & Provenance"),
+      reviews: [already],
+      dismissSuperseded: "true",
+    });
+    assert.deepEqual(r.github.dismissed, []);
+  });
+});
+
 // ──────────────── Agent-comment cleanup (duplicate JSON on the PR) ────────────────
 // The pi agent action posts the agent's final message as a top-level PR comment
 // and offers no way to turn that off (checked through v2.27.1). One accumulates

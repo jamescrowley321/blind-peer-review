@@ -21,6 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -1948,5 +1949,157 @@ describe("402 is fatal, not retryable", () => {
         (e) => e instanceof ModelError && e.retryable === false);
     });
     assert.equal(calls, 1);
+  });
+});
+
+// ───────────────────── results store: what counts as data ─────────────────────
+// A run against a dead provider still emits a complete, plausible scorecard.
+// classify() is what stops one entering the comparison as a result.
+
+describe("results-store validity", () => {
+  test("a clean run is measured", () => {
+    assert.equal(classify(0, 41).class, "measured");
+  });
+
+  test("the round-five runs are void", () => {
+    for (const [up, model] of [[41, "glm-5.2"], [34, "opus-5"], [33, "opus-4.8"], [29, "gemini-3.7-flash"], [22, "mistral"]]) {
+      assert.equal(classify(up, 41).class, "void", `${model} at ${up}/41 upstream must never be ranked`);
+    }
+  });
+
+  test("a partially degraded run is reported but not ranked", () => {
+    // gpt-5.6-luna-pro lost 20/41 fixtures upstream and is still a real
+    // measurement for the 21 that landed. Voiding it would discard evidence.
+    assert.equal(classify(20, 41).class, "degraded");
+    assert.equal(classify(12, 41).class, "degraded", "kimi-k2-thinking");
+  });
+
+  test("the class boundaries are the documented ones", () => {
+    assert.equal(classify(4, 41).class, "measured", "just under 10%");
+    assert.equal(classify(5, 41).class, "degraded", "just over 10%");
+    assert.equal(classify(20, 41).class, "degraded", "just under 50%");
+    assert.equal(classify(21, 41).class, "void", "just over 50%");
+    assert.equal(VALIDITY.degradedAt, 0.10);
+    assert.equal(VALIDITY.voidAt, 0.50);
+  });
+
+  test("an empty run is void, not a division by zero", () => {
+    const c = classify(0, 0);
+    assert.equal(c.class, "void");
+    assert.ok(Number.isFinite(c.upstreamRate));
+  });
+
+  test("upstream fixtures are counted from the reason strings, not guessed", () => {
+    const baseline = { fixtures: [
+      { reason: "3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure" },
+      { reason: "blocked as expected" },
+      { reason: "did not block, as expected" },
+      { reason: "" },
+      { },
+    ] };
+    assert.equal(upstreamFixtures(baseline), 1);
+  });
+
+  test("violations are counted from the scorecard's own section", () => {
+    const card = [
+      "# Scorecard", "", "## Violations", "",
+      "- acceptance: must-block recall 50% < 80%",
+      "- security: JSON validity 88% < 95%", "",
+      "## Per-fixture", "", "- not a violation, a different section",
+    ].join("\n");
+    assert.equal(violationsFromCard(card), 2, "the per-fixture section must not leak into the count");
+    assert.equal(violationsFromCard("# Scorecard\n\nno violations section"), 0);
+  });
+});
+
+describe("results store — malformed input", () => {
+  const tmp = () => mkdtempSync(pjoin(tmpdir(), "bpr-store-"));
+
+  test("a corrupt file is skipped, not fatal — the surviving rows are still the record", () => {
+    const d = tmp();
+    writeFileSync(pjoin(d, "broken.json"), "{ not json");
+    writeFileSync(pjoin(d, "ok.json"), JSON.stringify({
+      meta: { model: "z-ai/glm-5.2", maxTokens: 24000, reps: 3 },
+      lenses: { cold_read: { recall: 1, falsePositiveRate: 0, jsonValidityRate: 1, stability: 1 } },
+      fixtures: [{ reason: "blocked as expected" }],
+    }));
+    const rows = loadRound(d);
+    assert.equal(rows.length, 1, "one bad file must not take the round's table down");
+    assert.equal(rows[0].model, "z-ai/glm-5.2");
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  test("a scorecard that cannot name its model is not evidence", () => {
+    const d = tmp();
+    writeFileSync(pjoin(d, "nameless.json"), JSON.stringify({ meta: {}, lenses: {}, fixtures: [] }));
+    assert.deepEqual(loadRound(d), [], "a score with no model attributes nothing");
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  test("violation counting tolerates header level and trailing space", () => {
+    const card = "### Violations  \n\n- a: x\n- b: y\n\n#### Per-fixture\n\n- not counted\n";
+    assert.equal(violationsFromCard(card), 2);
+    assert.equal(violationsFromCard("## Violations\n\n- only one\n"), 1, "a trailing section is optional");
+  });
+});
+
+// The two inputs that build a destination path come from OUTSIDE the script:
+// --round from the operator, and meta.model from a downloaded artifact.
+
+describe("results store — path containment", () => {
+  test("a round name cannot escape the store", () => {
+    for (const evil of ["../../../tmp/evil", "..", "a/../../b", "/etc/passwd"]) {
+      assert.throws(() => containedJoin("/store", evil), /refusing to write outside/, `--round ${evil}`);
+    }
+  });
+
+  test("ordinary round names are allowed, including nested ones", () => {
+    assert.equal(containedJoin("/store", "2026-09-14-ceiling-24000"), "/store/2026-09-14-ceiling-24000");
+    assert.equal(containedJoin("/store", "a", "b.json"), "/store/a/b.json");
+  });
+
+  test("a baseline cannot smuggle a path through meta.model", () => {
+    // A downloaded artifact is not trusted input. "../../../evil" as a model id
+    // would otherwise place a file wherever it liked.
+    for (const evil of ["../../../evil", "a/../../b", "/abs/path", "no-slash", "", null, 42])
+      assert.throws(() => safeSlug(evil), /not a usable model id/, String(evil));
+  });
+
+  test("real model ids survive unchanged apart from the separator", () => {
+    assert.equal(safeSlug("google/gemini-3.8-flash"), "google__gemini-3.8-flash");
+    assert.equal(safeSlug("z-ai/glm-5.2"), "z-ai__glm-5.2");
+    assert.equal(safeSlug("openai/gpt-5.6-luna-pro"), "openai__gpt-5.6-luna-pro");
+  });
+});
+
+// The results store is PUBLIC and PERMANENT. Scorecards quote the provider's
+// raw error verbatim, and those bodies carry account state.
+
+describe("results store — no operational data", () => {
+  test("credit state never reaches the store", () => {
+    const raw = '- rep 0: ERROR — OpenRouter 402 for model "openai/gpt-6-astra-pro": {"error":{"message":"This request would exceed your available credits given your current in-flight requests.","code":"in_flight_budget_exhausted"}}';
+    const out = scrubProviderDetail(raw);
+    assert.doesNotMatch(out, /available credits/);
+    assert.doesNotMatch(out, /in_flight_budget_exhausted/i);
+    assert.match(out, /OpenRouter 402/, "the status code is the diagnostic signal and must survive");
+    assert.match(out, /gpt-6-astra-pro/, "so must the model");
+  });
+
+  test("429 bodies are scrubbed too, not just 402", () => {
+    assert.doesNotMatch(scrubProviderDetail('OpenRouter 429 for model "m": {"error":{"message":"rate limited, 12 req remaining"}}'), /remaining/);
+  });
+
+  test("ordinary reason strings are untouched", () => {
+    for (const keep of [
+      "3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.",
+      "blocked as expected",
+      "acceptance: must-block recall 50% < 80%",
+    ]) assert.equal(scrubProviderDetail(keep), keep);
+  });
+
+  test("scrubbing walks a whole baseline, not just the top level", () => {
+    const out = scrubBaseline({ meta: { model: "m" }, fixtures: [{ reason: 'x {"error":{"message":"secret"}}' }] });
+    assert.doesNotMatch(JSON.stringify(out), /secret/);
+    assert.equal(out.meta.model, "m");
   });
 });

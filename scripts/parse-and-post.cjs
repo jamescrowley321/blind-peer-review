@@ -12,6 +12,86 @@
 // says it is guarding while guarding nothing. runParseStep therefore keeps the
 // string-lift path for the `yml` argument and uses this module otherwise.
 
+// ── Lens identity ──
+//
+// Which emitted `lens` strings count as THIS lens. Lifted out of run() and
+// exported so scripts/lens-identity.test.mjs can assert, against the shipped
+// personas, that every lens accepts its own names and NO lens accepts another's.
+// The alias map below is hand-maintained; before that test, nothing checked it
+// still matched the personas it names — which is the exact drift that once made
+// every Security Review job fail deterministically.
+function makeLensMatcher(lensName, rawHeading) {
+  // Lens name: accept case-insensitive match OR one containing the other,
+  // so a persona that calls itself "Policy & Provenance" validates against
+  // a lens keyed "policy" (display "Compliance"). Exact match is the
+  // common case; the fuzzy check is defensive against persona naming drift.
+  const norm = (s) => s.toLowerCase();
+  // Accept documented persona subtitles as explicit aliases: some models emit
+  // the subtitle despite being instructed to emit the primary name. This is
+  // what killed every Security Review job when its heading still read
+  // "Sentinel — Security Auditor Agent" and models answered "Security Auditor".
+  const aliases = {
+    "cold read — zero-context adversarial agent": "cold read",
+    "edge cases — exhaustive path analysis agent": "edge cases",
+    "acceptance criteria — spec conformance agent": "acceptance criteria",
+    "security review — exploitable vulnerability agent": "security review",
+    "red team — offensive attack-chain agent": "red team",
+    "policy & provenance — contribution governance agent": "policy & provenance",
+    "zero-context adversarial agent": "cold read",
+    "exhaustive path analysis agent": "edge cases",
+    "spec conformance agent": "acceptance criteria",
+    "exploitable vulnerability agent": "security review",
+    "offensive attack-chain agent": "red team",
+    "contribution governance agent": "policy & provenance",
+    "owasp web top 10 — application security lens": "owasp web top 10",
+    // Kept after the H1 was aligned to the manifest name: models trained on the
+  // older "GenAI/LLM" heading still emit it, and an alias for a string no
+  // persona produces costs nothing. scripts/lens-identity.test.mjs asserts
+  // the LIVE headings match; it does not require the map to be minimal.
+  "owasp genai/llm top 10 — ai application security lens": "owasp llm top 10",
+  };
+  const expectedNorm = norm(lensName);
+  // Tolerant match (the explicit `aliases` map above only catches subtitles
+  // seen verbatim before — e.g. Gemini emits "Security Review — Security Review
+  // Agent", which no map entry covers). Accept when the emitted name's
+  // primary segment (before any —/–/-/:/| subtitle) equals the expected
+  // name, or when either name contains the other. The lens keys are
+  // distinct enough (cold_read/edge_case/acceptance/security/red_team/policy/
+  // owasp-*) that containment cannot cross-match one persona to another.
+  //
+  // Named, because step 8 below reuses it to identify THIS lens's stray
+  // agent comment. Two copies of this rule would drift, and a drifted
+  // copy would delete another lens's comment.
+  const primary = (s) => s.split(/\s*[—–:|]\s*|\s+-\s+/)[0].trim();
+  // The persona's own H1, from the compose step. Its segments are the
+  // names a model actually emits, so they are accepted EXACTLY — never by
+  // containment. Containment across subtitles would cross-match: the
+  // OWASP Web subtitle "Application Security Lens" is a substring of the
+  // OWASP LLM subtitle "AI Application Security Lens", so a containment
+  // rule would let one lens claim the other's output.
+  const heading = String(rawHeading || "").trim();
+  const headingNames = new Set();
+  if (heading) {
+    headingNames.add(norm(heading));
+    headingNames.add(norm(primary(heading)));
+    const parts = heading.split(/\s*[—–:|]\s*|\s+-\s+/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length > 1) headingNames.add(norm(parts.slice(1).join(" ")));
+  }
+  const matchesThisLens = (name) => {
+    const raw = norm(String(name || "").trim());
+    if (!raw) return false;
+    const n = Object.prototype.hasOwnProperty.call(aliases, raw) ? aliases[raw] : raw;
+    return (
+      n === expectedNorm ||
+      primary(n) === expectedNorm ||
+      headingNames.has(n) ||
+      n.includes(expectedNorm) ||
+      expectedNorm.includes(n)
+    );
+  };
+  return matchesThisLens;
+}
+
 async function run({ core, github, context, env }) {
   const fs = require("fs");
   const lensName = env.LENS_NAME;
@@ -92,71 +172,8 @@ async function run({ core, github, context, env }) {
   }
 
   // ── 2. Validate the schema. ──
-  // Lens name: accept case-insensitive match OR one containing the other,
-  // so a persona that calls itself "Policy & Provenance" validates against
-  // a lens keyed "policy" (display "Compliance"). Exact match is the
-  // common case; the fuzzy check is defensive against persona naming drift.
   const emittedLens = String(parsed.lens || "").trim();
-  const norm = (s) => s.toLowerCase();
-  // Accept documented persona subtitles as explicit aliases: some models emit
-  // the subtitle despite being instructed to emit the primary name. This is
-  // what killed every Security Review job when its heading still read
-  // "Sentinel — Security Auditor Agent" and models answered "Security Auditor".
-  const aliases = {
-    "cold read — zero-context adversarial agent": "cold read",
-    "edge cases — exhaustive path analysis agent": "edge cases",
-    "acceptance criteria — spec conformance agent": "acceptance criteria",
-    "security review — exploitable vulnerability agent": "security review",
-    "red team — offensive attack-chain agent": "red team",
-    "policy & provenance — contribution governance agent": "policy & provenance",
-    "zero-context adversarial agent": "cold read",
-    "exhaustive path analysis agent": "edge cases",
-    "spec conformance agent": "acceptance criteria",
-    "exploitable vulnerability agent": "security review",
-    "offensive attack-chain agent": "red team",
-    "contribution governance agent": "policy & provenance",
-    "owasp web top 10 — application security lens": "owasp web top 10",
-    "owasp genai/llm top 10 — ai application security lens": "owasp llm top 10",
-  };
-  const expectedNorm = norm(lensName);
-  // Tolerant match (the explicit `aliases` map above only catches subtitles
-  // seen verbatim before — e.g. Gemini emits "Security Review — Security Review
-  // Agent", which no map entry covers). Accept when the emitted name's
-  // primary segment (before any —/–/-/:/| subtitle) equals the expected
-  // name, or when either name contains the other. The lens keys are
-  // distinct enough (cold_read/edge_case/acceptance/security/red_team/policy/
-  // owasp-*) that containment cannot cross-match one persona to another.
-  //
-  // Named, because step 8 below reuses it to identify THIS lens's stray
-  // agent comment. Two copies of this rule would drift, and a drifted
-  // copy would delete another lens's comment.
-  const primary = (s) => s.split(/\s*[—–:|]\s*|\s+-\s+/)[0].trim();
-  // The persona's own H1, from the compose step. Its segments are the
-  // names a model actually emits, so they are accepted EXACTLY — never by
-  // containment. Containment across subtitles would cross-match: the
-  // OWASP Web subtitle "Application Security Lens" is a substring of the
-  // OWASP LLM subtitle "AI Application Security Lens", so a containment
-  // rule would let one lens claim the other's output.
-  const heading = String(env.LENS_HEADING || "").trim();
-  const headingNames = new Set();
-  if (heading) {
-    headingNames.add(norm(heading));
-    headingNames.add(norm(primary(heading)));
-    const parts = heading.split(/\s*[—–:|]\s*|\s+-\s+/).map((x) => x.trim()).filter(Boolean);
-    if (parts.length > 1) headingNames.add(norm(parts.slice(1).join(" ")));
-  }
-  const matchesThisLens = (name) => {
-    const raw = norm(String(name || "").trim());
-    if (!raw) return false;
-    const n = Object.prototype.hasOwnProperty.call(aliases, raw) ? aliases[raw] : raw;
-    return (
-      n === expectedNorm ||
-      primary(n) === expectedNorm ||
-      headingNames.has(n) ||
-      n.includes(expectedNorm) ||
-      expectedNorm.includes(n)
-    );
-  };
+  const matchesThisLens = makeLensMatcher(lensName, env.LENS_HEADING);
   if (!matchesThisLens(emittedLens)) {
     return fail(`agent emitted lens="${emittedLens}" but this job is "${lensName}". Re-run this job to retry.`);
   }
@@ -428,4 +445,4 @@ async function run({ core, github, context, env }) {
   }
 }
 
-module.exports = { run };
+module.exports = { run, makeLensMatcher };

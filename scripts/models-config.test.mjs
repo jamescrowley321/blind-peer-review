@@ -9,6 +9,8 @@ import {
   modelsJsonPath,
   modelKeyMismatch,
   overriddenModelIds,
+  floorModelIds,
+  complianceFloorGap,
   MAX_BYTES,
 } from "./models-config.mjs";
 import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
@@ -388,4 +390,88 @@ test("every model the example can emit has a models_config override", () => {
     `modelOverrides keys are: ${keys.join(", ")}`,
   );
   assert.ok(emitted.size > 0, "expected the example to name at least one model");
+});
+
+
+// ─── #75: a compliance floor that applies to no model the lens runs must FAIL ───
+//
+// The warning path stays a warning: under the per-lens matrix a caller pins a
+// wider model set than any one run uses. What must not stay a warning is a green
+// build that routed the diff with the floor not in force at all.
+
+const cfg = (overrides) => ({ providers: { openrouter: { modelOverrides: overrides } } });
+const floor = { compat: { openRouterRouting: { zdr: true } } };
+const denyFloor = { compat: { openRouterRouting: { data_collection: "deny" } } };
+const noFloor = { compat: { openRouterRouting: { sort: "price" } } };
+
+test("floorModelIds reports only models whose overrides are a real floor", () => {
+  const c = cfg({ "a/zdr": floor, "b/deny": denyFloor, "c/price": noFloor });
+  assert.deepEqual(floorModelIds(c).sort(), ["a/zdr", "b/deny"].sort());
+});
+
+test("zdr:false is not a floor — the key present does not mean the control is on", () => {
+  const c = cfg({ "a/off": { compat: { openRouterRouting: { zdr: false } } } });
+  assert.deepEqual(floorModelIds(c), []);
+  assert.equal(complianceFloorGap(c, "other/model"), null);
+});
+
+test("data_collection:allow is not a floor", () => {
+  const c = cfg({ "a/allow": { compat: { openRouterRouting: { data_collection: "allow" } } } });
+  assert.deepEqual(floorModelIds(c), []);
+  assert.equal(complianceFloorGap(c, "other/model"), null);
+});
+
+test("FAILS: a floor is set and this lens's model has no entry at all", () => {
+  const gap = complianceFloorGap(cfg({ "google/gemini-2.5-pro": floor }), "anthropic/claude-sonnet-5");
+  assert.ok(gap, "expected a failure, got null");
+  assert.match(gap, /no entry at all/);
+  assert.match(gap, /anthropic\/claude-sonnet-5/);
+  assert.match(gap, /allow_unfloored_model/, "must name the opt-out so the failure is actionable");
+});
+
+test("PASSES: the running model has its own floor entry", () => {
+  assert.equal(complianceFloorGap(cfg({ "a/x": floor }), "a/x"), null);
+});
+
+test("PASSES: the caller pins a wider set than this run uses, and this run is in it", () => {
+  // The exact case #62/#63 kept as a warning — it must not become a failure.
+  const c = cfg({ "a/x": floor, "b/y": floor, "c/z": floor });
+  assert.equal(complianceFloorGap(c, "b/y"), null);
+});
+
+test("PASSES: a floor for some models, this run has a non-floor entry", () => {
+  // Deliberately expressible: floored some, not others, and said so per-model.
+  const c = cfg({ "a/x": floor, "b/y": noFloor });
+  assert.equal(complianceFloorGap(c, "b/y"), null);
+});
+
+test("PASSES: overrides exist but none is a floor — warning territory, not failure", () => {
+  const c = cfg({ "a/x": noFloor });
+  assert.equal(complianceFloorGap(c, "zzz/other"), null);
+  assert.ok(modelKeyMismatch(c, "zzz/other"), "should still warn");
+});
+
+test("PASSES: no model pinned — the default applies and there is nothing to check", () => {
+  assert.equal(complianceFloorGap(cfg({ "a/x": floor }), ""), null);
+  assert.equal(complianceFloorGap(cfg({ "a/x": floor }), undefined), null);
+});
+
+test("the failing case also warns — the two rules are independent", () => {
+  const c = cfg({ "google/gemini-2.5-pro": floor });
+  assert.ok(complianceFloorGap(c, "anthropic/claude-sonnet-5"));
+  assert.ok(modelKeyMismatch(c, "anthropic/claude-sonnet-5"));
+});
+
+test("a floor on any provider counts, not just openrouter", () => {
+  const c = { providers: { openrouter: { modelOverrides: { "a/x": noFloor } }, other: { modelOverrides: { "b/y": floor } } } };
+  assert.deepEqual(floorModelIds(c), ["b/y"]);
+  assert.ok(complianceFloorGap(c, "zzz/unlisted"));
+});
+
+test("action.yml declares allow_unfloored_model and passes it to the step", () => {
+  const yml = readFileSync(new URL("../action.yml", import.meta.url), "utf8");
+  assert.match(yml, /^ {2}allow_unfloored_model:/m, "input not declared");
+  assert.match(yml, /ALLOW_UNFLOORED_MODEL: \$\{\{ inputs\.allow_unfloored_model \}\}/,
+    "declared but never reaches the step — the opt-out would be inert");
+  assert.match(yml, /^ {4}default: 'false'/m, "must default to failing closed");
 });

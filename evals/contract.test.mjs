@@ -2145,3 +2145,46 @@ describe("provider pre-check", () => {
     assert.equal(body.max_tokens, 1, "enough to exercise auth, credit and availability; not enough to cost anything");
   });
 });
+
+// ─────────────── documented config must match the pinned major ───────────────
+// The example caller pinned @v2 while using the newline `required_checks` form,
+// and the README pinned @v1 while using the comma form. Either mismatch is a
+// SILENT total failure: the wrong parser reads the whole value as one check name
+// that no workflow reports, preflight can only time out at 600s, and the Merge
+// Gate fails closed on every pull request with nothing in the logs naming the
+// cause.
+
+describe("docs and examples agree with the shipped major", () => {
+  const DOCS = ["README.md", "examples/caller-workflow.yml", "docs/model-selection.md", "docs/evals.md"];
+  const read = (f) => rf(pjoin(REPO_ROOT, f), "utf8");
+  const major = rf(pjoin(REPO_ROOT, "version.txt"), "utf8").trim().split(".")[0];
+
+  test("every action pin names the current major", () => {
+    for (const f of DOCS) {
+      for (const [, v] of read(f).matchAll(/blind-peer-review@v(\d+)/g)) {
+        assert.equal(v, major, `${f} pins @v${v} but the action ships v${major} — the parsers differ`);
+      }
+    }
+  });
+
+  test("no comma-form required_checks survives anywhere", () => {
+    for (const f of DOCS) {
+      const hit = read(f).match(/required_checks:\s*["'][^"'\n]*,/);
+      assert.equal(hit, null,
+        `${f} documents a comma-separated required_checks. v3 splits on newlines only, so this ` +
+        `reads as ONE check name that never reports — a 600s timeout and a gate that fails closed.`);
+    }
+  });
+
+  test("documented lens override filenames are real lens keys", () => {
+    const keys = new Set(JSON.parse(rf(pjoin(REPO_ROOT, "lenses/manifest.json"), "utf8")).lenses.map((l) => l.key));
+    for (const f of DOCS) {
+      for (const [, name] of read(f).matchAll(/\.blind-peer-review\/lenses\/([a-z_]+)\.md/g)) {
+        assert.ok(keys.has(name), `${f} names an override ${name}.md, which is not a lens key — it would be ignored`);
+      }
+      for (const [, name] of read(f).matchAll(/PHI\/PII-tuned `([a-z_]+)\.md`/g)) {
+        assert.ok(keys.has(name), `${f} names ${name}.md as an override, which is not a lens key — it would be ignored`);
+      }
+    }
+  });
+});

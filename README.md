@@ -121,11 +121,18 @@ cheap gates are green (see the example caller):
 ```yaml
 preflight:
   steps:
-    - uses: jamescrowley321/blind-peer-review@v1
+    - uses: jamescrowley321/blind-peer-review@v3
       with:
         mode: preflight
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        required_checks: "lint, typecheck, build, secret-scan"   # EXACT check-run names
+        # ONE CHECK NAME PER LINE. A check name may legally contain a comma, so
+        # since v3.0.0 this input is split on newlines only — see the warning
+        # below before copying a comma-separated value from anywhere.
+        required_checks: |
+          lint
+          typecheck
+          build
+          secret-scan
 review:
   needs: [config, preflight]   # only runs if preflight passed
 ```
@@ -134,6 +141,16 @@ review:
 every PR). Preflight polls until they complete, **fails** if any fails (so the
 lenses are skipped), and gives up after `preflight_timeout_seconds` (default
 600). The preflight job needs `permissions: { checks: read }`.
+
+> [!WARNING]
+> **Upgrading from v1.x or v2.x: convert `required_checks` to the block form in
+> the same change.** Those versions split this input on commas; v3.0.0 stopped,
+> because a check name may legally contain one. A comma-separated value is not
+> rejected on v3 — it is read as a *single* check literally named
+> `"lint, typecheck, build, secret-scan"`, which no workflow ever reports. So
+> preflight can only end in its 600-second timeout, the lenses are skipped, and
+> the Merge Gate fails closed **on every pull request**. Nothing in the logs
+> names the comma; the symptom is a slow, total, silent failure.
 
 ## Policy & Provenance (AI-provenance policy)
 
@@ -255,7 +272,7 @@ adapters, so the same personas review your code in CI *and* in your editor:
 ### Tune a lens per repo (override)
 
 Commit `.blind-peer-review/lenses/<key>.md` to *replace* a base persona for your
-repo (e.g. a PHI/PII-tuned `sentinel.md`). The **local** harnesses read it — it's
+repo (e.g. a PHI/PII-tuned `security.md`). The **local** harnesses read it — it's
 your own trusted file. **CI (the pi Action) never reads it**: a pull request must
 not be able to rewrite its own reviewer (OWASP LLM01), so the gate always runs the
 pinned base set. See [`lenses/README.md`](lenses/README.md).
@@ -266,7 +283,7 @@ Run the same lenses against your working tree before you push (Node, no shell):
 
 ```bash
 node scripts/run-local.mjs --base origin/main        # review your branch vs main
-node scripts/run-local.mjs --lens sentinel,red_team     # a subset
+node scripts/run-local.mjs --lens security --lens red_team   # a subset (repeatable)
 ```
 
 Requires the `pi` CLI and a provider key in `OPENROUTER_API_KEY`. Findings are

@@ -201,6 +201,13 @@ node evals/collect.mjs --round <name>
 node evals/collect.mjs --ingest <dir> --round <name>
 ```
 
+Scorecards quote the provider's raw error verbatim, and those bodies carry
+account state — available-credit messages, `in_flight_budget_exhausted`. The
+store is public and permanent, so **`ingest` scrubs provider error bodies**,
+keeping the status code and model (402 = credit, 429 = rate limit) and dropping
+the prose. The classification is the diagnostic signal; the billing detail is
+not.
+
 `collect.mjs` computes a validity class from the reason strings and **refuses to
 rank anything that is not a measurement**:
 

@@ -19,7 +19,7 @@
 // still printed, because hiding them invites someone to re-run and rediscover
 // them; they are printed under a heading that says what they are.
 
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,6 +46,34 @@ export function containedJoin(base, ...parts) {
     throw new Error(`refusing to write outside ${root}: ${parts.join("/")} resolves to ${target}`);
   }
   return target;
+}
+
+/**
+ * Strip provider error BODIES from text bound for the committed store.
+ *
+ * Scorecards quote the provider's raw error verbatim, and those bodies carry
+ * account state — "This request would exceed your available credits given your
+ * current in-flight requests", `in_flight_budget_exhausted`. This store is
+ * public and permanent. The status code and the model are the whole diagnostic
+ * signal (402 = credit, 429 = rate limit); the prose is billing detail.
+ */
+export function scrubProviderDetail(text) {
+  if (typeof text !== "string") return text;
+  return text
+    // `OpenRouter 402 for model "x": {json body...}` -> keep the code and model
+    .replace(/(OpenRouter\s+(\d{3})\s+for model\s+"[^"]*")\s*:\s*\{.*?(?=\n|$)/g, "$1: [provider error body omitted]")
+    .replace(/\{"error":\{.*?(?=\n|$)/g, "[provider error body omitted]")
+    .replace(/in[_-]flight[_-]budget[_-]exhausted/gi, "[credit state omitted]");
+}
+
+/** Recursively scrub every string in a parsed baseline. */
+export function scrubBaseline(node) {
+  if (typeof node === "string") return scrubProviderDetail(node);
+  if (Array.isArray(node)) return node.map(scrubBaseline);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, scrubBaseline(v)]));
+  }
+  return node;
 }
 
 /** A model id must look like one. Rejects path separators, traversal and control characters. */
@@ -173,6 +201,7 @@ function ingest(srcDir, round) {
         continue;
       }
       baseline.validity = classify(upstreamFixtures(baseline), (baseline.fixtures || []).length);
+      baseline = scrubBaseline(baseline);
       const runId = (d.match(/(\d{6,})/) || [])[1] || String(n);
       let slug;
       try {
@@ -183,7 +212,9 @@ function ingest(srcDir, round) {
       }
       writeFileSync(containedJoin(dst, `${slug}.json`), JSON.stringify(baseline, null, 1));
       const card = join(dirname(p), "scorecard.md");
-      if (existsSync(card)) copyFileSync(card, containedJoin(dst, `${slug}.md`));
+      if (existsSync(card)) {
+        writeFileSync(containedJoin(dst, `${slug}.md`), scrubProviderDetail(readFileSync(card, "utf8")));
+      }
       console.log(`ingested ${baseline.meta.model} (${baseline.validity.class}, upstream ${baseline.validity.upstreamFixtures}/${baseline.validity.totalFixtures})`);
       n++;
     }

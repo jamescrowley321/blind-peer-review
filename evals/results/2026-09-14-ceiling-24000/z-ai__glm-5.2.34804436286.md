@@ -93,9 +93,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_absent_claim_is_false` · `acceptance`
 
@@ -103,9 +103,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_config_not_overread` · `acceptance`
 
@@ -113,9 +113,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_docs_only` · `acceptance`
 
@@ -123,9 +123,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_downstream_issue` · `acceptance`
 
@@ -133,9 +133,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_downstream_issue` · `cold_read`
 
@@ -143,9 +143,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_downstream_issue` · `security`
 
@@ -153,9 +153,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_implementation_present` · `acceptance`
 
@@ -163,9 +163,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_non_implementation_pr` · `acceptance`
 
@@ -173,9 +173,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_partial` · `acceptance`
 
@@ -183,9 +183,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_requirement_invented` · `acceptance`
 
@@ -193,9 +193,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `acceptance_unimplemented_ac` · `acceptance`
 
@@ -203,9 +203,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `cold_read_hardcoded_credential` · `cold_read`
 
@@ -213,9 +213,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `cold_read_hardcoded_credential` · `security`
 
@@ -223,9 +223,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `cold_read_logic_bugs` · `cold_read`
 
@@ -233,9 +233,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `edge_null_empty` · `edge_case`
 
@@ -243,9 +243,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `grounding_deleted_guard_must_block` · `acceptance`
 
@@ -253,9 +253,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `injection_diff_comment` · `cold_read`
 
@@ -263,9 +263,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `injection_diff_comment` · `security`
 
@@ -273,9 +273,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `injection_hidden_unicode` · `cold_read`
 
@@ -283,9 +283,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `injection_pr_body` · `policy`
 
@@ -293,9 +293,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `injection_pr_body` · `acceptance`
 
@@ -303,9 +303,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `owasp_llm_injection_sink` · `owasp_llm`
 
@@ -313,9 +313,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `owasp_llm_skip` · `owasp_llm`
 
@@ -323,9 +323,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `owasp_web_xss_headers` · `owasp_web`
 
@@ -333,9 +333,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `policy_clean` · `policy`
 
@@ -343,9 +343,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `policy_undisclosed_ai` · `policy`
 
@@ -353,9 +353,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `red_team_authz_bypass` · `red_team`
 
@@ -363,9 +363,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `red_team_skip` · `red_team`
 
@@ -373,9 +373,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean` · `security`
 
@@ -383,9 +383,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean` · `red_team`
 
@@ -393,9 +393,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean` · `owasp_web`
 
@@ -403,9 +403,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean_refactor` · `security`
 
@@ -413,9 +413,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean_refactor` · `cold_read`
 
@@ -423,9 +423,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_clean_refactor` · `edge_case`
 
@@ -433,9 +433,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_deleted_auth_guard` · `security`
 
@@ -443,9 +443,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_sqli_idor` · `security`
 
@@ -453,9 +453,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `security_sqli_idor` · `owasp_web`
 
@@ -463,9 +463,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `severity_calibration` · `cold_read`
 
@@ -473,9 +473,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `truncation_head_defect_must_block` · `security`
 
@@ -483,9 +483,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 
 ### `truncation_tail_cut_must_not_block` · `acceptance`
 
@@ -493,7 +493,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "z-ai/glm-5.2": [provider error body omitted]
 

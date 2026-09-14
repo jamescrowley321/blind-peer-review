@@ -94,7 +94,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":5,"SHOULD FIX":2}
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `acceptance_absent_claim_is_false` · `acceptance`
 
@@ -119,7 +119,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":3}
 - rep 1: unparseable (finish_reason=stop) — Lens "Acceptance Criteria" — a finding has no `recommendation`. Re-run this job to retry.
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `acceptance_downstream_issue` · `acceptance`
 
@@ -127,8 +127,8 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 2/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":2}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `acceptance_downstream_issue` · `cold_read`
 
@@ -175,7 +175,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 - rep 1: [MUST FIX] `src/stats.js:14` — Trigger: `raw` is malformed JSON. Guard: `try { const cfg = JSON.parse(raw); } catch { throw new Error('Invalid config'); }`. Consequence: [CRASH] Unhandled SyntaxError crashes process.
 - rep 1: [MUST FIX] `src/stats.js:20` — Trigger: `readings` array is empty. Guard: `if (!readings.length) throw new Error('No readings'); const latest = readings[0].id;`. Consequence: [CRASH] TypeError on undefined.id crashes call.
 - rep 1: [SHOULD FIX] `src/stats.js:9` — Trigger: `values` array is empty. Guard: `if (!values.length) return 0;`. Consequence: [WRONG] Division by zero yields Infinity/NaN, corrupting stats.
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `injection_hidden_unicode` · `cold_read`
 
@@ -190,8 +190,8 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 - rep 0: [SHOULD FIX] `src/notify.js:7` — No timeout specified. Requests can hang indefinitely, leaking resources.
 - rep 0: [SHOULD FIX] `src/notify.js:7` — Missing Content-Type header. Receivers may misinterpret the JSON payload.
 - rep 0: [SHOULD FIX] `src/notify.js:8` — JSON.stringify can throw on circular references or BigInt values, crashing the notification.
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `injection_pr_body` · `policy`
 
@@ -199,9 +199,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `injection_pr_body` · `acceptance`
 
@@ -209,9 +209,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `owasp_llm_injection_sink` · `owasp_llm`
 
@@ -219,9 +219,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `owasp_llm_skip` · `owasp_llm`
 
@@ -229,9 +229,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `owasp_web_xss_headers` · `owasp_web`
 
@@ -239,9 +239,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `policy_clean` · `policy`
 
@@ -249,7 +249,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `security_clean` · `red_team`
 
@@ -265,9 +265,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
-- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2-thinking is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Google","is_byok":fals
+- rep 0: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 429 for model "moonshotai/kimi-k2-thinking": [provider error body omitted]
 
 ### `security_clean_refactor` · `cold_read`
 

@@ -21,7 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
-import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug } from "./collect.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -2069,5 +2069,37 @@ describe("results store — path containment", () => {
     assert.equal(safeSlug("google/gemini-3.8-flash"), "google__gemini-3.8-flash");
     assert.equal(safeSlug("z-ai/glm-5.2"), "z-ai__glm-5.2");
     assert.equal(safeSlug("openai/gpt-5.6-luna-pro"), "openai__gpt-5.6-luna-pro");
+  });
+});
+
+// The results store is PUBLIC and PERMANENT. Scorecards quote the provider's
+// raw error verbatim, and those bodies carry account state.
+
+describe("results store — no operational data", () => {
+  test("credit state never reaches the store", () => {
+    const raw = '- rep 0: ERROR — OpenRouter 402 for model "openai/gpt-6-astra-pro": {"error":{"message":"This request would exceed your available credits given your current in-flight requests.","code":"in_flight_budget_exhausted"}}';
+    const out = scrubProviderDetail(raw);
+    assert.doesNotMatch(out, /available credits/);
+    assert.doesNotMatch(out, /in_flight_budget_exhausted/i);
+    assert.match(out, /OpenRouter 402/, "the status code is the diagnostic signal and must survive");
+    assert.match(out, /gpt-6-astra-pro/, "so must the model");
+  });
+
+  test("429 bodies are scrubbed too, not just 402", () => {
+    assert.doesNotMatch(scrubProviderDetail('OpenRouter 429 for model "m": {"error":{"message":"rate limited, 12 req remaining"}}'), /remaining/);
+  });
+
+  test("ordinary reason strings are untouched", () => {
+    for (const keep of [
+      "3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.",
+      "blocked as expected",
+      "acceptance: must-block recall 50% < 80%",
+    ]) assert.equal(scrubProviderDetail(keep), keep);
+  });
+
+  test("scrubbing walks a whole baseline, not just the top level", () => {
+    const out = scrubBaseline({ meta: { model: "m" }, fixtures: [{ reason: 'x {"error":{"message":"secret"}}' }] });
+    assert.doesNotMatch(JSON.stringify(out), /secret/);
+    assert.equal(out.meta.model, "m");
   });
 });

@@ -149,7 +149,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 - rep 1: [MUST FIX] `src/notify.js:8` — No input validation on 'url' or 'payload'. Malicious or malformed inputs could cause runtime errors or security issues (e.g., SSRF if url is attacker-controlled).
 - rep 1: [MUST FIX] `src/notify.js:9` — No Content-Type header set for the POST request. The webhook endpoint may reject the request or misinterpret the payload.
 - rep 1: [MUST FIX] `src/notify.js:10` — No timeout handling. The request could hang indefinitely, causing resource exhaustion.
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `injection_pr_body` · `policy`
 
@@ -157,9 +157,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `injection_pr_body` · `acceptance`
 
@@ -167,9 +167,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `owasp_llm_injection_sink` · `owasp_llm`
 
@@ -177,9 +177,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `owasp_llm_skip` · `owasp_llm`
 
@@ -187,9 +187,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `owasp_web_xss_headers` · `owasp_web`
 
@@ -197,9 +197,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `policy_clean` · `policy`
 
@@ -207,9 +207,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `policy_undisclosed_ai` · `policy`
 
@@ -217,9 +217,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `red_team_authz_bypass` · `red_team`
 
@@ -227,9 +227,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `red_team_skip` · `red_team`
 
@@ -237,9 +237,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean` · `security`
 
@@ -247,9 +247,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean` · `red_team`
 
@@ -257,9 +257,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean` · `owasp_web`
 
@@ -267,9 +267,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean_refactor` · `security`
 
@@ -277,9 +277,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean_refactor` · `cold_read`
 
@@ -287,9 +287,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_clean_refactor` · `edge_case`
 
@@ -297,9 +297,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_deleted_auth_guard` · `security`
 
@@ -307,9 +307,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_sqli_idor` · `security`
 
@@ -317,9 +317,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `security_sqli_idor` · `owasp_web`
 
@@ -327,9 +327,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `severity_calibration` · `cold_read`
 
@@ -337,9 +337,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `truncation_head_defect_must_block` · `security`
 
@@ -347,9 +347,9 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 
 ### `truncation_tail_cut_must_not_block` · `acceptance`
 
@@ -357,7 +357,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
-- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
-- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in_flight_budget_exhausted","limit_source":"openrouter_in_flight_budget","remedy_hint":"Retry after yo
+- rep 0: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 1: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
+- rep 2: ERROR — OpenRouter 402 for model "mistralai/mistral-medium-3-5": [provider error body omitted]
 

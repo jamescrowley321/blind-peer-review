@@ -240,7 +240,7 @@
     true
    ],
    "pass": false,
-   "reason": "unstable verdict across reps (BLOCK, pass, BLOCK) — not a pass",
+   "reason": "unstable verdict across reps (BLOCK, pass, BLOCK) \u2014 not a pass",
    "severities": {
     "NITPICK": 6,
     "SHOULD FIX": 4,

@@ -61,7 +61,17 @@ for (const f of readdirSync(join(ROOT, "lenses"))) {
   writeFileSync(join(lensDir, f), readFileSync(join(ROOT, "lenses", f)));
   copied.push(f);
 }
-writeFileSync(join(lensDir, "manifest.json"), readFileSync(join(ROOT, "lenses", "manifest.json")));
+// The vendored manifest must describe the VENDORED tree, not this repo's. We
+// deliberately do not ship lenses/shared_instructions.md (see above), so copying
+// the manifest through unchanged leaves `shared_instructions` pointing at a file
+// that is not there — and the AGENTS block we print tells the consumer to trust
+// the manifest over its own prose. A lens that silently skips the contract loses
+// the trust boundary, the severity vocabulary and the required JSON shape, which
+// surfaces as unparseable output rather than as a missing file. Point the key at
+// the contract we DO ship, resolved like every other manifest path: relative to
+// the manifest itself.
+const vendoredManifest = { ...manifest, shared_instructions: "../shared_review_contract.md" };
+writeFileSync(join(lensDir, "manifest.json"), `${JSON.stringify(vendoredManifest, null, 2)}\n`);
 writeFileSync(join(dest, "shared_review_contract.md"), readFileSync(join(ROOT, "contracts", "shared_review_contract.md")));
 
 writeFileSync(join(dest, "SOURCE.md"), `# Vendored lens library

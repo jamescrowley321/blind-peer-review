@@ -11,6 +11,15 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.1.3](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.2...v3.1.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* a dropped compliance floor fails the step, and lens identity is now tested ([#88](https://github.com/jamescrowley321/blind-peer-review/issues/88)) ([46edc59](https://github.com/jamescrowley321/blind-peer-review/commit/46edc596e2c9c5eee0989239be172044e7719efc))
+* **adapters:** one lens per session — batching them loses findings ([ce2a476](https://github.com/jamescrowley321/blind-peer-review/commit/ce2a476978554f6e3f325399762c01482c84e894))
+* resolve the PR head SHA so the dispatch path can actually run ([#85](https://github.com/jamescrowley321/blind-peer-review/issues/85)) ([c298071](https://github.com/jamescrowley321/blind-peer-review/commit/c2980718714fee8be4807115d29467b3085dde72))
+
 ## [3.1.2](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.1...v3.1.2) (2026-09-14)
 
 

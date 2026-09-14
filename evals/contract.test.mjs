@@ -2354,6 +2354,56 @@ describe("docs and examples agree with the shipped major", () => {
 // being mirrored agree, so a bump cannot silently orphan the port. Faithfulness
 // is re-established by hand against the new tag and recorded in
 // docs/upstream-issues.md's re-check log.
+describe("the GitHub/Claude adapter pins a usable lens library", () => {
+  const wf = rf(pjoin(REPO_ROOT, "adapters/github-claude/lens-review.yml"), "utf8");
+
+  test("it checks out this repo at a pinned release tag, not a branch", () => {
+    // A branch ref would let an upstream merge change a consumer's reviewers
+    // mid-PR, which is the thing pinning exists to prevent.
+    const ref = wf.match(/repository: jamescrowley321\/blind-peer-review\n\s*ref: (\S+)/);
+    assert.ok(ref, "the adapter no longer pins a ref for the lens library");
+    assert.match(ref[1], /^v\d+\.\d+\.\d+$/, `pinned to "${ref[1]}" — must be an exact vX.Y.Z tag`);
+  });
+
+  test("the pinned tag is the current MAJOR", () => {
+    // Patch drift is tolerable; a major behind means the consumer is running
+    // personas and a contract from a different generation of this project.
+    const ref = wf.match(/ref: (v(\d+)\.\d+\.\d+)/);
+    const version = rf(pjoin(REPO_ROOT, "version.txt"), "utf8").trim();
+    assert.equal(ref[2], version.split(".")[0], `adapter pins ${ref[1]} but this repo is ${version}`);
+  });
+
+  test("the lens set comes from the manifest, not a pasted list", () => {
+    // A lens added upstream must not silently stop running for consumers.
+    assert.match(wf, /require\("\.\/bpr\/lenses\/manifest\.json"\)/, "the matrix is not built from the manifest");
+    assert.match(wf, /default_enabled/, "the matrix ignores default_enabled");
+  });
+
+  test("one job per lens — the matrix is the isolation mechanism", () => {
+    assert.match(wf, /matrix:\n\s*lens: \$\{\{ fromJson/, "lenses are no longer a matrix");
+    assert.match(wf, /fail-fast: false/, "one lens erroring would cancel the others");
+  });
+
+  test("the persona never comes from the PR's own copy", () => {
+    // A pull request must not be able to rewrite its own reviewer (OWASP LLM01).
+    assert.match(wf, /origin\/\$\{GITHUB_BASE_REF\}/, "the override is not read from the base branch");
+  });
+
+  test("the review job holds no write tool and no contents: write", () => {
+    const allowed = wf.match(/--allowedTools "([^"]+)"/);
+    assert.ok(allowed, "no tool allowlist");
+    for (const banned of ["Write", "Edit", "NotebookEdit"]) {
+      assert.ok(!allowed[1].includes(banned), `${banned} is allowed — a reviewer must not mutate the tree`);
+    }
+    assert.ok(!/contents: write/.test(wf), "the workflow grants contents: write somewhere");
+  });
+
+  test("the gate fails closed", () => {
+    assert.match(wf, /needs\.review\.result/, "the gate does not read the review jobs' result");
+    assert.match(wf, /exit 1/, "the gate cannot fail");
+  });
+});
+
 describe("engine pin", () => {
   const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
 

@@ -1423,6 +1423,50 @@ describe("nudge delivery", () => {
     assert.ok(logs.some((l) => /could not send the nudge/.test(l)), "the failure was not reported");
   });
 
+  test("a second nudge after a session replacement goes to the NEW ctx (#58)", async () => {
+    // The reported sequence, in order: the agent settles without submitting, the
+    // nudge goes out, the provider errors, the session is REPLACED, the agent
+    // settles again. The second nudge must be delivered on the ctx handed to the
+    // second emit. Delivering on the first ctx — or on the captured api — is the
+    // stale-context throw that made the fallback never fire, so the run fell
+    // through to final-message parsing and died on "no parseable JSON object".
+    const capturedSends = [];
+    const pi = fakePi((m) => capturedSends.push(m));
+    const tracker = createSubmissionTracker({ maxNudges: 2 });
+    attachNudge(pi, tracker, () => {});
+
+    const first = [];
+    const ctx1 = { sendUserMessage: (m) => first.push(m) };
+    await pi.fire(ctx1);
+    assert.deepEqual(first, [NUDGE_MESSAGE], "first nudge did not reach the first ctx");
+
+    // Session replaced: ctx1 now throws exactly as pi's stale context does.
+    ctx1.sendUserMessage = () => {
+      throw new Error("This extension ctx is stale after session replacement or reload.");
+    };
+    const second = [];
+    await pi.fire({ sendUserMessage: (m) => second.push(m) });
+
+    assert.deepEqual(second, [NUDGE_MESSAGE], "second nudge did not reach the replacement ctx");
+    assert.deepEqual(first, [NUDGE_MESSAGE], "second nudge was delivered on the stale ctx");
+    assert.deepEqual(capturedSends, [], "second nudge fell back to the captured api unnecessarily");
+  });
+
+  test("a provider error between nudges does not stop the next one (#58)", async () => {
+    // The provider error and the stale-context error are separate faults. A
+    // throw from one delivery must not prevent the following attempt.
+    const logs = [];
+    const pi = fakePi(() => {});
+    attachNudge(pi, createSubmissionTracker({ maxNudges: 2 }), (m) => logs.push(m));
+
+    await pi.fire({ sendUserMessage: () => { throw new Error("Provider finish_reason: error"); } });
+    assert.ok(logs.some((l) => /could not send the nudge/.test(l)), "first failure was not reported");
+
+    const second = [];
+    await pi.fire({ sendUserMessage: (m) => second.push(m) });
+    assert.deepEqual(second, [NUDGE_MESSAGE], "a failed nudge suppressed the next attempt");
+  });
+
   test("a lens that already submitted is not nudged", async () => {
     const sent = [];
     const tracker = createSubmissionTracker();

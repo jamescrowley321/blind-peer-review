@@ -188,10 +188,16 @@ All of the above support tool calling. `mistralai/devstral-2512` is the only
 entry with **no reasoning support** — relevant for the judgment lenses, less so
 for mechanical ones.
 
-Note that **several frontier models cost less per push than the current
-default**, because `gemini-2.5-pro`'s $10/M output is priced like a frontier
-model while its per-token input is not. Moving up-tier is not necessarily a
-spend increase.
+Note that **the current default is not cheap for what it is**:
+`gemini-2.5-pro`'s $10/M output is priced like a frontier model while its
+per-token input is not, so at $0.53/push it sits above every model in the Strong
+value tier while scoring below the best of them (§5).
+
+Every model in the Frontier judgment table costs *more* per push than the default
+— $0.58 to $3.64 against $0.53 — so moving up-tier is a real spend increase, and
+on this project's evidence it has not bought anything. **The measured winner,
+`google/gemini-3.8-flash`, is in the Strong value tier at $0.27/push: half the
+default's cost and the only clean scorecard in four rounds.**
 
 > [!WARNING]
 > **Set `max_tokens` before comparing reasoning models.** Reasoning tokens bill

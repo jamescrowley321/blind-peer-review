@@ -14,7 +14,8 @@
 # final `mode: gate` job that `needs:` them. See examples/caller-workflow.yml.
 #
 # Engine: the pi coding agent (pi.dev) via shaftoe/pi-coding-agent-action,
-# routed through OpenRouter; default model google/gemini-2.5-pro (strong JSON adherence, stable slug). All overridable.
+# routed through OpenRouter; default model google/gemini-3.8-flash (measured: the only
+# clean scorecard in four rounds, and half the cost of the model it replaces). All overridable.
 
 name: 'Blind Peer Review'
 description: 'Fresh-context, diff-only adversarial PR review — five skeptical AI lenses that fail the merge on real defects.'
@@ -87,9 +88,9 @@ inputs:
     required: false
     default: 'openrouter'
   model:
-    description: "Model id for the provider. Default is google/gemini-2.5-pro — strong instruction/JSON adherence and a stable OpenRouter slug. Override to any model both pi's catalog and your provider account serve, and pair with models_config to enforce routing floors; see docs/model-selection.md for how to measure a candidate before adopting it, and for the two account settings (ZDR, allowed providers) that make a catalogued model unavailable with no warning."
+    description: "Model id for the provider. Default is google/gemini-3.8-flash — chosen by measurement, not impression: it is the only model of eleven to score zero violations, at 0% false positives on every lens, 100% JSON validity and 100% verdict stability (docs/model-selection.md §5). It replaces google/gemini-2.5-pro, whose 50% cold_read false-positive rate reproduced in every round at both ceilings — a training cutoff predating 2026 makes it read current dates and identifiers in a diff as fabricated, and it has issued a MUST FIX against a real CVE on that basis. It is also half the cost per push. Override to any model both pi's catalog and your provider account serve, and pair with models_config to enforce routing floors; see docs/model-selection.md for how to measure a candidate before adopting it, and docs/evals.md for the process."
     required: false
-    default: 'google/gemini-2.5-pro'
+    default: 'google/gemini-3.8-flash'
   models_config:
     description: |
       Optional JSON for pi's `~/.pi/agent/models.json`, written before the lens runs

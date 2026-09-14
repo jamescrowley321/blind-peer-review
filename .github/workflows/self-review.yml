@@ -127,7 +127,12 @@ jobs:
           # lenses in one wave. Sonnet 5 is unusable via openrouter+pi right now:
           # OpenRouter retired the undated anthropic/claude-sonnet-5 alias while
           # pi's catalog lacks the dated snapshot, so neither slug resolves.
-          model: google/gemini-2.5-pro
+          #
+          # gemini-3.8-flash by measurement (docs/model-selection.md §5): the only
+          # model of eleven to score zero violations. It replaces gemini-2.5-pro,
+          # whose 50% cold_read false-positive rate reproduced in every round —
+          # this repo should run the model its own evals chose.
+          model: google/gemini-3.8-flash
           # Exclude the eval fixture corpus from the reviewed diff. Those files
           # are DATA, not code: frozen `diff.patch` snippets fed to a model as
           # text, never imported, executed, or shipped. They contain planted

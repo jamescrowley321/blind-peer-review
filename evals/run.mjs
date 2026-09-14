@@ -7,7 +7,7 @@
 //   node evals/run.mjs --fixture acceptance_docs_only
 //   node evals/run.mjs --reps 5           # more reps = tighter stability estimate
 //   node evals/run.mjs --max-tokens 12000 # raise if reps report truncation
-//   node evals/run.mjs --model google/gemini-2.5-pro
+//   node evals/run.mjs --model google/gemini-3.8-flash
 //   node evals/run.mjs --dry-run          # compose prompts, print the plan, spend nothing
 //   node evals/run.mjs --write-baseline   # record the scorecard and always exit 0
 //   node evals/run.mjs --out report.md
@@ -47,7 +47,7 @@ function defaultModelFromAction() {
   // describes the configuration consumers actually run.
   const yml = readFileSync(join(ROOT, "action.yml"), "utf8");
   const m = yml.match(/\n {2}model:\n(?:[^\n]*\n)*? {4}default: '([^']+)'/);
-  return m ? m[1] : "google/gemini-2.5-pro";
+  return m ? m[1] : "google/gemini-3.8-flash";
 }
 
 const die = (msg) => { console.error(`Error: ${msg}`); process.exit(2); };

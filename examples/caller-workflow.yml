@@ -69,7 +69,7 @@ jobs:
             cold_read = anthropic/claude-sonnet-5
             red_team  = anthropic/claude-sonnet-5
             security  = anthropic/claude-sonnet-5
-          default_model: google/gemini-2.5-pro
+          default_model: google/gemini-3.8-flash
 
   # Deterministic gate: the paid lenses (review) `needs:` this, so they never run
   # unless the cheap checks pass first. The fork/bot gate lives here and cascades.
@@ -140,7 +140,7 @@ jobs:
               "providers": {
                 "openrouter": {
                   "modelOverrides": {
-                    "google/gemini-2.5-pro": {
+                    "google/gemini-3.8-flash": {
                       "compat": { "openRouterRouting": { "zdr": true, "data_collection": "deny" } }
                     },
                     "anthropic/claude-sonnet-5": {

@@ -12,6 +12,7 @@ ship in this repo directly.
 | **pi** (local) | [`../scripts/run-local.mjs`](../scripts/run-local.mjs) | this repo | `node scripts/run-local.mjs` before pushing |
 | **Claude Code** | [`../skills/check/`](../skills/check) + [`../agents/`](../agents) | installed plugin | `/blind-peer-review:check`, or invoke a lens agent |
 | **Codex** _(verified end-to-end)_ | [`codex/AGENTS.md`](codex/AGENTS.md) + [`../scripts/vendor.mjs`](../scripts/vendor.mjs) | consumer repo `AGENTS.md` + `.blind-peer-review/vendor/` | `npx github:jamescrowley321/blind-peer-review#v3 --into . --print-agents-block` in the target repo, then Codex reads it before working |
+| **GitHub (Claude App)** _(needs the app installed)_ | [`github-claude/lens-review.yml`](github-claude/lens-review.yml) | consumer repo `.github/workflows/` | On every PR; one job per lens, billed to your Anthropic key. Same-family if you author with Claude — see [`github-claude/README.md`](github-claude/README.md) |
 | **Cursor** _(trigger unverified)_ | [`cursor/blind-peer-review.mdc`](cursor/blind-peer-review.mdc) | consumer repo `.cursor/rules/` | Ask Cursor to run the review. The paths it cites are CI-checked against what the vendor step writes, but whether Cursor loads and fires the `.mdc` is still unexercised — we run Codex, pi and Claude Code. |
 
 ## One lens per session — measured, not assumed

@@ -11,8 +11,27 @@ ship in this repo directly.
 | **pi** (CI gate) | [`../action.yml`](../action.yml) + [`../examples/caller-workflow.yml`](../examples/caller-workflow.yml) | this repo → consumer `.github/workflows/` | On every PR; fail-closed merge gate |
 | **pi** (local) | [`../scripts/run-local.mjs`](../scripts/run-local.mjs) | this repo | `node scripts/run-local.mjs` before pushing |
 | **Claude Code** | [`../skills/check/`](../skills/check) + [`../agents/`](../agents) | installed plugin | `/blind-peer-review:check`, or invoke a lens agent |
-| **Codex** | [`codex/AGENTS.md`](codex/AGENTS.md) + [`../scripts/vendor.mjs`](../scripts/vendor.mjs) | consumer repo `AGENTS.md` + `.blind-peer-review/vendor/` | `npx github:jamescrowley321/blind-peer-review#v3 --into . --print-agents-block` in the target repo, then Codex reads it before working |
+| **Codex** _(verified end-to-end)_ | [`codex/AGENTS.md`](codex/AGENTS.md) + [`../scripts/vendor.mjs`](../scripts/vendor.mjs) | consumer repo `AGENTS.md` + `.blind-peer-review/vendor/` | `npx github:jamescrowley321/blind-peer-review#v3 --into . --print-agents-block` in the target repo, then Codex reads it before working |
 | **Cursor** _(trigger unverified)_ | [`cursor/blind-peer-review.mdc`](cursor/blind-peer-review.mdc) | consumer repo `.cursor/rules/` | Ask Cursor to run the review. The paths it cites are CI-checked against what the vendor step writes, but whether Cursor loads and fires the `.mdc` is still unexercised — we run Codex, pi and Claude Code. |
+
+## One lens per session — measured, not assumed
+
+Every local adapter says a lens sees no other lens's findings. In CI that is
+structural: each lens is a separate agent. In a coding agent it is only true if
+you **invoke the agent once per lens**. One session running five lenses carries
+each one's output into the next.
+
+Verified against a 27 KB diff of real third-party code, same model, same diff,
+same lens:
+
+| how it ran | Cold Read result |
+|---|---|
+| all five lenses in one `codex exec` | `"findings": []` |
+| `cold_read` alone, fresh session | **SHOULD FIX** — a real ordering bug, confirmed in the source |
+
+n=1, so sampling could account for some of it — but the direction is what the
+mechanism predicts, and the fix costs nothing. The templates now say one lens per
+invocation.
 
 ## The one override convention (all harnesses honor it)
 

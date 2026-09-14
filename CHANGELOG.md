@@ -11,6 +11,36 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.1.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.0.1...v3.1.0) (2026-09-14)
+
+
+### Features
+
+* default to google/gemini-3.8-flash, and correct the evidence for it ([#78](https://github.com/jamescrowley321/blind-peer-review/issues/78)) ([11cac10](https://github.com/jamescrowley321/blind-peer-review/commit/11cac10ab00e43e3de4b40b193dec4e12eb450fa))
+* **evals:** abandon a run whose provider is failing, and emit no scorecard ([#76](https://github.com/jamescrowley321/blind-peer-review/issues/76)) ([6841572](https://github.com/jamescrowley321/blind-peer-review/commit/6841572ea978b662f5aba15d520932f1ebd0d53f))
+* **evals:** document the process, and commit the measurements ([#77](https://github.com/jamescrowley321/blind-peer-review/issues/77)) ([275da4f](https://github.com/jamescrowley321/blind-peer-review/commit/275da4f89f50efe334d5a9f7f628e21739415af0))
+* per-lens models via a new `mode: config` — no inline scripts in the caller ([#63](https://github.com/jamescrowley321/blind-peer-review/issues/63)) ([1841ef6](https://github.com/jamescrowley321/blind-peer-review/commit/1841ef6c99a025e9a11b54b08c8cd40b47850101))
+
+
+### Bug Fixes
+
+* **codex:** a Codex install that works without cloning, and the install-from-git facts ([#57](https://github.com/jamescrowley321/blind-peer-review/issues/57)) ([3ab33c5](https://github.com/jamescrowley321/blind-peer-review/commit/3ab33c550d7cdb7114804696f8c39bf562e84c0f))
+* **evals:** apply the dispatched max-tokens ceiling instead of ignoring it ([#72](https://github.com/jamescrowley321/blind-peer-review/issues/72)) ([760dae8](https://github.com/jamescrowley321/blind-peer-review/commit/760dae84eaab83dd66f30968f39759459315f42e))
+* **evals:** make the max-tokens ceiling reachable from a dispatch ([#66](https://github.com/jamescrowley321/blind-peer-review/issues/66)) ([08d4d62](https://github.com/jamescrowley321/blind-peer-review/commit/08d4d626ce62fd0b5c6f3d739b941508a4825a3b))
+* tell the truth when the provider, not the code, is the problem ([#79](https://github.com/jamescrowley321/blind-peer-review/issues/79)) ([80b7599](https://github.com/jamescrowley321/blind-peer-review/commit/80b7599b7ff9c4d107871185b1a5ce7357afb7cc))
+
+
+### Refactors
+
+* extract the context and compose steps out of action.yml ([#68](https://github.com/jamescrowley321/blind-peer-review/issues/68)) ([c756efa](https://github.com/jamescrowley321/blind-peer-review/commit/c756efad3ff31eb6fc133701cb8024b170fcfbab))
+* extract the gate and preflight steps out of action.yml ([#67](https://github.com/jamescrowley321/blind-peer-review/issues/67)) ([fe23b0a](https://github.com/jamescrowley321/blind-peer-review/commit/fe23b0ad8b475491a0cdb3dc5cdead859bead8e7))
+* extract the parse step — action.yml is 1135 lines to 345 ([#70](https://github.com/jamescrowley321/blind-peer-review/issues/70)) ([d2caee0](https://github.com/jamescrowley321/blind-peer-review/commit/d2caee02d495d8cbf0c2c7a18785b04cfb1edaeb))
+
+
+### Documentation
+
+* how to choose the model a lens runs on ([#71](https://github.com/jamescrowley321/blind-peer-review/issues/71)) ([f741f0d](https://github.com/jamescrowley321/blind-peer-review/commit/f741f0d74c81011a56aee1db5365ca446756eed2))
+
 ## [3.0.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.0.0...v3.0.1) (2026-09-13)
 
 

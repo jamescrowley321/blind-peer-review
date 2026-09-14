@@ -42,7 +42,7 @@ jobs:
       matrix: ${{ steps.pick.outputs.matrix }}
     steps:
       - id: pick
-        uses: jamescrowley321/blind-peer-review@v2
+        uses: jamescrowley321/blind-peer-review@v3
         with:
           mode: config
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -90,7 +90,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Wait for deterministic checks
-        uses: jamescrowley321/blind-peer-review@v2
+        uses: jamescrowley321/blind-peer-review@v3
         with:
           mode: preflight
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -118,7 +118,7 @@ jobs:
       matrix: ${{ fromJSON(needs.config.outputs.matrix) }}
     steps:
       - name: ${{ matrix.name }}
-        uses: jamescrowley321/blind-peer-review@v2
+        uses: jamescrowley321/blind-peer-review@v3
         with:
           mode: lens
           lens: ${{ matrix.lens }}
@@ -181,7 +181,7 @@ jobs:
           github.event.pull_request.head.repo.fork == false &&
           github.actor != 'dependabot[bot]' &&
           needs.config.result == 'success' && needs.preflight.result == 'success' && needs.review.result == 'success'
-        uses: jamescrowley321/blind-peer-review@v2
+        uses: jamescrowley321/blind-peer-review@v3
         with:
           mode: gate
           # The same value that built the matrix — the gate's expected set and the

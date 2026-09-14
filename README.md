@@ -240,9 +240,13 @@ adapters, so the same personas review your code in CI *and* in your editor:
   action, so the personas have to be on disk. Re-run after a release to re-sync;
   don't hand-edit the vendored copies.
 
-  `#v3` follows the major; use `#v3.0.0` to pin exactly. If you'd rather not run
-  `npx`, clone this repo and run `node scripts/vendor.mjs --into /path/to/repo`
-  — same thing. See [`adapters/`](adapters).
+  `#v3` follows the major tag, which moves on every stable release; swap in an
+  exact tag (`#v3.1.0`) to pin. The `npx` entry point ships from the first
+  release that contains it — against an earlier tag npm exits with
+  `Could not read package.json`, since that is literally what is missing. If
+  you'd rather not run `npx`, clone this repo and run
+  `node scripts/vendor.mjs --into /path/to/repo` — same thing. See
+  [`adapters/`](adapters).
 
 - **pi (local)** — `node scripts/run-local.mjs` (below).
 - **Cursor** — [`adapters/cursor/`](adapters/cursor) exists but is unverified;

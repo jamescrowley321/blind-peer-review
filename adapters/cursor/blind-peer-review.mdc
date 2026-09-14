@@ -17,9 +17,9 @@ another.
 2. **Run each lens in its own fresh chat — one lens per conversation.** Several
    lenses in one thread is not a blind review: each carries the previous ones'
    reasoning into the next, so you get agreement rather than independence.
-   Measured on a 27 KB real diff, the Cold Read lens found nothing when batched
-   with four others and a genuine ordering bug when run alone. Batching loses
-   findings.
+   Measured on a 27 KB real diff: batched, all five lenses found nothing and the
+   run passed; one session per lens, two different lenses found the same real bug
+   and the run blocked. Batching turns a blocking defect into a clean pass.
 
    For each lens in `cold_read, edge_case, acceptance, security, red_team` (add
    `owasp_web`, `owasp_llm`, `policy` on request):

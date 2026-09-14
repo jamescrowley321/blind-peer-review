@@ -28,11 +28,11 @@ review the working diff with fresh, skeptical lenses. Each lens sees ONLY the di
    independent reviewer, you are getting an agreeable one.
 
    This is not a theoretical tidiness point. Measured on a 27 KB diff of real
-   code: run as one batched session, the Cold Read lens returned no findings; run
-   alone against the identical diff, the same lens on the same model found a real
-   ordering bug (a constructor validating an env var before the CLI flag meant to
-   override it was applied). **Batching does not merely weaken the guarantee — it
-   loses findings.**
+   code, same model, same diff: batched into one session, all five lenses
+   returned no findings and the run **passed**. Run one process per lens, two
+   different lenses independently found the same real bug and one rated it
+   MUST FIX, so the run **blocked**. Batching turned a blocking defect into a
+   clean pass, and lost the agreement between lenses that made it credible.
 
    Run these lenses: `cold_read, edge_case, acceptance, security, red_team` (add
    `owasp_web`, `owasp_llm`, `policy` when relevant). For each `<key>`:

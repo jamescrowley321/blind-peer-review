@@ -25,14 +25,21 @@ each one's output into the next.
 Verified against a 27 KB diff of real third-party code, same model, same diff,
 same lens:
 
-| how it ran | Cold Read result |
-|---|---|
-| all five lenses in one `codex exec` | `"findings": []` |
-| `cold_read` alone, fresh session | **SHOULD FIX** — a real ordering bug, confirmed in the source |
+| how it ran | Cold Read | Edge Cases | verdict |
+|---|---|---|---|
+| all five lenses in one `codex exec` | `[]` | `[]` | **PASS** |
+| one `codex exec` per lens | SHOULD FIX | **MUST FIX** | **BLOCK** |
 
-n=1, so sampling could account for some of it — but the direction is what the
-mechanism predicts, and the fix costs nothing. The templates now say one lens per
-invocation.
+Batching did not merely weaken the guarantee. It turned a blocking defect into a
+clean pass, and it destroyed the cross-validation signal the tool exists to
+produce: run separately, two *different* lenses independently converged on the
+same bug — a constructor that parses and validates an environment variable before
+the CLI flag meant to override it is applied, so a bad env value makes the
+override unusable. Confirmed in the source.
+
+`scripts/dispatch-codex.mjs` enforces this rather than asking for it: one process
+per lens, read-only sandbox, and the contract shape enforced through codex's
+`--output-schema` — the local equivalent of CI's schema-checked `submit_findings`.
 
 ## The one override convention (all harnesses honor it)
 

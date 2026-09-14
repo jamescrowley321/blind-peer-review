@@ -271,6 +271,15 @@ jobs:
       - name: Unit-test the local codex eval provider
         run: node --test evals/lib/codex-provider.test.mjs
 
+      - name: Syntax-check the codex dispatcher
+        run: node --check scripts/dispatch-codex.mjs
+
+      # Lens selection, persona override precedence and the fail-closed verdict.
+      # The process-spawning half needs a live `codex`; everything a wrong answer
+      # would silently corrupt is unit-tested here.
+      - name: Unit-test out-of-host dispatch (lens set, override, verdict)
+        run: node --test scripts/dispatch-codex.test.mjs
+
       - name: Validate the example workflow's models_config against the allowlist
         run: node scripts/check-example.mjs
 

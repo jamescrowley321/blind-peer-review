@@ -195,7 +195,59 @@ jobs:
             }
             process.exit(1);
           }
-          console.log(`Vendor OK: ${lenses.length - 1} personas + manifest + neutral contract; every manifest path resolves.`);
+          // Same failure one level out: the adapter templates hand the agent
+          // literal paths to read, and nothing checked those against what
+          // vendor.mjs actually writes. The Cursor rule said `lenses/<key>.md`
+          // and `contracts/shared_review_contract.md` — this repo's layout, not a
+          // consumer's — so a consumer who vendored exactly as documented got a
+          // rule that resolved nothing.
+          //
+          // Checking only paths already spelled `.blind-peer-review/vendor/...`
+          // would be vacuous: it validates the ones that are already right and is
+          // blind to the ones that are wrong. So the rule runs the other way —
+          // EVERY backticked .md/.json an adapter names must be a file the
+          // consumer will actually have:
+          //   * anything under .blind-peer-review/vendor/ must exist in the tree
+          //     vendor.mjs just wrote, with <key> standing for any lens;
+          //   * .blind-peer-review/lenses/<key>.md is the documented override —
+          //     deliberately absent, the consumer authors it;
+          //   * anything else is a path out of this repo's layout that a consumer
+          //     does not have.
+          const agentsBlock = execFileSync("node", ["scripts/vendor.mjs", "--into", tmp, "--print-agents-block"], { encoding: "utf8" });
+          const sources = {
+            "adapters/cursor/blind-peer-review.mdc": fs.readFileSync("adapters/cursor/blind-peer-review.mdc", "utf8"),
+            "adapters/codex/AGENTS.md": fs.readFileSync("adapters/codex/AGENTS.md", "utf8"),
+            "the printed --print-agents-block": agentsBlock,
+          };
+          const OVERRIDE = ".blind-peer-review/lenses/<key>.md";
+          const VENDOR = ".blind-peer-review/vendor/";
+          const keys = manifest.lenses.map((l) => l.key);
+          const broken = [];
+          for (const [where, text] of Object.entries(sources)) {
+            // Backtick-quoted file references only: prose naming a directory, and
+            // shell commands, are not claims that a file is there.
+            for (const m of text.matchAll(/`([^`\s]+\.(?:md|json))`/g)) {
+              const cited = m[1];
+              if (cited === OVERRIDE) continue;
+              if (!cited.startsWith(VENDOR)) {
+                broken.push(`${where}: ${cited} — not a vendored path; a consumer has no such file`);
+                continue;
+              }
+              const candidates = cited.includes("<key>")
+                ? keys.map((k) => cited.replace("<key>", k))
+                : [cited];
+              for (const c of candidates) {
+                if (!fs.existsSync(path.join(tmp, c))) {
+                  broken.push(`${where}: ${c} — vendor.mjs does not write it`);
+                }
+              }
+            }
+          }
+          if (broken.length) {
+            for (const b of broken) console.log(`::error::adapter cites an unusable path: ${b}`);
+            process.exit(1);
+          }
+          console.log(`Vendor OK: ${lenses.length - 1} personas + manifest + neutral contract; every manifest path resolves; every adapter path resolves.`);
 
       - name: Unit-test models-config validation (allowlist, types, clean-state)
         run: node --test scripts/models-config.test.mjs

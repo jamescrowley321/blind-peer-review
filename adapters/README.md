@@ -12,7 +12,7 @@ ship in this repo directly.
 | **pi** (local) | [`../scripts/run-local.mjs`](../scripts/run-local.mjs) | this repo | `node scripts/run-local.mjs` before pushing |
 | **Claude Code** | [`../skills/check/`](../skills/check) + [`../agents/`](../agents) | installed plugin | `/blind-peer-review:check`, or invoke a lens agent |
 | **Codex** | [`codex/AGENTS.md`](codex/AGENTS.md) + [`../scripts/vendor.mjs`](../scripts/vendor.mjs) | consumer repo `AGENTS.md` + `.blind-peer-review/vendor/` | `npx github:jamescrowley321/blind-peer-review#v3 --into . --print-agents-block` in the target repo, then Codex reads it before working |
-| **Cursor** _(unverified)_ | [`cursor/blind-peer-review.mdc`](cursor/blind-peer-review.mdc) | consumer repo `.cursor/rules/` | Ask Cursor to run the review. Written but never exercised — we run Codex, pi and Claude Code. Treat as a starting point. |
+| **Cursor** _(trigger unverified)_ | [`cursor/blind-peer-review.mdc`](cursor/blind-peer-review.mdc) | consumer repo `.cursor/rules/` | Ask Cursor to run the review. The paths it cites are CI-checked against what the vendor step writes, but whether Cursor loads and fires the `.mdc` is still unexercised — we run Codex, pi and Claude Code. |
 
 ## The one override convention (all harnesses honor it)
 
@@ -27,8 +27,17 @@ set only; see [`../lenses/README.md`](../lenses/README.md).
 
 ## Getting the lenses into a consumer repo
 
-The local harnesses need the persona files on disk. Either vendor `lenses/` into
-the consumer repo, add this repo as a submodule, or (Claude Code) install the
-plugin so `${CLAUDE_PLUGIN_ROOT}/lenses/` resolves. The Codex and Cursor templates
-below assume `lenses/` is reachable from the repo root — adjust the paths to match
-how you vendored it.
+The local harnesses need the persona files on disk. Claude Code needs nothing —
+installing the plugin makes `${CLAUDE_PLUGIN_ROOT}/lenses/` resolve. For Codex and
+Cursor, run this from the consumer repo's root:
+
+```
+npx -y github:jamescrowley321/blind-peer-review#v3 --into .
+```
+
+Both templates cite the paths that command writes (`.blind-peer-review/vendor/…`)
+verbatim, so there is nothing to adjust — and `lint.yml` fails the build if a
+template ever names a file the vendor step does not produce. Don't hand-edit the
+vendored copies; to change a lens for your repo, commit
+`.blind-peer-review/lenses/<key>.md`, which overrides the base persona of the same
+key and survives a re-vendor.

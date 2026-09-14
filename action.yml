@@ -87,7 +87,7 @@ inputs:
     required: false
     default: 'openrouter'
   model:
-    description: "Model id for the provider. Default is google/gemini-2.5-pro — strong instruction/JSON adherence and a stable OpenRouter slug. NOTE: pin models that pi's catalog AND OpenRouter both serve: OpenRouter retired the undated anthropic/claude-sonnet-5 alias (chat/completions 404s) while pi's catalog lacks the dated snapshot, so no Anthropic Sonnet-5 slug currently resolves through openrouter+pi. Override to any model; pair with models_config to enforce routing floors."
+    description: "Model id for the provider. Default is google/gemini-2.5-pro — strong instruction/JSON adherence and a stable OpenRouter slug. Override to any model both pi's catalog and your provider account serve, and pair with models_config to enforce routing floors; see docs/model-selection.md for how to measure a candidate before adopting it, and for the two account settings (ZDR, allowed providers) that make a catalogued model unavailable with no warning."
     required: false
     default: 'google/gemini-2.5-pro'
   models_config:

@@ -116,13 +116,23 @@ export function violations(byLens, thresholds = THRESHOLDS) {
     } else if (l.truncated) {
       out.push(`${l.lens}: ${l.truncated} rep(s) truncated at the max-tokens ceiling — harness limit; raise --max-tokens and re-run, do not read this as lens quality`);
     } else if (l.jsonValidityRate != null && l.jsonValidityRate < thresholds.jsonValidity) {
-      out.push(`${l.lens}: JSON validity ${pct(l.jsonValidityRate)} < ${pct(thresholds.jsonValidity)}`);
+      out.push(`${l.lens}: JSON validity ${pctVs(l.jsonValidityRate, thresholds.jsonValidity)} < ${pct(thresholds.jsonValidity)} (${l.jsonValid}/${l.repsTotal - l.providerErrors} delivered reps parsed)`);
     }
   }
   return out;
 }
 
 const pct = (x) => (x == null ? "n/a" : `${Math.round(x * 100)}%`);
+
+// A rate that misses a threshold must never PRINT as the threshold. glm-5.2's
+// acceptance lens parsed 37 of 39 reps — 94.87% — and the violation line read
+// "JSON validity 95% < 95%", which reads as a broken scorecard rather than a
+// real miss, and a real miss is what it was. Only widen the precision where the
+// collision happens; everywhere else whole percent is easier to scan.
+const pctVs = (x, threshold) =>
+  (x == null ? "n/a"
+    : Math.round(x * 100) === Math.round(threshold * 100) ? `${(x * 100).toFixed(1)}%`
+    : pct(x));
 const n = (x) => (x == null ? "n/a" : String(x));
 
 export function renderScorecard({ byLens, results, meta, violations: vs }) {
@@ -138,7 +148,7 @@ export function renderScorecard({ byLens, results, meta, violations: vs }) {
   L.push("| Lens | must-block recall | must-not-block FP rate | JSON validity | verdict stability | provider errors |");
   L.push("|---|---|---|---|---|---|");
   for (const l of Object.values(byLens).sort((a, b) => a.lens.localeCompare(b.lens))) {
-    L.push(`| \`${l.lens}\` | ${pct(l.recall)} (${l.mustBlock.filter((r) => r.pass).length}/${l.mustBlock.length}) | ${pct(l.falsePositiveRate)} (${l.falsePositives}/${l.mustNotBlock.length}) | ${pct(l.jsonValidityRate)} | ${pct(l.stability)} | ${l.providerErrors}/${l.repsTotal} |`);
+    L.push(`| \`${l.lens}\` | ${pct(l.recall)} (${l.mustBlock.filter((r) => r.pass).length}/${l.mustBlock.length}) | ${pct(l.falsePositiveRate)} (${l.falsePositives}/${l.mustNotBlock.length}) | ${pct(l.jsonValidityRate)} (${l.jsonValid}/${l.repsTotal - l.providerErrors}) | ${pct(l.stability)} | ${l.providerErrors}/${l.repsTotal} |`);
   }
   L.push("");
 

@@ -255,6 +255,77 @@ describe("severity enum", () => {
   }
 });
 
+// ─────────────────────── The on-demand (dispatch) path ───────────────────────
+// workflow_dispatch carries NO pull_request payload. Every step that anchors to
+// the commit under review used to read context.payload.pull_request.head.sha
+// directly, so each of these threw "Cannot read properties of undefined
+// (reading 'head')" — the on-demand path the action advertises could not run at
+// all, and the merge gate failed closed on a TypeError.
+
+describe("workflow_dispatch — no pull_request payload", () => {
+  test("preflight adjudicates the required checks", async () => {
+    const r = await runPreflightStep({
+      required: ["ci / lint"],
+      checkRuns: [checkRun({ name: "ci / lint" })],
+      dispatch: true,
+    });
+    assert.equal(r.passed, true);
+  });
+
+  test("preflight still fails closed on a failing required check", async () => {
+    const r = await runPreflightStep({
+      required: ["ci / lint"],
+      checkRuns: [checkRun({ name: "ci / lint", conclusion: "failure" })],
+      dispatch: true,
+    });
+    assert.equal(r.passed, false);
+  });
+
+  test("a lens posts its review anchored to the resolved head SHA", async () => {
+    const r = await runParseStep({
+      lensName: "Security Review",
+      agentResponse: emit("Security Review", [finding({ severity: "MUST FIX" })]),
+      dispatch: true,
+    });
+    assert.equal(r.failed, null, "the lens must not fail on the missing event payload");
+    assert.equal(r.event, "REQUEST_CHANGES");
+    assert.equal(r.github.created[0].commit_id, HEAD_SHA, "anchored to the PR head, not to whatever ref the dispatch ran on");
+    assert.deepEqual(
+      r.github.pullsGetCalls.map((c) => c.pull_number),
+      [42],
+      "the head SHA comes from the PR named by pr_number",
+    );
+  });
+
+  test("the gate adjudicates on the resolved head SHA", async () => {
+    const r = await runParseStep({
+      lensName: "Security Review",
+      agentResponse: emit("Security Review", []),
+      dispatch: true,
+    });
+    const gate = await runGateStep({
+      expected: ["Security Review"],
+      reviews: r.github.state.reviews,
+      dispatch: true,
+    });
+    assert.equal(gate.passed, true);
+  });
+
+  test("the gate still blocks on a MUST FIX raised through the dispatch path", async () => {
+    const r = await runParseStep({
+      lensName: "Security Review",
+      agentResponse: emit("Security Review", [finding({ severity: "MUST FIX" })]),
+      dispatch: true,
+    });
+    const gate = await runGateStep({
+      expected: ["Security Review"],
+      reviews: r.github.state.reviews,
+      dispatch: true,
+    });
+    assert.equal(gate.passed, false);
+  });
+});
+
 // ─────────────── The blocking contract: severity → event → gate ───────────────
 // This is the only assertion that must be exact, because it is what stops a merge.
 

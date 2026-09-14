@@ -40,10 +40,13 @@ export function makeCore() {
   return c;
 }
 
-export function makeContext({ headSha = HEAD_SHA } = {}) {
+export function makeContext({ headSha = HEAD_SHA, dispatch = false } = {}) {
   return {
     repo: { owner: OWNER, repo: REPO },
-    payload: { pull_request: { head: { sha: headSha }, number: PR_NUMBER } },
+    // `workflow_dispatch` carries no pull_request payload at all. That is the
+    // shape every on-demand run has, and the shape the head-SHA reads used to
+    // throw on, so it is worth being able to drive here.
+    payload: dispatch ? {} : { pull_request: { head: { sha: headSha }, number: PR_NUMBER } },
   };
 }
 
@@ -53,7 +56,7 @@ export function makeContext({ headSha = HEAD_SHA } = {}) {
  * Reviews created during the run are appended, so the post step's own
  * "did it land on head?" verification sees them — exactly as in production.
  */
-export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false, checkRuns = [] } = {}) {
+export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false, checkRuns = [], headSha = HEAD_SHA } = {}) {
   const created = [];
   const dismissed = [];
   const minimized = [];
@@ -62,11 +65,16 @@ export function makeGithub({ files = [], reviews = [], reviewComments = [], issu
   let nextId = 9000;
 
   const gh = {
-    created, dismissed, minimized, deletedComments, state,
+    created, dismissed, minimized, deletedComments, state, pullsGetCalls: [],
     paginate: async (fn, params) => fn(params).then((r) => r.data),
     graphql: async (_q, vars) => { minimized.push(vars.id); return { minimizeComment: { minimizedComment: { isMinimized: true } } }; },
     rest: {
       pulls: {
+        // What the action falls back to when there is no event payload.
+        get: async (p) => {
+          gh.pullsGetCalls.push(p);
+          return { data: { head: { sha: headSha }, number: p.pull_number } };
+        },
         listFiles: async () => ({ data: files }),
         listReviews: async () => ({ data: state.reviews }),
         listReviewComments: async () => ({ data: reviewComments }),
@@ -110,7 +118,7 @@ export async function runParseStep({
   lensName, agentResponse, files = defaultFiles(), reviews = [], reviewComments = [],
   issueComments = [], failIssueList = false,
   dismissSuperseded = "false", cleanupAgentComments = "true", agentSuccess = "true", yml = null,
-  lensHeading = undefined, submitted = undefined,
+  lensHeading = undefined, submitted = undefined, dispatch = false,
 }) {
   // Dual path, and the asymmetry is deliberate.
   //
@@ -143,7 +151,7 @@ export async function runParseStep({
     // the evals exercise what production actually passes.
     LENS_HEADING: lensHeading === undefined ? headingForDisplayName(lensName) : lensHeading,
   };
-  const context = makeContext();
+  const context = makeContext({ dispatch });
   try {
     if (yml === null) {
       await parseModule.run({ core, github, context, env });
@@ -168,11 +176,11 @@ export async function runParseStep({
 }
 
 /** Drive action.yml's "Aggregate lens results" (merge gate) step. */
-export async function runGateStep({ expected, reviews, headSha = HEAD_SHA }) {
+export async function runGateStep({ expected, reviews, headSha = HEAD_SHA, dispatch = false }) {
   const core = makeCore();
-  const github = makeGithub({ reviews });
+  const github = makeGithub({ reviews, headSha });
   await gateModule.run({
-    core, github, context: makeContext({ headSha }),
+    core, github, context: makeContext({ headSha, dispatch }),
     env: { EXPECTED: expected.join("|"), PR_NUMBER: String(PR_NUMBER) },
   });
   return { failed: core.failed, passed: core.failed == null, core };
@@ -184,16 +192,19 @@ export async function runGateStep({ expected, reviews, headSha = HEAD_SHA }) {
  * instant rather than real time.
  */
 export async function runPreflightStep({
-  required, checkRuns = [], headSha = HEAD_SHA, timeoutS = "0", pollS = "0", graceS = null,
+  required, checkRuns = [], headSha = HEAD_SHA, timeoutS = "0", pollS = "0", graceS = null, dispatch = false,
 }) {
   const core = makeCore();
-  const github = makeGithub({ checkRuns });
+  const github = makeGithub({ checkRuns, headSha });
   await preflightModule.run({
-    core, github, context: makeContext({ headSha }),
+    core, github, context: makeContext({ headSha, dispatch }),
     env: {
       REQUIRED_CHECKS: Array.isArray(required) ? required.join("\n") : String(required),
       TIMEOUT_S: String(timeoutS),
       POLL_S: String(pollS),
+      // action.yml passes this through so the head SHA can be resolved when
+      // there is no pull_request payload to read it from.
+      PR_NUMBER: String(PR_NUMBER),
       ...(graceS === null ? {} : { MISSING_GRACE_S: String(graceS) }),
     },
   });

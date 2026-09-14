@@ -14,6 +14,8 @@
 // in rather than reached for, so a test supplies stubs with no ceremony. `env`
 // is passed for the same reason: the module never touches process.env.
 
+const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
+
 async function run({ core, github, context, env }) {
   // Validated here, not assumed. action.yml always sets both, but a module that
   // crashes on a TypeError when it does not is a module whose failure mode is a
@@ -24,7 +26,7 @@ async function run({ core, github, context, env }) {
     core.setFailed(`PR_NUMBER must be a positive integer (got ${JSON.stringify(env.PR_NUMBER)})`);
     return;
   }
-  const headSha = context.payload.pull_request.head.sha;
+  const headSha = await resolveHeadSha({ github, context, env });
   const EXPECTED = (env.EXPECTED || "").split("|").filter(Boolean);
   if (EXPECTED.length === 0) {
     // No expected lenses means every lens "reported" vacuously — a gate that

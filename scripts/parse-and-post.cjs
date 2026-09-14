@@ -12,6 +12,8 @@
 // says it is guarding while guarding nothing. runParseStep therefore keeps the
 // string-lift path for the `yml` argument and uses this module otherwise.
 
+const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
+
 // ── Lens identity ──
 //
 // Which emitted `lens` strings count as THIS lens. Lifted out of run() and
@@ -96,7 +98,7 @@ async function run({ core, github, context, env }) {
   const fs = require("fs");
   const lensName = env.LENS_NAME;
   const prNumber = Number(env.PR_NUMBER);
-  const headSha = context.payload.pull_request.head.sha;
+  const headSha = await resolveHeadSha({ github, context, env });
   const owner = context.repo.owner;
   const repo = context.repo.repo;
 

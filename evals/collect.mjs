@@ -20,7 +20,7 @@
 // them; they are printed under a heading that says what they are.
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -28,6 +28,33 @@ const STORE = join(ROOT, "evals", "results");
 
 /** Upstream-failure fractions at which a run stops being a measurement. */
 export const VALIDITY = { degradedAt: 0.10, voidAt: 0.50 };
+
+/**
+ * Join under `base` and refuse to escape it.
+ *
+ * Both inputs that build a destination path here come from outside the script:
+ * `--round` from the operator, and `meta.model` from a DOWNLOADED artifact. A
+ * baseline claiming `"model": "../../../evil"` would otherwise write wherever it
+ * liked. Containment is asserted on the resolved path rather than by stripping
+ * characters, because a blocklist has to be right about every encoding and this
+ * only has to be right about one question: is the result still inside `base`.
+ */
+export function containedJoin(base, ...parts) {
+  const root = resolve(base);
+  const target = resolve(root, ...parts);
+  if (target !== root && !target.startsWith(root + sep)) {
+    throw new Error(`refusing to write outside ${root}: ${parts.join("/")} resolves to ${target}`);
+  }
+  return target;
+}
+
+/** A model id must look like one. Rejects path separators, traversal and control characters. */
+export function safeSlug(model) {
+  if (typeof model !== "string" || !/^[A-Za-z0-9._:@+-]+\/[A-Za-z0-9._:@+-]+$/.test(model)) {
+    throw new Error(`not a usable model id: ${JSON.stringify(model)}`);
+  }
+  return model.replace(/\//g, "__");
+}
 
 /** Classify a run by how much of it the provider actually answered. */
 export function classify(upstreamFixtures, totalFixtures) {
@@ -126,7 +153,7 @@ function render(round, rows) {
 
 function ingest(srcDir, round) {
   if (!round) { console.error("--ingest requires --round <name>"); process.exit(2); }
-  const dst = join(STORE, round);
+  const dst = containedJoin(STORE, round);
   mkdirSync(dst, { recursive: true });
   let n = 0;
   const walk = (d) => {
@@ -147,10 +174,16 @@ function ingest(srcDir, round) {
       }
       baseline.validity = classify(upstreamFixtures(baseline), (baseline.fixtures || []).length);
       const runId = (d.match(/(\d{6,})/) || [])[1] || String(n);
-      const slug = `${baseline.meta.model.replace(/\//g, "__")}.${runId}`;
-      writeFileSync(join(dst, `${slug}.json`), JSON.stringify(baseline, null, 1));
+      let slug;
+      try {
+        slug = `${safeSlug(baseline.meta.model)}.${runId}`;
+      } catch (e) {
+        console.error(`skipping ${p}: ${e.message}`);
+        continue;
+      }
+      writeFileSync(containedJoin(dst, `${slug}.json`), JSON.stringify(baseline, null, 1));
       const card = join(dirname(p), "scorecard.md");
-      if (existsSync(card)) copyFileSync(card, join(dst, `${slug}.md`));
+      if (existsSync(card)) copyFileSync(card, containedJoin(dst, `${slug}.md`));
       console.log(`ingested ${baseline.meta.model} (${baseline.validity.class}, upstream ${baseline.validity.upstreamFixtures}/${baseline.validity.totalFixtures})`);
       n++;
     }

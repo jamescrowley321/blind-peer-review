@@ -21,7 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
-import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound } from "./collect.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -2040,5 +2040,34 @@ describe("results store — malformed input", () => {
     const card = "### Violations  \n\n- a: x\n- b: y\n\n#### Per-fixture\n\n- not counted\n";
     assert.equal(violationsFromCard(card), 2);
     assert.equal(violationsFromCard("## Violations\n\n- only one\n"), 1, "a trailing section is optional");
+  });
+});
+
+// The two inputs that build a destination path come from OUTSIDE the script:
+// --round from the operator, and meta.model from a downloaded artifact.
+
+describe("results store — path containment", () => {
+  test("a round name cannot escape the store", () => {
+    for (const evil of ["../../../tmp/evil", "..", "a/../../b", "/etc/passwd"]) {
+      assert.throws(() => containedJoin("/store", evil), /refusing to write outside/, `--round ${evil}`);
+    }
+  });
+
+  test("ordinary round names are allowed, including nested ones", () => {
+    assert.equal(containedJoin("/store", "2026-09-14-ceiling-24000"), "/store/2026-09-14-ceiling-24000");
+    assert.equal(containedJoin("/store", "a", "b.json"), "/store/a/b.json");
+  });
+
+  test("a baseline cannot smuggle a path through meta.model", () => {
+    // A downloaded artifact is not trusted input. "../../../evil" as a model id
+    // would otherwise place a file wherever it liked.
+    for (const evil of ["../../../evil", "a/../../b", "/abs/path", "no-slash", "", null, 42])
+      assert.throws(() => safeSlug(evil), /not a usable model id/, String(evil));
+  });
+
+  test("real model ids survive unchanged apart from the separator", () => {
+    assert.equal(safeSlug("google/gemini-3.8-flash"), "google__gemini-3.8-flash");
+    assert.equal(safeSlug("z-ai/glm-5.2"), "z-ai__glm-5.2");
+    assert.equal(safeSlug("openai/gpt-5.6-luna-pro"), "openai__gpt-5.6-luna-pro");
   });
 });

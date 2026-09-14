@@ -52,7 +52,16 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
       if (!res.ok) {
         // A retired/unknown slug 404s with an HTML or JSON error body. Surface it
         // as fatal, not flaky — retrying a bad model id just burns wall-clock.
-        const fatal = res.status === 400 || res.status === 401 || res.status === 404;
+        //
+        // 402 is fatal for a different reason: it means the account is out of
+        // credit, which no retry and no later fixture will fix. It was retryable
+        // once, and a nine-run comparison dispatched against an exhausted cap
+        // therefore ran to completion, recording every call as a per-fixture
+        // error and emitting scorecards that looked like quality results — the
+        // model that scores 3 violations scored 16. A payment error is never
+        // transient and never a lens result.
+        const fatal =
+          res.status === 400 || res.status === 401 || res.status === 402 || res.status === 404;
         throw new ModelError(
           `OpenRouter ${res.status} for model "${model}": ${text.slice(0, 300).replace(/\s+/g, " ")}`,
           { status: res.status, retryable: !fatal },

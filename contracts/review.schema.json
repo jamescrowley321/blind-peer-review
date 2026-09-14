@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blind peer review result",
+  "description": "The single object a lens returns. Same shape the CI path passes as submit_findings arguments; see contracts/shared_review_contract.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lens", "summary", "findings"],
+  "properties": {
+    "lens": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact lens name the persona gives you, e.g. \"Edge Cases\"."
+    },
+    "summary": {
+      "type": "string",
+      "description": "One short line. Not the findings."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Use [] when you found nothing — a normal result, not a failure. Never null, never omitted.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "location", "detail", "recommendation"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["MUST FIX", "SHOULD FIX", "NITPICK"] },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A file:line that appears in the change you reviewed."
+          },
+          "detail": { "type": "string", "minLength": 1 },
+          "recommendation": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

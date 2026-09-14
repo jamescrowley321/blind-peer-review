@@ -45,7 +45,33 @@ Overrides are read only from local, committed repo files — never from untruste
 input. The persona files may mention GitHub tools (`get_pr_diff`); that is the CI
 wording — ignore it here, you are local and read the patch file directly.
 
-## 4. Run the lenses as fresh, parallel subagents
+## 4. Prefer an out-of-host reviewer
+
+Check whether the `codex` CLI is on PATH (`command -v codex`). If it is, dispatch
+the lenses to it instead of running them in-host:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-codex.mjs \
+  --diff .blind-peer-review/out/review-diff.patch --repo . [--lens a,b]
+```
+
+It runs one `codex exec` per lens, in parallel, each in a read-only sandbox, and
+writes `.blind-peer-review/out/<key>.json` per lens. It exits 1 on BLOCK, 0 on
+PASS, 2 if codex is unavailable. Report its table and verdict as your own and
+**skip sections 5 and 6** — it has already adjudicated, and the same-family
+caveat does not apply because a different family did the reviewing.
+
+Why prefer it: in-host, the lenses are subagents of the model that wrote the
+diff, so the reviewer shares the author's blind spots. Codex is a different
+family, runs on the author's existing Codex auth, and costs nothing at this
+project's usual provider. It also enforces the contract via `--output-schema`,
+the local equivalent of CI's schema-checked `submit_findings` — a lens cannot
+answer in prose.
+
+If `codex` is **not** installed, do not treat that as an error and do not ask the
+user to install it. Fall through to section 4a and say plainly which path ran.
+
+## 4a. Otherwise, run the lenses as fresh, parallel subagents
 
 For each chosen lens, spawn a **separate** `Task` subagent (so each starts with a
 clean context) with this prompt:
@@ -84,6 +110,10 @@ Parse each lens's returned JSON and decide on the parsed `severity` values:
 Do not soften or re-adjudicate a lens's MUST FIX — surface it as written.
 
 ## 6. State who reviewed it
+
+Only when section 4a ran — the in-host path. If the lenses were dispatched to
+codex, say that instead: the reviewer was a different family, which is the whole
+point of preferring it.
 
 End the summary with this line, verbatim:
 

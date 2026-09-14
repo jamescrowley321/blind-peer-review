@@ -1867,6 +1867,41 @@ describe("evals.yml wires plan-frozen inputs to the compose step", () => {
 
   const composeStep = steps.find((s) => s.phase === "compose");
 
+  test("the workflow default ceiling matches the harness default", () => {
+    // Two defaults for one setting is the drift that produced the original bug:
+    // local ran 8000 while a dispatch said 24000, and a model was written up as
+    // unable to emit parseable JSON when the harness had been cutting it off.
+    const wf = workflow.match(/^ {10}EVAL_MAX_TOKENS: \$\{\{ inputs\.max_tokens \|\| '(\d+)' \}\}$/m);
+    assert.ok(wf, "the workflow ceiling is no longer an `inputs.max_tokens || 'N'` fallback");
+    const harness = rf(pjoin(REPO_ROOT, "evals/run.mjs"), "utf8").match(/DEFAULT_MAX_TOKENS = (\d+)/);
+    assert.ok(harness, "evals/run.mjs no longer defines DEFAULT_MAX_TOKENS");
+    assert.equal(wf[1], harness[1], "the workflow and the harness disagree on the default ceiling");
+  });
+
+  test("compose and call send the SAME ceiling expression", () => {
+    // The two are deliberately duplicated so run.mjs's mismatch check is armed.
+    // That only works while they are the same expression: hand-edit one and the
+    // run is refused — which is the safe failure — but nothing would have caught
+    // the edit before someone lost a round to it.
+    const lines = [...workflow.matchAll(/^ {10}EVAL_MAX_TOKENS: (.+)$/gm)].map((m) => m[1].trim());
+    assert.equal(lines.length, 2, "expected the ceiling on exactly compose and call");
+    assert.equal(lines[0], lines[1], "compose and call disagree on the ceiling expression");
+  });
+
+  test("the automatic ceiling is not one this suite has measured as too low", () => {
+    // 8000 is not an arbitrary number to avoid: six fixture-reps hit it and none
+    // hit 24000, so a push-triggered run at 8000 spends provider credit to
+    // produce rows the harness itself reports as VOID, then fails the build on
+    // them. If the default ever needs to drop, re-measure first and change this
+    // test deliberately.
+    const fallback = workflow.match(/^ {10}EVAL_MAX_TOKENS: \$\{\{ inputs\.max_tokens \|\| '(\d+)' \}\}$/m);
+    assert.ok(fallback, "the ceiling is no longer an `inputs.max_tokens || 'N'` fallback");
+    assert.ok(
+      Number(fallback[1]) >= 24000,
+      `the push-triggered ceiling is ${fallback[1]}; 8000 was measured as producing void rows`,
+    );
+  });
+
   test("the workflow still runs the three phases as separate steps", () => {
     assert.deepEqual(
       steps.filter((s) => s.phase).map((s) => s.phase), ["compose", "call", "score"],

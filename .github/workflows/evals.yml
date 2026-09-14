@@ -220,7 +220,17 @@ jobs:
           # eight dispatched model comparisons all ran at the 8000 default while
           # the dispatch said 24000. run.mjs now refuses a mismatch rather than
           # ignoring it, and contract.test.mjs asserts this wiring.
-          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '8000' }}
+          #
+          # The default is 24000, not 8000, because 8000 is a ceiling this suite
+          # has already measured itself against and failed: six fixture-reps hit
+          # it there and none at 24000, and a rep that hits the ceiling produces
+          # a VOID row, not a bad lens. At 8000 the automatic run on every push
+          # to main spent provider credit to produce a result the harness itself
+          # says to disregard, then failed the build on it — which is how
+          # `truncation_tail_cut_must_not_block x acceptance` has been red.
+          # Raising the ceiling buys measurement validity; it does not buy
+          # quality (see docs/model-selection.md).
+          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '32000' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -243,7 +253,7 @@ jobs:
           # two can only differ if someone hand-edits one of them. When they do,
           # run.mjs refuses the run rather than sending the plan's ceiling and
           # reporting this one — which is the check this line exists to arm.
-          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '8000' }}
+          EVAL_MAX_TOKENS: ${{ inputs.max_tokens || '32000' }}
         shell: bash
         run: node evals/run.mjs --phase call
 

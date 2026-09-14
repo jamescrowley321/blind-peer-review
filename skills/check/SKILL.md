@@ -82,3 +82,22 @@ Parse each lens's returned JSON and decide on the parsed `severity` values:
   before pushing.
 
 Do not soften or re-adjudicate a lens's MUST FIX — surface it as written.
+
+## 6. State who reviewed it
+
+End the summary with this line, verbatim:
+
+> Reviewed in-host: the lenses ran on the same model family that wrote this diff.
+> A same-family reviewer shares the author's blind spots. CI reviews with a
+> different family — see `docs/model-selection.md`.
+
+This is a real limitation of the local path, not boilerplate. The lenses here are
+`Task` subagents of the host, so when you author in Claude Code, Claude is
+reviewing Claude: a bug that came from a habit of this model family is one the
+reviewer is least likely to see. The CI gate does not have this problem — it
+dispatches to a different family entirely.
+
+Print the line whether the verdict is PASS or BLOCK. A clean PASS is exactly when
+the caveat matters most, because that is when it is easiest to read the result as
+stronger evidence than it is. Do not reword it into a reassurance, and do not drop
+it because the run found nothing.

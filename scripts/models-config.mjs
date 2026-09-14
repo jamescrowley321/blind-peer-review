@@ -276,6 +276,62 @@ export function modelKeyMismatch(config, model) {
   );
 }
 
+/**
+ * Model ids whose overrides set an actual compliance floor.
+ *
+ * `zdr: true` and `data_collection: "deny"` are the two routing keys that are
+ * privacy controls rather than preferences — price-sort or maker-ignore being
+ * dropped costs money or quality, but a dropped ZDR floor sends the diff to a
+ * provider the caller wrote the config specifically to exclude.
+ */
+export function floorModelIds(config) {
+  const ids = new Set();
+  for (const provider of Object.values(config?.providers ?? {})) {
+    for (const [id, ov] of Object.entries(provider?.modelOverrides ?? {})) {
+      const routing = ov?.compat?.openRouterRouting ?? {};
+      if (routing.zdr === true || routing.data_collection === "deny") ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * The narrow case that must FAIL rather than warn (#75).
+ *
+ * `modelKeyMismatch` below warns whenever the overrides name no model this lens
+ * runs, and stays a warning on purpose: under the per-lens model matrix a caller
+ * legitimately pins a wider model set than any single run uses, so "no entry for
+ * this run's model" is not by itself a mistake.
+ *
+ * But when the overrides set a compliance floor AND this lens's model has no
+ * entry at all, the build is green while the diff routes to a provider the floor
+ * was written to exclude. Warnings do not stop a merge, and someone who can edit
+ * the caller workflow can arrange that silence deliberately. So this one fails.
+ *
+ * Deliberately NOT triggered when the running model HAS an entry — a caller may
+ * floor some models and not others, and that config keeps working. The single
+ * config this rejects is "a floor is in force somewhere, and this run is outside
+ * it entirely", which is the one that is silent about losing the control. A
+ * caller who really means it says so with `allow_unfloored_model: true`, so the
+ * silence is chosen rather than inherited.
+ *
+ * Returns the error string, or null when there is nothing to fail on.
+ */
+export function complianceFloorGap(config, model) {
+  const active = (model || "").trim();
+  if (!active) return null;
+  const floored = floorModelIds(config);
+  if (floored.length === 0) return null;          // no floor set: nothing to lose
+  if (overriddenModelIds(config).includes(active)) return null; // this run is covered
+  return (
+    `models_config sets a zdr/data_collection floor for ${floored.map((i) => `'${i}'`).join(", ")} ` +
+    `but this lens runs '${active}', which has no entry at all — so the diff would be sent ` +
+    `with none of that floor in force, on a green build. Add a '${active}' entry under ` +
+    `providers.<provider>.modelOverrides, or set 'allow_unfloored_model: true' to state ` +
+    `that running this model unfloored is intended.`
+  );
+}
+
 // CLI entrypoint for the action step: `node models-config.mjs` reads MODELS_CONFIG,
 // MODEL and HOME from env, writes (or cleans), and prints a GitHub Actions summary.
 // Exits non-zero on any validation error (loud failure).
@@ -287,7 +343,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     else if (action === "removed") console.log(`Removed stale ${p}`);
     else console.log(`No models_config supplied; no ${p} to remove.`);
     if (action === "wrote") {
-      const warning = modelKeyMismatch(validateModelsConfig(raw), process.env.MODEL);
+      const config = validateModelsConfig(raw);
+      const model = process.env.MODEL;
+      // A dropped compliance floor fails the step; a merely-inapplicable override
+      // set stays a warning. Opt-out is explicit and has to be spelled in the
+      // caller workflow, where it is reviewable, not inferred from the config.
+      if (process.env.ALLOW_UNFLOORED_MODEL !== "true") {
+        const gap = complianceFloorGap(config, model);
+        if (gap) {
+          console.log(`::error::${gap}`);
+          process.exit(1);
+        }
+      }
+      const warning = modelKeyMismatch(config, model);
       if (warning) console.log(`::warning::${warning}`);
     }
   } catch (e) {

@@ -255,6 +255,14 @@ jobs:
       - name: Unit-test the lens matrix resolver (mode=config)
         run: node --test scripts/lens-matrix.test.mjs
 
+      # The lens-name matcher decides whether a lens's JSON came from the persona
+      # it dispatched. It is part exact-match, part hand-maintained alias map,
+      # part containment — and until this test nothing checked the map still
+      # described the shipped personas. That drift once made every Security
+      # Review job fail deterministically. Reads lenses/ rather than restating it.
+      - name: Unit-test lens identity against the shipped personas
+        run: node --test scripts/lens-identity.test.mjs
+
       - name: Validate the example workflow's models_config against the allowlist
         run: node scripts/check-example.mjs
 

@@ -107,6 +107,16 @@ inputs:
       workflow-author-controlled; never derive from untrusted PR/issue content.
     required: false
     default: ''
+  allow_unfloored_model:
+    description: >-
+      Run this lens even when models_config sets a zdr/data_collection floor and
+      this lens's model has no entry under modelOverrides at all. Default false:
+      that combination fails the step, because it routes the diff with none of the
+      floor in force on an otherwise green build. Set true only to state that
+      running this model unfloored is intended — a floor that covers some models
+      and deliberately not others is fine and does not need this.
+    required: false
+    default: 'false'
   thinking_level:
     description: "pi thinking level: low | medium | high."
     required: false
@@ -253,6 +263,10 @@ runs:
         # The routing overrides are keyed by model id, so the step needs to know
         # which model this lens actually runs to tell whether they apply at all.
         MODEL: ${{ inputs.model }}
+        # Opt out of the hard failure when a compliance floor applies to no model
+        # this lens runs. Explicit, and spelled in the caller workflow where a
+        # reviewer sees it.
+        ALLOW_UNFLOORED_MODEL: ${{ inputs.allow_unfloored_model }}
       run: node "${{ github.action_path }}/scripts/models-config.mjs"
 
     # One minimal provider call before the agent spends anything. Out of credit,

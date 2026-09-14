@@ -225,27 +225,48 @@ is worth more than what it "measured".
 
 ### The result
 
-| Model | Violations | must-not-block FP | JSON validity | stability | provider errors | $/run |
+| Model | Violations (per run) | must-not-block FP | JSON validity | stability | provider errors | $/push |
 |---|---|---|---|---|---|---|
-| **`google/gemini-3.8-flash`** | **0** | **0% every lens** | **100%** | **100%** | **0/123** | **2.54** |
-| `z-ai/glm-5.2` | 3 | 0% every lens | 88–100% | 92–100% | 0/123 | 2.08 |
-| `openai/gpt-6-astra` | 3 | 11% acceptance, 50% cold_read | 97–100% | 100% | 0/123 | 33.83 |
-| `google/gemini-2.5-pro` *(incumbent)* | 5 | **50% cold_read** | 89–100% | 86–100% | 0/123 | 4.92 |
-| `openai/gpt-5.6-luna-pro` | 14 | 22% acceptance, 50% cold_read | 88–100% | 85% | 26/123 | — |
-| `anthropic/claude-sonnet-5` | 16 | 11% acceptance | 21–83% | 33% | 0/123 | — |
-| `moonshotai/kimi-k2-thinking` | 17 | 22% acceptance, 100% cold_read | 91–100% | 0% | 26/123 | — |
+| **`google/gemini-3.8-flash`** | **0, 0, 3** | **0% every lens, every run** | 67–100% | 92–100% | **0/41** | **0.27** |
+| `z-ai/glm-5.2` | 2, 3 | **0% every lens, every run** | 88–100% | 92–100% | 0/41 | 0.20 |
+| `openai/gpt-6-astra` | 3 | 11% acceptance, 50% cold_read | 97–100% | 100% | 0/41 | 3.64 |
+| `google/gemini-2.5-pro` *(incumbent)* | 2, 3, 5 | **50% cold_read, every run** | 89–100% | 86–100% | 0/41 | 0.53 |
+| `openai/gpt-5.6-luna-pro` | 14 | 22% acceptance, 50% cold_read | 88–100% | 85% | 20/41 | — |
+| `anthropic/claude-sonnet-5` | 16 | 11% acceptance | 21–83% | 33% | 0/41 | — |
+| `moonshotai/kimi-k2-thinking` | 17 | 22% acceptance, 100% cold_read | 91–100% | 0% | 12/41 | — |
 
-`gemini-3.8-flash` is the only clean scorecard in four rounds: every lens at 0%
-false positives, 100% JSON validity across all 123 reps, 100% verdict stability,
-full recall on seven of eight lenses and 80% (4/5) on `security`. Zero upstream
-failures. It is also **cheaper than the incumbent it replaces**.
+**Read the first column as a range, not a score.** `gemini-3.8-flash` was run
+three times: 0, 3, 0. All three were clean at the provider, so that spread is the
+model, not infrastructure — the middle run lost `acceptance` recall to 75% and
+`owasp_llm` to 0% with JSON validity at 67%.
 
-It matters that it is the same family one generation on. The incumbent's defining
-defect is a 50% `cold_read` false-positive rate, and the mechanism is known: a
-training cutoff predating 2026 makes it read legitimate 2026 dates and
-identifiers in a diff as fabricated — it has issued a `MUST FIX` against a real,
-current CVE on that basis. At 3.8-flash that rate is 0%. **The fix was a newer
-model in the same family, not a change of vendor.**
+An earlier version of this section reported that model's first run alone and
+called it "the only clean scorecard in four rounds". §6 says a clean sweep is
+exactly the kind of result a single run can flatter, and that is what had
+happened. The correction is recorded rather than quietly edited, because the
+methodology is the point of this document.
+
+What survives the replication is the ranking, on the axis §6 says to rank on:
+
+- **False-positive rate replicated for every model, in every run.**
+  `gemini-3.8-flash` and `glm-5.2` at 0% on every lens; the incumbent at a steady
+  50% `cold_read`; `gpt-6-astra` and `kimi` consistently false-positive.
+- **Violation counts and recall did not replicate**, for anyone.
+
+So the decision is between the two models with a reproducible 0% false-positive
+rate, and against an incumbent with a reproducible 50% one.
+`gemini-3.8-flash` is the only model measured to score **0 violations at all**,
+and it did so in two of three runs; `glm-5.2` has never scored 0 but has never
+scored worse than 3. On this evidence they are close, and both are clearly better
+than the incumbent.
+
+**`google/gemini-3.8-flash` is the default** on the strength of the median, the
+fact that it is the only model to reach 0, and this: the incumbent's defect is a
+training cutoff predating 2026, which makes it read current dates and identifiers
+in a diff as fabricated — it has issued a `MUST FIX` against a real, current CVE
+on that basis. That failure mode is structural and is fixed by a later model in
+the same family. `glm-5.2` at $0.20/push remains the value pick and a defensible
+alternative.
 
 ### Availability is an account setting, and it dominates
 

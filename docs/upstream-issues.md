@@ -4,9 +4,38 @@ Defects found in the agent action this project pins, each with the workaround
 that is live in this repo. **Nothing here has been filed upstream.** These are
 written up so a human can send them; do not auto-file them.
 
-Pinned engine: `shaftoe/pi-coding-agent-action@c1e0b11c0b667f8e8fe9d0df8810c0745bfff59e` (v2.27.1).
-Re-check both when that pin moves — a fixed upstream defect means a workaround
-here can be retired, and a workaround nobody retires becomes folklore.
+Pinned engine: `shaftoe/pi-coding-agent-action@1f0be2391705316c12e0f504eab2e39c74ec2da8` (v2.28.0).
+Re-check all three when that pin moves — a fixed upstream defect means a
+workaround here can be retired, and a workaround nobody retires becomes folklore.
+
+## Re-check log
+
+**2026-09-14 — v2.27.1 → v2.28.0. All three defects still present; every
+workaround still required.**
+
+The two files carrying them are **byte-identical** between the two tags:
+
+| file | v2.27.1 | v2.28.0 |
+|---|---|---|
+| `packages/pi-platform-github/src/tools/pr-diff.ts` | 4072 B | 4072 B, identical |
+| `packages/pi-orchestrator/src/pi/tools/get-pr-diff.ts` | 10707 B | 10707 B, identical |
+
+v2.28.0 is additive elsewhere: an opt-in `update_comment` input (default
+`'false'`, and we do not pass it), a CodeQL bump, and the pi SDK to v0.85.1. The
+release touches `comments.ts` heavily, which is worth knowing because
+`cleanup_agent_comments` deletes the agent's raw-JSON comment — but with
+`update_comment` off, posting behaviour is unchanged.
+
+Verified rather than assumed, on the upgraded pin:
+
+- **#1** — `evals/validate-fixtures.mjs` rejects a literal `diff --git ` planted in
+  a fixture, naming the `DIFFGIT ` encoding. 31 fixtures validate clean.
+- **#2** — `evals/lib/pi-diff.mjs` was diffed against a verbatim transliteration of
+  v2.28.0's `truncateDiffByBytes` across seven inputs, including the multi-byte
+  UTF-8 and `maxBytes=1` cases: identical on every one, defect included.
+- **#3** — `renderGetPrDiff` reproduces v2.28.0's fence line byte-for-byte, and
+  still refuses a payload containing ``` rather than emitting one the real tool
+  never produces or silently escaping it.
 
 ---
 

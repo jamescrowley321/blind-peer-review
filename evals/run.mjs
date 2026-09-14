@@ -155,7 +155,15 @@ async function compose() {
 
 function readPlan() {
   if (!existsSync(planPath)) die(`no plan at ${planPath} — run --phase compose first`);
-  const plan = JSON.parse(readFileSync(planPath, "utf8"));
+  let plan;
+  try {
+    plan = JSON.parse(readFileSync(planPath, "utf8"));
+  } catch (e) {
+    // A plan killed mid-write, or hand-edited between phases, is a recomposable
+    // problem. A raw SyntaxError with no filename sends the reader looking for
+    // a bug in the harness instead.
+    die(`the plan at ${planPath} is not readable JSON (${e.message}) — re-run --phase compose`);
+  }
   reconcile(plan);
   return plan;
 }

@@ -1808,6 +1808,18 @@ describe("a plan-frozen setting cannot be overridden by a later phase", () => {
     } finally { rmSync(work, { recursive: true, force: true }); }
   });
 
+  test("an unreadable plan is a recomposable error, not a stack trace", () => {
+    const work = planWith({});
+    writeFileSync(pjoin(work, "plan.json"), '{"meta": {"model": "a/b",');
+    try {
+      const r = runPhase(work, "call", {});
+      assert.equal(r.status, 2, `expected die(), got ${r.status}: ${r.stdout}${r.stderr}`);
+      assert.match(r.stderr, /not readable JSON/);
+      assert.match(r.stderr, /--phase compose/, "the message must say how to recover");
+      assert.doesNotMatch(r.stderr, /at Object\.|node:internal/, "a stack trace sends the reader hunting a harness bug");
+    } finally { rmSync(work, { recursive: true, force: true }); }
+  });
+
   test("saying nothing inherits the plan, in every phase", () => {
     const work = planWith({ maxTokens: 24000, model: "planned/model" });
     try {

@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.1.2](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.1...v3.1.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **adapters:** the Cursor rule pointed at paths no consumer has ([deeb7de](https://github.com/jamescrowley321/blind-peer-review/commit/deeb7dee226523c32e9535535b21814976475ef4))
+
 ## [3.1.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.0...v3.1.1) (2026-09-14)
 
 

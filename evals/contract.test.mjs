@@ -21,6 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -1948,5 +1949,65 @@ describe("402 is fatal, not retryable", () => {
         (e) => e instanceof ModelError && e.retryable === false);
     });
     assert.equal(calls, 1);
+  });
+});
+
+// ───────────────────── results store: what counts as data ─────────────────────
+// A run against a dead provider still emits a complete, plausible scorecard.
+// classify() is what stops one entering the comparison as a result.
+
+describe("results-store validity", () => {
+  test("a clean run is measured", () => {
+    assert.equal(classify(0, 41).class, "measured");
+  });
+
+  test("the round-five runs are void", () => {
+    for (const [up, model] of [[41, "glm-5.2"], [34, "opus-5"], [33, "opus-4.8"], [29, "gemini-3.7-flash"], [22, "mistral"]]) {
+      assert.equal(classify(up, 41).class, "void", `${model} at ${up}/41 upstream must never be ranked`);
+    }
+  });
+
+  test("a partially degraded run is reported but not ranked", () => {
+    // gpt-5.6-luna-pro lost 20/41 fixtures upstream and is still a real
+    // measurement for the 21 that landed. Voiding it would discard evidence.
+    assert.equal(classify(20, 41).class, "degraded");
+    assert.equal(classify(12, 41).class, "degraded", "kimi-k2-thinking");
+  });
+
+  test("the class boundaries are the documented ones", () => {
+    assert.equal(classify(4, 41).class, "measured", "just under 10%");
+    assert.equal(classify(5, 41).class, "degraded", "just over 10%");
+    assert.equal(classify(20, 41).class, "degraded", "just under 50%");
+    assert.equal(classify(21, 41).class, "void", "just over 50%");
+    assert.equal(VALIDITY.degradedAt, 0.10);
+    assert.equal(VALIDITY.voidAt, 0.50);
+  });
+
+  test("an empty run is void, not a division by zero", () => {
+    const c = classify(0, 0);
+    assert.equal(c.class, "void");
+    assert.ok(Number.isFinite(c.upstreamRate));
+  });
+
+  test("upstream fixtures are counted from the reason strings, not guessed", () => {
+    const baseline = { fixtures: [
+      { reason: "3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure" },
+      { reason: "blocked as expected" },
+      { reason: "did not block, as expected" },
+      { reason: "" },
+      { },
+    ] };
+    assert.equal(upstreamFixtures(baseline), 1);
+  });
+
+  test("violations are counted from the scorecard's own section", () => {
+    const card = [
+      "# Scorecard", "", "## Violations", "",
+      "- acceptance: must-block recall 50% < 80%",
+      "- security: JSON validity 88% < 95%", "",
+      "## Per-fixture", "", "- not a violation, a different section",
+    ].join("\n");
+    assert.equal(violationsFromCard(card), 2, "the per-fixture section must not leak into the count");
+    assert.equal(violationsFromCard("# Scorecard\n\nno violations section"), 0);
   });
 });

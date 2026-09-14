@@ -11,6 +11,18 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.1.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.0...v3.1.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **vendor:** the vendored manifest pointed at a file it never shipped ([5980c16](https://github.com/jamescrowley321/blind-peer-review/commit/5980c163b5a68f2e1b3f200769c448d6d76375c2))
+
+
+### Documentation
+
+* stop shipping a config that fails closed on every PR ([#82](https://github.com/jamescrowley321/blind-peer-review/issues/82)) ([39e9e62](https://github.com/jamescrowley321/blind-peer-review/commit/39e9e62aacec63b9df3416cb355ca40408a31dce))
+
 ## [3.1.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.0.1...v3.1.0) (2026-09-14)
 
 

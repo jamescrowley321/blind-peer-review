@@ -37,6 +37,7 @@ import { execFileSync } from "node:child_process";
 import { ROOT, runParseStep, filesFromDiff, parseReviewBody } from "./lib/harness.mjs";
 import { listFixtureIds, loadFixture, selectRuns, composePrompt } from "./lib/fixtures.mjs";
 import { chat, mapLimit, ModelError } from "./lib/openrouter.mjs";
+import { bailoutSample, shouldBailOut, bailoutMessage } from "./lib/bailout.mjs";
 import { foldReps, score, violations, renderScorecard, buildBaseline, THRESHOLDS } from "./lib/scorecard.mjs";
 
 const PHASES = ["all", "compose", "call", "score"];
@@ -208,6 +209,14 @@ async function call(plan) {
   const items = [];
   for (const r of plan.runs) for (let rep = 0; rep < plan.meta.reps; rep++) items.push({ r, rep });
 
+  // Abandon the run if its opening calls are failing at the provider (policy and
+  // rationale in lib/bailout.mjs). Exits WITHOUT a scorecard: an absent artifact
+  // cannot be misread, and a caveated one demonstrably can.
+  const sample = bailoutSample(items.length);
+  let completed = 0;
+  let failed = 0;
+  let decided = false;
+
   await mapLimit(items, args.concurrency, async ({ r, rep }) => {
     const promptPath = join(args.work, `${r.id}__${r.lensKey}.prompt.txt`);
     const out = join(args.work, `${r.id}__${r.lensKey}.rep${rep}.json`);
@@ -222,6 +231,7 @@ async function call(plan) {
       const res = await chat({ model: plan.meta.model, prompt, temperature: rep === 0 ? 0 : 0.4, maxTokens: plan.meta.maxTokens });
       writeFileSync(out, JSON.stringify({ text: res.text, finishReason: res.finishReason, resolvedModel: res.resolvedModel, ms: res.ms }, null, 2));
     } catch (err) {
+      failed++;
       if (err instanceof ModelError && err.retryable === false) {
         console.error(`\nFATAL: ${err.message}`);
         process.exit(3);
@@ -232,6 +242,19 @@ async function call(plan) {
         writeFileSync(out, JSON.stringify({ error: String(err.message || err) }, null, 2));
       } catch (writeErr) {
         console.error(`could not record the error for ${r.id} × ${r.lensKey}: ${writeErr.message}`);
+      }
+    } finally {
+      // Counted in `finally` so a success and a failure advance the sample
+      // identically; a breaker that only counts failures never fills its sample
+      // on a run that is merely degraded.
+      completed++;
+      if (!decided && completed >= sample) {
+        decided = true;
+        const verdict = shouldBailOut({ completed, failed, total: items.length });
+        if (verdict) {
+          console.error(`\nFATAL: ${bailoutMessage(plan.meta.model, verdict)}`);
+          process.exit(3);
+        }
       }
     }
   });

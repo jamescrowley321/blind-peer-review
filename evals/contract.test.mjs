@@ -19,6 +19,8 @@ import { createRequire as _cr } from "node:module";
 const composePromptModule = _cr(import.meta.url)("../scripts/compose-prompt.cjs");
 import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureDiffPayload, actionDiffDefaults, evalPreamble, actionInputDefault, listFixtureIds } from "./lib/fixtures.mjs";
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
+import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
+import { chat, ModelError } from "./lib/openrouter.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -1845,5 +1847,106 @@ describe("a plan-frozen setting cannot be overridden by a later phase", () => {
       assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
       assert.match(r.stdout, /Model:\s+planned\/model/, "the banner must name the plan's model, not action.yml's default");
     } finally { rmSync(work, { recursive: true, force: true }); }
+  });
+});
+
+// ───────────────────── early bail-out (the void round) ─────────────────────
+// A nine-run comparison was dispatched against an exhausted credit cap. Every
+// call returned 402 or 429; every run completed anyway and emitted a scorecard.
+// The model that scores 3 violations scored 16, with 0% false positives and
+// 84-100% JSON validity — numbers that read as a quality result. Only the
+// per-fixture reason strings revealed it as infrastructure.
+
+describe("bail-out policy", () => {
+  test("abandons a run whose opening calls all failed", () => {
+    const v = shouldBailOut({ completed: 10, failed: 10, total: 123 });
+    assert.ok(v, "10/10 upstream failures must abandon the run");
+    assert.equal(v.rate, 1);
+    assert.equal(v.abandoned, 113, "the remaining calls are reported, not silently dropped");
+  });
+
+  test("abandons at exactly the threshold, not just above it", () => {
+    assert.ok(shouldBailOut({ completed: 10, failed: 8, total: 123 }), "80% is >= the 80% threshold");
+  });
+
+  test("does NOT abandon a run that is merely degraded", () => {
+    assert.equal(shouldBailOut({ completed: 10, failed: 7, total: 123 }), null,
+      "70% failure is bad, but a partial result is still a result — see gpt-5.6-luna-pro at 73/123");
+  });
+
+  test("does not decide before the sample has filled", () => {
+    assert.equal(shouldBailOut({ completed: 9, failed: 9, total: 123 }), null,
+      "deciding on 9 of a 10-call sample would fire on a transient opening burst");
+  });
+
+  test("clamps the sample to short runs so the breaker still works", () => {
+    assert.equal(bailoutSample(4), 4);
+    assert.equal(bailoutSample(123), BAILOUT_SAMPLE);
+    assert.ok(shouldBailOut({ completed: 4, failed: 4, total: 4 }),
+      "a 4-call run that fails 4 times is as dead as a 123-call one");
+  });
+
+  test("an empty run decides nothing rather than dividing by zero", () => {
+    assert.equal(bailoutSample(0), 0);
+    assert.equal(shouldBailOut({ completed: 0, failed: 0, total: 0 }), null);
+  });
+
+  test("the message names the cause and the remedy, not just a number", () => {
+    const m = bailoutMessage("z-ai/glm-5.2", shouldBailOut({ completed: 10, failed: 10, total: 123 }));
+    assert.match(m, /z-ai\/glm-5\.2/);
+    assert.match(m, /NO scorecard is written/, "the absent artifact is the point — a caveated one gets misread");
+    assert.match(m, /credit and rate limits/, "402 and 429 are the two causes actually observed");
+    assert.match(m, /infrastructure, not a review-quality result/);
+  });
+
+  test("the threshold is a real gate, not a formality", () => {
+    assert.ok(BAILOUT_THRESHOLD > 0 && BAILOUT_THRESHOLD <= 1);
+    assert.equal(shouldBailOut({ completed: 10, failed: 0, total: 123 }), null,
+      "a healthy run must never trip the breaker");
+  });
+});
+
+describe("402 is fatal, not retryable", () => {
+  const withFetch = async (impl, fn) => {
+    const real = globalThis.fetch;
+    const realKey = process.env.OPENROUTER_API_KEY;
+    globalThis.fetch = impl;
+    process.env.OPENROUTER_API_KEY = "test-key";
+    try { return await fn(); }
+    finally {
+      globalThis.fetch = real;
+      if (realKey === undefined) delete process.env.OPENROUTER_API_KEY;
+      else process.env.OPENROUTER_API_KEY = realKey;
+    }
+  };
+  const respond = (status, body) => async () => ({ ok: status < 400, status, text: async () => body });
+
+  test("a 402 is not retried", async () => {
+    let calls = 0;
+    await withFetch(async (...a) => { calls++; return respond(402, '{"error":{"message":"insufficient credits"}}')(...a); }, async () => {
+      await assert.rejects(
+        () => chat({ model: "z-ai/glm-5.2", prompt: "x", attempts: 3 }),
+        (e) => e instanceof ModelError && e.retryable === false && e.status === 402,
+      );
+    });
+    assert.equal(calls, 1, "a payment error is never transient — retrying it burns wall-clock and changes nothing");
+  });
+
+  test("a 429 IS still retried", async () => {
+    let calls = 0;
+    await withFetch(async (...a) => { calls++; return respond(429, "slow down")(...a); }, async () => {
+      await assert.rejects(() => chat({ model: "m", prompt: "x", attempts: 2 }),
+        (e) => e instanceof ModelError && e.retryable === true);
+    });
+    assert.equal(calls, 2, "rate limiting can clear; the breaker, not the client, decides when to give up");
+  });
+
+  test("404 stays fatal", async () => {
+    let calls = 0;
+    await withFetch(async (...a) => { calls++; return respond(404, "no endpoints")(...a); }, async () => {
+      await assert.rejects(() => chat({ model: "gone", prompt: "x", attempts: 3 }),
+        (e) => e instanceof ModelError && e.retryable === false);
+    });
+    assert.equal(calls, 1);
   });
 });

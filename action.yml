@@ -255,6 +255,20 @@ runs:
         MODEL: ${{ inputs.model }}
       run: node "${{ github.action_path }}/scripts/models-config.mjs"
 
+    # One minimal provider call before the agent spends anything. Out of credit,
+    # a revoked key or an unavailable model id all produce the same symptom
+    # otherwise — an empty agent response and "re-run this job to retry", advice
+    # that cannot work for any of them. The key is already in scope for this job,
+    # so this adds no exposure; it turns a two-minute misleading failure into a
+    # two-second accurate one, on all eight lenses at once.
+    - name: Check the provider can be reached
+      if: inputs.mode == 'lens'
+      shell: bash
+      env:
+        OPENROUTER_API_KEY: ${{ inputs.api_key }}
+        LENS_MODEL: ${{ inputs.model }}
+      run: node "${{ github.action_path }}/scripts/provider-check.mjs"
+
     - name: Run adversarial lens
       id: pi
       if: inputs.mode == 'lens'

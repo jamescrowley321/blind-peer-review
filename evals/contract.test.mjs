@@ -21,6 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
+import { classifyStatus, probe } from "../scripts/provider-check.mjs";
 import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
@@ -2101,5 +2102,46 @@ describe("results store — no operational data", () => {
     const out = scrubBaseline({ meta: { model: "m" }, fixtures: [{ reason: 'x {"error":{"message":"secret"}}' }] });
     assert.doesNotMatch(JSON.stringify(out), /secret/);
     assert.equal(out.meta.model, "m");
+  });
+});
+
+// ───────────────── lens path: provider reachable before spending ─────────────
+// Out of credit, every lens ran the agent, got nothing, and posted "agent
+// produced no output ... Re-run this job to retry" — advice that cannot work
+// for a 402. Eight jobs repeated it per push while the gate failed closed as
+// though the review had found defects.
+
+describe("provider pre-check", () => {
+  test("the four unfixable conditions are fatal", () => {
+    for (const [status, needle] of [[402, /credit/], [401, /invalid or revoked/], [403, /not permitted/], [404, /unavailable to this account/]]) {
+      const v = classifyStatus(status);
+      assert.equal(v.fatal, true, `${status} must be fatal`);
+      assert.match(v.reason, needle);
+    }
+  });
+
+  test("transient conditions are NOT fatal — the agent has its own retries", () => {
+    for (const status of [429, 500, 502, 503, 529]) {
+      assert.equal(classifyStatus(status).fatal, false, `${status} must not abort the lens`);
+    }
+  });
+
+  test("a reachable provider passes", async () => {
+    const r = await probe({ model: "m", key: "k", fetchImpl: async () => ({ ok: true, status: 200, text: async () => "" }) });
+    assert.equal(r.ok, true);
+  });
+
+  test("the probe never surfaces the provider's message body", async () => {
+    const secret = '{"error":{"message":"available credits 0.00, in_flight_budget_exhausted"}}';
+    const r = await probe({ model: "m", key: "k", fetchImpl: async () => ({ ok: false, status: 402, text: async () => secret }) });
+    assert.equal(r.fatal, true);
+    assert.doesNotMatch(JSON.stringify(r), /available credits|in_flight_budget_exhausted/,
+      "account state must not reach the log — the status is the signal");
+  });
+
+  test("the probe costs one token", async () => {
+    let body;
+    await probe({ model: "m", key: "k", fetchImpl: async (_u, o) => { body = JSON.parse(o.body); return { ok: true, status: 200, text: async () => "" }; } });
+    assert.equal(body.max_tokens, 1, "enough to exercise auth, credit and availability; not enough to cost anything");
   });
 });

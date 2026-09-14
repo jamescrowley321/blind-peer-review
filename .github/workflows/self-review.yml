@@ -1,9 +1,10 @@
 #
-# PAUSED. The paid lenses are gated behind the repo variable PAID_SELF_REVIEW;
-# until it is set to 'true' they do not run and the Merge Gate reports the
-# review as intentionally skipped rather than failing closed. Re-enable with:
+# PAUSED. RUN_LENSES is the switch for the AI lens jobs — the only part of this
+# workflow that calls OpenRouter and costs money. Until the repo variable is set
+# to 'true' the lenses do not run, and the Merge Gate reports the review as
+# intentionally skipped rather than failing closed. Re-enable with:
 #
-#     gh variable set PAID_SELF_REVIEW --body true -R jamescrowley321/blind-peer-review
+#     gh variable set RUN_LENSES --body true -R jamescrowley321/blind-peer-review
 #
 # Everything unpaid still runs on every PR: lint, CodeQL, Semgrep, Gitleaks,
 # the offline contract evals, and verify-guards. Adversarial review moves to
@@ -119,13 +120,13 @@ jobs:
     timeout-minutes: 10
     # KILL SWITCH. The lenses are the only paid part of this workflow, and they
     # cost a full 8-lens fan-out per push. Set the repo variable
-    # PAID_SELF_REVIEW=true to enable them; anything else (including unset)
+    # RUN_LENSES=true to enable them; anything else (including unset)
     # leaves them off and the gate treats the review as intentionally skipped
     # rather than failing closed. Local review via the plugin is unaffected —
     # `/blind-peer-review:check` runs the same lenses in your own session at no
     # provider cost.
     if: >-
-      vars.PAID_SELF_REVIEW == 'true' &&
+      vars.RUN_LENSES == 'true' &&
       github.event.pull_request.head.repo.fork == false &&
       github.actor != 'dependabot[bot]'
     strategy:
@@ -196,9 +197,9 @@ jobs:
         if: github.event.pull_request.head.repo.fork == true || github.actor == 'dependabot[bot]'
         run: echo "Adversarial review is intentionally exempt for fork and Dependabot PRs."
       - name: Record paused review
-        if: vars.PAID_SELF_REVIEW != 'true'
+        if: vars.RUN_LENSES != 'true'
         run: |
-          echo "Paid self-review is PAUSED (repo variable PAID_SELF_REVIEW is not 'true')."
+          echo "AI lens review is PAUSED (repo variable RUN_LENSES is not 'true')."
           echo "This is a deliberate setting, not a failed review, so the gate does not fail closed."
           echo "Review locally instead: /blind-peer-review:check — same lenses, no provider cost."
       # Fails closed only when the review was SUPPOSED to run and did not. A
@@ -207,7 +208,7 @@ jobs:
       # failure this project weights hardest.
       - name: Fail closed when prerequisites did not succeed
         if: >-
-          vars.PAID_SELF_REVIEW == 'true' &&
+          vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
           github.actor != 'dependabot[bot]' &&
           (needs.config.result != 'success' || needs.review.result != 'success')
@@ -219,13 +220,13 @@ jobs:
           exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: >-
-          vars.PAID_SELF_REVIEW == 'true' &&
+          vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
           github.actor != 'dependabot[bot]' &&
           needs.config.result == 'success' && needs.review.result == 'success'
       - name: Adjudicate lenses
         if: >-
-          vars.PAID_SELF_REVIEW == 'true' &&
+          vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
           github.actor != 'dependabot[bot]' &&
           needs.config.result == 'success' && needs.review.result == 'success'

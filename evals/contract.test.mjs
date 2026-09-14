@@ -11,6 +11,7 @@
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { runParseStep, runGateStep, runPreflightStep, checkRun, botReview, agentJsonComment, HEAD_SHA } from "./lib/harness.mjs";
 import { LENS_KEYS, lensName, personaHeading, shippedLensKeys, readPersona, readShared } from "./lib/lenses.mjs";
 import { foldReps, score, violations, THRESHOLDS } from "./lib/scorecard.mjs";
@@ -2186,5 +2187,61 @@ describe("docs and examples agree with the shipped major", () => {
         assert.ok(keys.has(name), `${f} names ${name}.md as an override, which is not a lens key — it would be ignored`);
       }
     }
+  });
+});
+
+
+// ───────── The port and the engine pin must name the same commit ─────────
+//
+// evals/lib/pi-diff.mjs is a hand-port of the engine's diff truncation, and its
+// header says to re-check it whenever action.yml's pin moves. That instruction
+// is the only thing that was keeping the two in step, and an instruction is not
+// a gate: bump the pin, forget the port, and the fixtures quietly start
+// measuring an engine that is no longer the one running.
+//
+// This does not prove the port is FAITHFUL — nothing offline can, the upstream
+// source is not vendored here. It proves the two claims about which commit is
+// being mirrored agree, so a bump cannot silently orphan the port. Faithfulness
+// is re-established by hand against the new tag and recorded in
+// docs/upstream-issues.md's re-check log.
+describe("engine pin", () => {
+  const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
+
+  test("action.yml's pinned SHA is the one the diff port claims to mirror", () => {
+    const action = read("../action.yml");
+    const port = read("./lib/pi-diff.mjs");
+
+    const pinned = action.match(/shaftoe\/pi-coding-agent-action@([0-9a-f]{40})/);
+    assert.ok(pinned, "action.yml no longer pins the engine to a 40-char SHA");
+
+    const ported = port.match(/@ ([0-9a-f]{40})/);
+    assert.ok(ported, "pi-diff.mjs no longer records the SHA it was ported from");
+
+    assert.equal(
+      ported[1],
+      pinned[1],
+      "the engine pin moved but evals/lib/pi-diff.mjs still mirrors the old commit — " +
+        "re-check the port against the new tag and update its header, then log the " +
+        "result in docs/upstream-issues.md",
+    );
+  });
+
+  test("the engine is pinned by SHA, not by a movable tag", () => {
+    // A floating tag would let the engine change under a green build.
+    const action = read("../action.yml");
+    const uses = [...action.matchAll(/uses: shaftoe\/pi-coding-agent-action@(\S+)/g)].map((m) => m[1]);
+    assert.ok(uses.length > 0, "the engine is no longer referenced");
+    for (const ref of uses) {
+      assert.match(ref, /^[0-9a-f]{40}$/, `engine pinned to "${ref}" — must be a full commit SHA`);
+    }
+  });
+
+  test("docs/upstream-issues.md names the same pin", () => {
+    // The doc is where a human looks to decide whether a workaround can retire.
+    // A stale SHA there sends them to the wrong source.
+    const action = read("../action.yml");
+    const doc = read("../docs/upstream-issues.md");
+    const pinned = action.match(/shaftoe\/pi-coding-agent-action@([0-9a-f]{40})/)[1];
+    assert.ok(doc.includes(pinned), "docs/upstream-issues.md still names an older engine pin");
   });
 });

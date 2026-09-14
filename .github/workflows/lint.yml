@@ -171,7 +171,31 @@ jobs:
               process.exit(1);
             }
           }
-          console.log(`Vendor OK: ${lenses.length - 1} personas + manifest + neutral contract.`);
+          // Everything above asserts files by NAME. That is one assertion short:
+          // nothing checked that the paths the vendored manifest REFERENCES
+          // resolve. `shared_instructions` pointed at the file we deliberately do
+          // not vendor, and this guard passed anyway, because a dangling pointer
+          // is neither a present forbidden file nor a missing required one.
+          const manifestDir = path.join(dir, "lenses");
+          const manifest = JSON.parse(fs.readFileSync(path.join(manifestDir, "manifest.json"), "utf8"));
+          const dangling = [];
+          for (const lens of manifest.lenses) {
+            if (!fs.existsSync(path.join(manifestDir, `${lens.key}.md`))) {
+              dangling.push(`lenses[].key ${lens.key} -> ${lens.key}.md`);
+            }
+          }
+          // Resolved relative to the manifest, the same way the lens files are.
+          const contract = manifest.shared_instructions;
+          if (!contract || !fs.existsSync(path.resolve(manifestDir, contract))) {
+            dangling.push(`shared_instructions -> ${contract}`);
+          }
+          if (dangling.length) {
+            for (const d of dangling) {
+              console.log(`::error::vendored manifest points at a file that is not vendored: ${d}`);
+            }
+            process.exit(1);
+          }
+          console.log(`Vendor OK: ${lenses.length - 1} personas + manifest + neutral contract; every manifest path resolves.`);
 
       - name: Unit-test models-config validation (allowlist, types, clean-state)
         run: node --test scripts/models-config.test.mjs

@@ -9,6 +9,9 @@
 //   node evals/run.mjs --max-tokens 12000 # raise if reps report truncation
 //   node evals/run.mjs --model google/gemini-3.8-flash
 //   node evals/run.mjs --dry-run          # compose prompts, print the plan, spend nothing
+//   node evals/run.mjs --provider codex   # run locally through `codex exec` — free, no key
+//                                         #   validates lens/fixture/harness changes; NOT a
+//                                         #   measurement of the model named by --model
 //   node evals/run.mjs --write-baseline   # record the scorecard and always exit 0
 //   node evals/run.mjs --out report.md
 //
@@ -38,6 +41,7 @@ import { ROOT, runParseStep, filesFromDiff, parseReviewBody } from "./lib/harnes
 import { listFixtureIds, loadFixture, selectRuns, composePrompt } from "./lib/fixtures.mjs";
 import { chat, mapLimit, ModelError } from "./lib/openrouter.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage } from "./lib/bailout.mjs";
+import { codexChat } from "./lib/codex-provider.mjs";
 import { foldReps, score, violations, renderScorecard, buildBaseline, THRESHOLDS } from "./lib/scorecard.mjs";
 
 const PHASES = ["all", "compose", "call", "score"];
@@ -71,12 +75,30 @@ function list(raw, flag) {
   return xs;
 }
 
+/**
+ * Generation ceiling when nobody names one — the SAME number .github/workflows/
+ * evals.yml falls back to, asserted by contract.test.mjs so the two cannot drift.
+ * They did once: local ran 8000 while a dispatch said 24000, and a model was
+ * written up as unable to emit parseable JSON when the harness had been cutting
+ * it off.
+ *
+ * Why this high: 8000 was measured as too low — six fixture-reps hit it, none hit
+ * 24000 — and a rep that hits the ceiling is a VOID row, not a bad lens. The
+ * ceiling is a CAP, not a reservation: providers bill generated tokens, so
+ * raising it costs nothing unless a model actually writes more. The only real
+ * risk is a model whose own output limit is lower rejecting the request (a fatal
+ * 400 here), which is why this is generous rather than enormous — raise it per
+ * run with --max-tokens when a fixture reports truncation.
+ */
+export const DEFAULT_MAX_TOKENS = 32000;
+
 function parseArgs(argv) {
   const a = {
     full: false, reps: 3, lens: null, fixture: null, model: process.env.EVAL_MODEL || defaultModelFromAction(),
+    provider: process.env.EVAL_PROVIDER || "openrouter",
     dryRun: false, writeBaseline: false, out: null,
     concurrency: positiveInt(process.env.EVAL_CONCURRENCY || "4", "EVAL_CONCURRENCY"),
-    maxTokens: positiveInt(process.env.EVAL_MAX_TOKENS || "8000", "EVAL_MAX_TOKENS"),
+    maxTokens: positiveInt(process.env.EVAL_MAX_TOKENS || String(DEFAULT_MAX_TOKENS), "EVAL_MAX_TOKENS"),
     phase: process.env.EVAL_PHASE || "all",
     work: process.env.EVAL_WORK || join(ROOT, "evals", ".work"),
     // Which of the plan-frozen settings the caller actually asked for, as
@@ -96,6 +118,12 @@ function parseArgs(argv) {
     else if (k === "--reps") a.reps = positiveInt(value(argv, ++i, k), k);
     else if (k === "--concurrency") a.concurrency = positiveInt(value(argv, ++i, k), k);
     else if (k === "--max-tokens") { a.maxTokens = positiveInt(value(argv, ++i, k), k); a.explicit.add("maxTokens"); }
+    else if (k === "--provider") {
+      a.provider = value(argv, ++i, k);
+      if (!["openrouter", "codex"].includes(a.provider)) {
+        throw new Error(`--provider must be openrouter or codex (got ${JSON.stringify(a.provider)})`);
+      }
+    }
     else if (k === "--lens") a.lens = list(value(argv, ++i, k), k);
     else if (k === "--fixture") a.fixture = list(value(argv, ++i, k), k);
     else if (k === "--model") { a.model = value(argv, ++i, k); a.explicit.add("model"); }
@@ -142,7 +170,7 @@ async function compose() {
     }
   }
 
-  const plan = { meta: { model: args.model, reps: args.reps, maxTokens: args.maxTokens, ref, set: args.full || args.fixture ? "full" : "smoke", fixtureCount: new Set(runs.map((r) => r.id)).size }, runs: [] };
+  const plan = { meta: { model: args.model, provider: args.provider, reps: args.reps, maxTokens: args.maxTokens, ref, set: args.full || args.fixture ? "full" : "smoke", fixtureCount: new Set(runs.map((r) => r.id)).size }, runs: [] };
   for (const r of runs) {
     const prompt = await composePrompt(r.lensKey, r.fx);
     writeFileSync(join(args.work, `${slug(r)}.prompt.txt`), prompt);
@@ -228,7 +256,12 @@ async function call(plan) {
       // rep 0 at temperature 0 is the reproducible draw; later reps sample so an
       // unstable verdict shows up as instability rather than hiding behind one
       // deterministic answer.
-      const res = await chat({ model: plan.meta.model, prompt, temperature: rep === 0 ? 0 : 0.4, maxTokens: plan.meta.maxTokens });
+      // `codex` is the free local path: same prompts, the author's own Codex
+      // auth, no provider key. It cannot stand in for a named model — see
+      // evals/lib/codex-provider.mjs — so the plan records which one ran.
+      const res = plan.meta.provider === "codex"
+        ? await codexChat({ prompt })
+        : await chat({ model: plan.meta.model, prompt, temperature: rep === 0 ? 0 : 0.4, maxTokens: plan.meta.maxTokens });
       writeFileSync(out, JSON.stringify({ text: res.text, finishReason: res.finishReason, resolvedModel: res.resolvedModel, ms: res.ms }, null, 2));
     } catch (err) {
       failed++;
@@ -338,9 +371,16 @@ async function scorePhase(plan) {
 // plan is what runs, and a banner naming the default while the plan holds the
 // dispatched model is how a wrong-model run reads as a right one.
 function banner({ model, maxTokens }) {
-  console.log(`Model:   ${model}`);
+  // On the codex path the model slug is NOT what answered. Saying "Model:
+  // google/gemini-3.8-flash" there would be the same misattribution that once
+  // produced a full set of plausible-looking scorecards for calls nobody made.
+  if (args.provider === "codex") {
+    console.log(`Model:   codex (local) — NOT ${model}; this run measures the harness, not that model`);
+  } else {
+    console.log(`Model:   ${model}`);
+  }
   console.log(`Phase:   ${args.phase}`);
-  console.log(`Max tok: ${maxTokens}\n`);
+  console.log(`Max tok: ${maxTokens}${args.provider === "codex" ? " (not applied — codex exec exposes no ceiling)" : ""}\n`);
 }
 
 if (args.dryRun) {

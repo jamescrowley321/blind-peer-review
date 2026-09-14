@@ -138,7 +138,16 @@ const n = (x) => (x == null ? "n/a" : String(x));
 export function renderScorecard({ byLens, results, meta, violations: vs }) {
   const L = [];
   L.push("# Lens eval scorecard", "");
-  L.push(`- **Model:** \`${meta.model}\`${meta.resolvedModel && meta.resolvedModel !== meta.model ? ` (resolved: \`${meta.resolvedModel}\`)` : ""}`);
+  // A codex run answers from the local CLI, not from meta.model. Printing the
+  // slug alone would make this file indistinguishable from a real measurement of
+  // that model — the exact failure that put a full set of scorecards in the
+  // results store for calls that never reached a provider.
+  if (meta.provider === "codex") {
+    L.push("- **Model:** `codex` (local CLI) — **not a measurement of any named model**");
+    L.push(`- **Requested slug:** \`${meta.model}\` (recorded only; codex served this run)`);
+  } else {
+    L.push(`- **Model:** \`${meta.model}\`${meta.resolvedModel && meta.resolvedModel !== meta.model ? ` (resolved: \`${meta.resolvedModel}\`)` : ""}`);
+  }
   L.push(`- **Reps per fixture:** ${meta.reps} (a verdict must be unanimous to count as a pass)`);
   L.push(`- **Max tokens:** ${meta.maxTokens ?? "default"}`);
   L.push(`- **Fixtures:** ${meta.fixtureCount} · **runs:** ${results.length} · **model calls:** ${results.length * meta.reps}`);

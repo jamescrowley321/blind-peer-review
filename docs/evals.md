@@ -80,6 +80,46 @@ it.
 
 ## 4. Running a round
 
+### Locally, for free, through codex
+
+The `call` phase is the only one that needs a provider key, which is why the
+suite in practice only ever ran on `main` — a lens or fixture change could not be
+checked before merge without spending. `--provider codex` routes the same
+composed prompts through `codex exec` on your own Codex auth instead:
+
+```
+node evals/run.mjs --provider codex --fixture acceptance_unimplemented_ac --reps 1
+node evals/run.mjs --provider codex --lens security
+```
+
+No `OPENROUTER_API_KEY`, no spend. Everything else is identical: the same
+fixtures, the same prompts composed from `action.yml`'s own steps, and the same
+findings parser scoring the result — so it genuinely exercises the harness.
+
+**What it cannot tell you.** It is not a measurement of the model named by
+`--model`, and no amount of care in reading makes it one. Codex serves whatever
+model your CLI is configured for; a scorecard from this path therefore prints
+
+```
+- **Model:** `codex` (local CLI) — **not a measurement of any named model**
+- **Requested slug:** `google/gemini-3.8-flash` (recorded only; codex served this run)
+```
+
+and the run header says the same thing before the first call. That is deliberate:
+a full set of plausible-looking scorecards for calls that never reached a provider
+is the specific way this suite has already misled once.
+
+Two further limits worth knowing. `codex exec` exposes neither temperature nor a
+token ceiling, so every rep is the same draw — a stability number from this path
+is not comparable to an OpenRouter one, and a ceiling-hit cannot be detected at
+all. And the provider deliberately does **not** pass `--output-schema`, unlike the
+reviewer path: an eval partly measures whether a model emits a parseable contract
+object, and forcing the shape would peg that metric at 100% and measure nothing.
+
+Use it to answer "did my lens edit break a fixture?". Use OpenRouter to answer
+"which model should we ship?".
+
+
 ```bash
 # one model, locally
 EVAL_MODEL=z-ai/glm-5.2 OPENROUTER_API_KEY=... \

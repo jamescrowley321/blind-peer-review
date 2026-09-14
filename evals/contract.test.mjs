@@ -21,7 +21,7 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
-import { classify, upstreamFixtures, violationsFromCard, VALIDITY } from "./collect.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -2009,5 +2009,36 @@ describe("results-store validity", () => {
     ].join("\n");
     assert.equal(violationsFromCard(card), 2, "the per-fixture section must not leak into the count");
     assert.equal(violationsFromCard("# Scorecard\n\nno violations section"), 0);
+  });
+});
+
+describe("results store — malformed input", () => {
+  const tmp = () => mkdtempSync(pjoin(tmpdir(), "bpr-store-"));
+
+  test("a corrupt file is skipped, not fatal — the surviving rows are still the record", () => {
+    const d = tmp();
+    writeFileSync(pjoin(d, "broken.json"), "{ not json");
+    writeFileSync(pjoin(d, "ok.json"), JSON.stringify({
+      meta: { model: "z-ai/glm-5.2", maxTokens: 24000, reps: 3 },
+      lenses: { cold_read: { recall: 1, falsePositiveRate: 0, jsonValidityRate: 1, stability: 1 } },
+      fixtures: [{ reason: "blocked as expected" }],
+    }));
+    const rows = loadRound(d);
+    assert.equal(rows.length, 1, "one bad file must not take the round's table down");
+    assert.equal(rows[0].model, "z-ai/glm-5.2");
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  test("a scorecard that cannot name its model is not evidence", () => {
+    const d = tmp();
+    writeFileSync(pjoin(d, "nameless.json"), JSON.stringify({ meta: {}, lenses: {}, fixtures: [] }));
+    assert.deepEqual(loadRound(d), [], "a score with no model attributes nothing");
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  test("violation counting tolerates header level and trailing space", () => {
+    const card = "### Violations  \n\n- a: x\n- b: y\n\n#### Per-fixture\n\n- not counted\n";
+    assert.equal(violationsFromCard(card), 2);
+    assert.equal(violationsFromCard("## Violations\n\n- only one\n"), 1, "a trailing section is optional");
   });
 });

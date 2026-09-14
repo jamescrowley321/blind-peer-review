@@ -45,8 +45,14 @@ export function upstreamFixtures(baseline) {
 
 /** Violations are listed in the scorecard, not the baseline; count them from the markdown. */
 export function violationsFromCard(md) {
-  if (!md || !md.includes("## Violations")) return 0;
-  const body = md.split("## Violations", 2)[1].split(/^## /m, 1)[0];
+  if (!md) return 0;
+  // Tolerant of header level and trailing whitespace: this parses scorecards
+  // this repo generated, but a renderer tweak should not silently zero the count.
+  const start = md.match(/^#{1,6}\s*Violations\s*$/m);
+  if (!start) return 0;
+  const rest = md.slice(start.index + start[0].length);
+  const end = rest.match(/^#{1,6}\s+\S/m);
+  const body = end ? rest.slice(0, end.index) : rest;
   return body.split("\n").filter((l) => l.trim().startsWith("- ")).length;
 }
 
@@ -70,12 +76,26 @@ function summarise(baseline, md) {
 }
 
 export function loadRound(dir) {
-  return readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => {
-    const baseline = JSON.parse(readFileSync(join(dir, f), "utf8"));
+  const out = [];
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+    let baseline;
+    try {
+      baseline = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    } catch (e) {
+      // Skip, loudly. One corrupt file must not take the whole round's table
+      // down: the surviving rows are still the record of what was measured.
+      console.error(`skipping ${f}: not readable JSON (${e.message})`);
+      continue;
+    }
+    if (!baseline?.meta?.model) {
+      console.error(`skipping ${f}: no meta.model — cannot attribute a score to a model`);
+      continue;
+    }
     const cardPath = join(dir, f.replace(/\.json$/, ".md"));
     const md = existsSync(cardPath) ? readFileSync(cardPath, "utf8") : null;
-    return summarise(baseline, md);
-  });
+    out.push(summarise(baseline, md));
+  }
+  return out;
 }
 
 const HEAD = "| Model | Violations | must-not-block FP | JSON validity | recall | stability | upstream |";
@@ -114,7 +134,17 @@ function ingest(srcDir, round) {
       const p = join(d, e.name);
       if (e.isDirectory()) { walk(p); continue; }
       if (e.name !== "baseline.json") continue;
-      const baseline = JSON.parse(readFileSync(p, "utf8"));
+      let baseline;
+      try {
+        baseline = JSON.parse(readFileSync(p, "utf8"));
+      } catch (e) {
+        console.error(`skipping ${p}: not readable JSON (${e.message})`);
+        continue;
+      }
+      if (!baseline?.meta?.model) {
+        console.error(`skipping ${p}: no meta.model — a scorecard that cannot name its model is not evidence`);
+        continue;
+      }
       baseline.validity = classify(upstreamFixtures(baseline), (baseline.fixtures || []).length);
       const runId = (d.match(/(\d{6,})/) || [])[1] || String(n);
       const slug = `${baseline.meta.model.replace(/\//g, "__")}.${runId}`;
@@ -130,7 +160,16 @@ function ingest(srcDir, round) {
 }
 
 const argv = process.argv.slice(2);
-const arg = (k) => { const i = argv.indexOf(k); return i === -1 ? null : argv[i + 1]; };
+const arg = (k) => {
+  const i = argv.indexOf(k);
+  if (i === -1) return null;
+  const v = argv[i + 1];
+  if (v === undefined || v.startsWith("--")) {
+    console.error(`${k} requires a value`);
+    process.exit(2);
+  }
+  return v;
+};
 
 if (arg("--ingest")) {
   ingest(arg("--ingest"), arg("--round"));

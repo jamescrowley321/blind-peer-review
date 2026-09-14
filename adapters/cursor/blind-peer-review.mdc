@@ -12,8 +12,16 @@ reviewer that sees only the diff — do not let the intent or one lens's output 
 another.
 
 1. Get the diff: `git diff $(git merge-base HEAD origin/main)...HEAD` (fall back to
-   `git diff HEAD`).
-2. For each lens in `cold_read, edge_case, acceptance, security, red_team` (add
+   `git diff HEAD`). Write it to `.blind-peer-review/out/review-diff.patch` so every
+   lens reads the exact same bytes.
+2. **Run each lens in its own fresh chat — one lens per conversation.** Several
+   lenses in one thread is not a blind review: each carries the previous ones'
+   reasoning into the next, so you get agreement rather than independence.
+   Measured on a 27 KB real diff, the Cold Read lens found nothing when batched
+   with four others and a genuine ordering bug when run alone. Batching loses
+   findings.
+
+   For each lens in `cold_read, edge_case, acceptance, security, red_team` (add
    `owasp_web`, `owasp_llm`, `policy` on request):
    - Adopt the persona in `.blind-peer-review/vendor/lenses/<key>.md`. If
      `.blind-peer-review/lenses/<key>.md` exists, use that instead (a trusted

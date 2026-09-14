@@ -18,8 +18,23 @@ review the working diff with fresh, skeptical lenses. Each lens sees ONLY the di
 — no plan, no intent, no other lens's findings.
 
 1. Diff: `git diff $(git merge-base HEAD origin/main)...HEAD` (fall back to
-   `git diff HEAD`).
-2. Run these lenses: `cold_read, edge_case, acceptance, security, red_team` (add
+   `git diff HEAD`). Write it to `.blind-peer-review/out/review-diff.patch` and
+   have every lens read that file, so they all review the exact same bytes and
+   none of them has to run git itself.
+2. **Run each lens in its own agent session — one lens per invocation.** In Codex
+   that is a separate `codex exec` per lens, not one session that does all five.
+   A single session carries each lens's reasoning and output into the next, which
+   is precisely what "blind" excludes: by lens three you are no longer getting an
+   independent reviewer, you are getting an agreeable one.
+
+   This is not a theoretical tidiness point. Measured on a 27 KB diff of real
+   code: run as one batched session, the Cold Read lens returned no findings; run
+   alone against the identical diff, the same lens on the same model found a real
+   ordering bug (a constructor validating an env var before the CLI flag meant to
+   override it was applied). **Batching does not merely weaken the guarantee — it
+   loses findings.**
+
+   Run these lenses: `cold_read, edge_case, acceptance, security, red_team` (add
    `owasp_web`, `owasp_llm`, `policy` when relevant). For each `<key>`:
    - Adopt `.blind-peer-review/vendor/lenses/<key>.md`; if
      `.blind-peer-review/lenses/<key>.md` exists, use that instead (a trusted
@@ -37,6 +52,14 @@ review the working diff with fresh, skeptical lenses. Each lens sees ONLY the di
 
 The lens set comes from `.blind-peer-review/vendor/lenses/manifest.json` — read
 it rather than trusting the list above if the two disagree.
+
+**One honest difference from the CI gate.** There, each lens is a separate
+context-starved agent with no shell: it is handed the diff and can only answer.
+Here the lens is the coding agent itself, holding every tool it normally has
+while reading untrusted content. Running one lens per session restores the
+independence; it does not restore that capability gap. Keep the review read-only
+(`codex exec --sandbox read-only`), and treat "do not modify files while
+reviewing" as a rule the harness cannot enforce for you.
 
 For a scripted run against pi instead, `node scripts/run-local.mjs` from a
 blind-peer-review checkout (needs the `pi` CLI + an `OPENROUTER_API_KEY`).

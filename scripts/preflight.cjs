@@ -14,6 +14,8 @@
 // in rather than reached for, so a test supplies stubs with no ceremony. `env`
 // is passed for the same reason: the module never touches process.env.
 
+const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
+
 async function run({ core, github, context, env }) {
   // One check name per line. A check name is an arbitrary human string
   // and commas are legal in it, so comma-splitting turned
@@ -22,7 +24,7 @@ async function run({ core, github, context, env }) {
   const required = (env.REQUIRED_CHECKS || "").split("\n").map((s) => s.trim()).filter(Boolean);
   if (!required.length) { core.info("No required_checks configured — preflight passes."); return; }
 
-  const headSha = context.payload.pull_request.head.sha;
+  const headSha = await resolveHeadSha({ github, context, env });
   // Number("abc") is NaN, and every comparison against NaN is false — so a
   // mistyped timeout does not error, it silently disables the timeout and the
   // loop polls until the job's own limit kills it.

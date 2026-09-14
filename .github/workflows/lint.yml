@@ -262,6 +262,8 @@ jobs:
       # Review job fail deterministically. Reads lenses/ rather than restating it.
       - name: Unit-test lens identity against the shipped personas
         run: node --test scripts/lens-identity.test.mjs
+      - name: Unit-test head-SHA resolution (the workflow_dispatch path)
+        run: node --test scripts/head-sha.test.mjs
 
       - name: Validate the example workflow's models_config against the allowlist
         run: node scripts/check-example.mjs

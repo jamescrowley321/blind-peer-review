@@ -221,11 +221,28 @@ runs:
       run: node "${{ github.action_path }}/scripts/resolve-context.cjs"
 
     # ── Consumer checkout (mode=lens): reviewers read surrounding code to confirm findings. ──
+    #
+    #    The ref is resolved rather than read off the event: on workflow_dispatch
+    #    `github.event.pull_request.head.sha` is EMPTY, and an empty `ref` makes
+    #    checkout fall back to github.ref — the branch the dispatch was launched
+    #    from, normally main. That failure is silent: the lens still runs, still
+    #    posts, and confirms its findings against the wrong tree.
+    - name: Resolve the PR head SHA
+      id: head
+      if: inputs.mode == 'lens'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        PR_NUMBER: ${{ steps.ctx.outputs.pr_number }}
+      with:
+        script: |
+          const { headSha } = require("${{ github.action_path }}/scripts/head-sha.cjs");
+          core.setOutput("sha", await headSha({ github, context, env: process.env }));
+
     - name: Checkout PR head
       if: inputs.mode == 'lens'
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
+        ref: ${{ steps.head.outputs.sha }}
         fetch-depth: 0
 
     # ── Compose the lens prompt: persona + shared output contract, PR number substituted. ──
@@ -368,6 +385,9 @@ runs:
         REQUIRED_CHECKS: ${{ inputs.required_checks }}
         TIMEOUT_S: ${{ inputs.preflight_timeout_seconds }}
         POLL_S: ${{ inputs.preflight_poll_seconds }}
+        # Needed when there is no pull_request payload to read the head SHA from
+        # — i.e. every workflow_dispatch run. See scripts/head-sha.cjs.
+        PR_NUMBER: ${{ steps.ctx.outputs.pr_number }}
       with:
         script: |
           const { run } = require("${{ github.action_path }}/scripts/preflight.cjs");

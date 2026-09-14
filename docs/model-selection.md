@@ -1,7 +1,7 @@
 # Choosing the model a lens runs on
 
 > **Scope.** How to pick the model behind `blind-peer-review`'s lenses, what to
-> measure, what it costs, and the results of the first head-to-head. The action
+> measure, what it costs, and the results of four measured rounds. The action
 > takes any OpenRouter slug via `model:`; this is the reference for deciding
 > which one.
 >
@@ -170,7 +170,7 @@ output, so the second column assumes 10k out.
 | `minimax/minimax-m3` | 1048k | 0.30 / 1.20 | $0.10 | $0.18 |
 | `openai/gpt-5.6-luna-pro` | 1050k | 0.20 / 1.20 | $0.08 | $0.15 |
 
-**Cheap — viable for mechanical lenses (see §6)**
+**Cheap — viable for mechanical lenses (see §7)**
 
 | Model | ctx | $/M in / out | $/push |
 |---|---|---|---|
@@ -204,76 +204,252 @@ spend increase.
 > records the ceiling each run used. Read that line first — it is the line that
 > would have caught the dispatched-but-never-applied ceiling in §5 on the day it
 > happened.
+>
+> The detector earns its keep and bounds its own importance: it fired on 6
+> fixture-reps at 8000 and none at 24000 (§5). Raising the ceiling removes this
+> failure mode completely — and changes almost nothing else, so do it to make the
+> measurement valid, not to make a model score better.
 
 ## 5. Results
 
-Two rounds, 31 fixtures, 3 reps, 123 model calls per model. Both ran **at the
-8000-token ceiling**, including the round that was dispatched at 24000 — see the
-box below before reading the sonnet row.
+Four rounds. **Round three is the first that ran at the ceiling it was dispatched
+at** — rounds one and two silently ran every call at 8000 (#72). Round four
+widened the field. Round five is void and is reported here because how it failed
+is worth more than what it "measured".
 
-Second round, action ref `c756efa`:
+### The result
 
-| Model | Violations | must-not-block FP | JSON validity | provider errors | Verdict |
-|---|---|---|---|---|---|
-| `z-ai/glm-5.2` | **1** | **0% on every lens** | 94.9–100% | 0/123 | cleanest measured |
-| `google/gemini-2.5-pro` *(incumbent)* | 3 | 11% acceptance, 50% cold_read | 97–100% | 0/123 | false-positives on clean PRs |
-| `moonshotai/kimi-k2-thinking` | 6 | 50% cold_read, 50% red_team | 83–100% | 2/123 | more false positives than the incumbent |
-| `anthropic/claude-sonnet-5` | 14 | **0% on every lens** | **33–89%** | 1/123 | **not a valid measurement** |
-| `openai/gpt-5.6-luna-pro` | 18 | 11% acceptance, 50% cold_read | 89–100% | **73/123** | **not a valid measurement** |
-| `z-ai/glm-5.3` | — | — | — | — | no ZDR endpoint |
-| `moonshotai/kimi-k3` | — | — | — | — | provider not allowed |
-| `x-ai/grok-4.3` | — | — | — | — | provider not allowed |
+| Model | Violations | must-not-block FP | JSON validity | stability | provider errors | $/run |
+|---|---|---|---|---|---|---|
+| **`google/gemini-3.8-flash`** | **0** | **0% every lens** | **100%** | **100%** | **0/123** | **2.54** |
+| `z-ai/glm-5.2` | 3 | 0% every lens | 88–100% | 92–100% | 0/123 | 2.08 |
+| `openai/gpt-6-astra` | 3 | 11% acceptance, 50% cold_read | 97–100% | 100% | 0/123 | 33.83 |
+| `google/gemini-2.5-pro` *(incumbent)* | 5 | **50% cold_read** | 89–100% | 86–100% | 0/123 | 4.92 |
+| `openai/gpt-5.6-luna-pro` | 14 | 22% acceptance, 50% cold_read | 88–100% | 85% | 26/123 | — |
+| `anthropic/claude-sonnet-5` | 16 | 11% acceptance | 21–83% | 33% | 0/123 | — |
+| `moonshotai/kimi-k2-thinking` | 17 | 22% acceptance, 100% cold_read | 91–100% | 0% | 26/123 | — |
 
-Three of the eight were never runnable, for the two account reasons in §2. Two
-of the five that ran produced numbers that say nothing about review quality, and
-the scorecard says which and why rather than ranking them:
+`gemini-3.8-flash` is the only clean scorecard in four rounds: every lens at 0%
+false positives, 100% JSON validity across all 123 reps, 100% verdict stability,
+full recall on seven of eight lenses and 80% (4/5) on `security`. Zero upstream
+failures. It is also **cheaper than the incumbent it replaces**.
 
-- **`gpt-5.6-luna-pro` lost 73 of 123 calls upstream** — 59% of the run, after
-  retries. `scorecard.mjs` reports that separately from JSON validity precisely
-  so a bad provider hour is not read as a bad reviewer. Nothing in its column is
-  a measurement of the model.
-- **Sonnet's violations are format, not judgment.** Its false-positive rate is
-  0% on every lens — the number weighted hardest here — while JSON validity
-  falls to 33%, and recall follows validity because a response the action cannot
-  parse cannot block. That is the truncation signature §4 warns about.
+It matters that it is the same family one generation on. The incumbent's defining
+defect is a 50% `cold_read` false-positive rate, and the mechanism is known: a
+training cutoff predating 2026 makes it read legitimate 2026 dates and
+identifiers in a diff as fabricated — it has issued a `MUST FIX` against a real,
+current CVE on that basis. At 3.8-flash that rate is 0%. **The fix was a newer
+model in the same family, not a change of vendor.**
 
-> [!IMPORTANT]
-> **The re-run that was supposed to settle sonnet has not happened yet.** The
-> second round was dispatched at `max_tokens: 24000` and ran every call at
-> 8000: `compose` freezes the ceiling into the plan, and `evals.yml` set
-> `EVAL_MAX_TOKENS` on the `call` step, which reads the plan rather than the
-> environment. The input was accepted and dropped, and every scorecard recorded
-> `Max tokens: 8000` correctly while the dispatch said otherwise.
->
-> Fixed in #72, which also makes a phase refuse a setting it cannot apply rather
-> than ignoring it. Until a round actually runs at a raised ceiling, **the sonnet
-> row stays a non-result** — it has now been measured twice under the same cap
-> and twice reported as invalid for the same reason.
+### Availability is an account setting, and it dominates
 
-**The incumbent's 3 violations are real** and they reproduce: two false positives
-on must-not-block fixtures (`acceptance_absent_claim_is_false` on the acceptance
-lens, `acceptance_downstream_issue` on cold read) plus one truncated rep. A lens
-blocking a clean PR is the failure that teaches a team to route around the gate,
-and it is the same pair of fixtures that failed in the first round.
+Round four dispatched eight candidates chosen purely on catalogue metadata
+(tool calling, ≥128k context). **Six were unavailable**, in seconds, at no cost:
 
-**GLM-5.2 is the only model measured with a 0% false-positive rate across every
-lens on a run with no provider trouble.** Its single violation is acceptance-lens
-JSON validity at 94.9% against a 95% threshold — 37 of 39 reps — which is two
-malformed replies, not a pattern. It also costs a third of the incumbent (§4).
+| Model | Rejected by | Detail |
+|---|---|---|
+| `z-ai/glm-5.3-flash` | **ZDR** | 1 endpoint excluded |
+| `deepseek/deepseek-v4-pro-0813` | **ZDR** | 1 endpoint excluded |
+| `anthropic/claude-fable-5.1` | **ZDR** | 4 endpoints excluded |
+| `anthropic/claude-fable-5` | **ZDR** | (round five) |
+| `qwen/qwen3.8-max-0902` | allowed-providers | served only by `alibaba` |
+| `x-ai/grok-4.6` | allowed-providers | served only by `xai` |
+| `nvidia/nemotron-3.5-lightning` | allowed-providers | served by `darkbloom, phala, deepinfra, coreweave` |
 
-For the record, the first round (earlier ref, same 8000 ceiling) put glm-5.2 at 4
-violations and the incumbent at 3, with the incumbent's acceptance FP rate at
-22%. The direction of both is unchanged; the absolute numbers moved because the
-action and the fixtures did. **Neither round licenses a default-model change on
-its own** — that decision wants one round at a real ceiling, which is the work
-#72 unblocks.
+The last row is the trap: the slug is `nvidia/` and `nvidia` **is** on the
+account's allow-list, but **the vendor prefix in a slug is not the serving
+provider**. No amount of catalogue reading predicts that. Note also that ZDR is
+per-model, not per-vendor — `claude-sonnet-5` ran fine while both Fable builds
+were excluded.
 
-> Every figure above is reproducible with the command in §3, from the scorecards
-> attached to runs `34788299034`, `34788304781`, `34788309942`, `34788323330` and
-> `34788327297`. Nothing here is an impression; where a number is not
-> trustworthy, the row says why instead of reporting a rank.
+This is why §2 says dispatch the candidates anyway. A blocked model answers in
+seconds and bills nothing; a predicted one answers never.
 
-## 6. One model per lens, not one model per repo
+### Round five: void, and instructive
+
+Nine dispatches (`claude-opus-5`, `claude-opus-4.8`, `claude-fable-5`,
+`gpt-6-astra-pro`, `gpt-5.6-terra-pro`, `gemini-3.7-flash`,
+`mistral-medium-3-5`, and two `glm-5.2` repeats) ran **after the account's
+monthly credit cap was exhausted** by rounds three and four. Every call returned
+**402** (credits) or **429** (rate limit).
+
+The glm-5.2 repeat is the control that proves it: the same model that scores **3
+violations** scored **16**, with all 41 fixtures reporting *"failed UPSTREAM at
+the provider after retries — infrastructure, not a lens result."*
+
+**Not one number from round five is a measurement, and Opus remains untested.**
+
+The danger is that the scorecards still *look* like results — 16 violations, 0%
+false positives, 84–100% validity. Ranked naively, `opus-4.8` and
+`gemini-3.7-flash` would appear to have tied each other and lost badly to
+`gemini-3.8-flash`. All of it is noise. **The only thing that made it detectable
+was the reason string on every fixture.** A scorecard that reported scores
+without reasons would have put this straight into the table above as fact.
+
+> Round three is runs `34802992000` (gemini-2.5-pro), `34802996543` (glm-5.2),
+> `34803000910` (claude-sonnet-5), `34803005520` (kimi-k2-thinking),
+> `34803009816` (gpt-5.6-luna-pro). Round four is `34804028580`
+> (gemini-3.8-flash) and `34804056266` (gpt-6-astra), plus six availability
+> rejections. All at ref `760dae8`, `max_tokens: 24000`. Round five
+> (`348044*`) is void — cited so it is not re-run in the belief it is missing.
+
+## 6. What these numbers can and cannot tell you
+
+The most useful thing this comparison produced is a measurement of its own
+reliability. Read this section before ranking anything.
+
+### The suite is underpowered for recall, and it says so
+
+`gemini-2.5-pro` was run twice at the same ceiling, on the same fixture set, at
+`reps: 3`. The two runs disagree:
+
+| Run | Violations | acceptance recall | mean recall | min stability |
+|---|---|---|---|---|
+| `34788304781` | 2 | **1.00** | 1.00 | 0.92 |
+| `34788309942` | 3 | **0.50** | 0.94 | 0.75 |
+
+Same model, same ceiling, same fixtures, same number of reps. Acceptance recall
+halved. **Three reps inside one run does not stabilise recall** — the variance
+lives across runs, not across reps within a run, so adding reps to a single
+dispatch does not buy what it looks like it buys.
+
+`glm-5.2` shows the same swing across rounds (acceptance recall 1.00 at 8000,
+0.50 at 24000). It is tempting to read that as a ceiling effect. It is not
+distinguishable from the variance the incumbent shows at a *fixed* ceiling, and
+the honest reading is that one run cannot tell those apart.
+
+### False-positive rate replicates; recall does not
+
+The same data that makes recall untrustworthy at n=1 leaves the
+false-positive axis solid:
+
+| Model | FP profile, every round, both ceilings |
+|---|---|
+| `z-ai/glm-5.2` | **0% on every lens**, consistently |
+| `google/gemini-2.5-pro` | **50% cold_read**, consistently |
+
+That is four runs for the incumbent and three for the challenger, at two
+ceilings, with the same answer each time. So:
+
+> **Rank on false positives. Treat recall as provisional until a model has been
+> run at least twice at the same ceiling.** A single run is enough to disqualify
+> a model on false positives and not enough to promote one on recall.
+
+This is also why §2 weights `falsePositiveRate: 0` hardest — it turns out to be
+both the most damaging failure *and* the most reliably measured one.
+
+### The recommendation is held to the same standard
+
+`gemini-3.8-flash` has been run **once**. By the rule directly above, its recall
+is provisional — a clean sweep is exactly the kind of result a single run can
+flatter. Two things stop that from being fatal:
+
+- Its **false-positive rate is 0% on every lens**, and that is the axis that
+  replicates at n=1. On the measure that decides the ranking, one run is enough.
+- The defect it has to beat is not a close call. The incumbent's 50% `cold_read`
+  false positives reproduce in **every** round at **both** ceilings, with a known
+  mechanism. Replacing a reproducible defect with a clean sweep is a different
+  claim from separating two models by a violation or two.
+
+**It should still be re-run twice at 24000 before the recall figure is quoted as
+settled.** That costs about $5 and was blocked only by the exhausted cap (§5).
+Until then, quote the false-positive result and label the recall provisional —
+which is the same standard applied to every other row here.
+
+### Three things that are not the model, and are reported separately
+
+A comparison that ranks on a single number will rank infrastructure. The
+scorecard deliberately refuses to:
+
+| Signal | What it means | Why it is not a review-quality score |
+|---|---|---|
+| `failed UPSTREAM at the provider` | the call never completed after retries | `gpt-5.6-luna-pro` lost 73 of 123 calls in round two — 59% of the run. Nothing in that column measures the model. |
+| `hit the max-tokens ceiling` | the reply ran out of room | A harness limit. It was real at 8000 (6 fixture-reps) and gone at 24000. |
+| `output the action could not accept` | delivered, but unparseable | A contract failure. More headroom does not fix it — see §5. |
+
+Read the reason strings before the ranks. Every number in this document that is
+not trustworthy has a reason string saying why.
+
+### A dispatch that cannot lie about what it ran
+
+Rounds one and two were dispatched at `max_tokens: 24000` and ran every call at
+8000, because `compose` freezes the ceiling into the plan and the ceiling was
+being set on `call`. Nothing failed; every scorecard recorded `8000` accurately
+while the dispatch said otherwise. Two full comparisons were spent before anyone
+read the header against the dispatch.
+
+The lesson generalises past this one bug: **when the failure mode is silent, the
+guard belongs in the launcher, not in the review.** The round-three dispatcher
+refuses to fire unless `main` actually sets the ceiling on the compose step:
+
+```
+REFUSING: main's evals.yml does not set EVAL_MAX_TOKENS on the compose step (no).
+  Merge #72 first, or every run below silently uses the 8000 default.
+```
+
+It checks the deployed workflow, not the local checkout, because the runs execute
+against `main`. A guard that reads the wrong copy is not a guard.
+
+### Bail out early, or pay 123 calls to learn nothing
+
+Round five burned nine full runs discovering that the credit cap was exhausted.
+Every one completed, and every one emitted a scorecard. The harness had the
+information to stop at call three and kept going to call 123, nine times.
+
+Two rules fix this, and both belong in `run.mjs` rather than in the reader:
+
+| Rule | Why |
+|---|---|
+| **Abort when the opening calls fail upstream.** More than ~80% upstream failure across the first 10 calls → exit non-zero, emit **no** scorecard, report "provider unusable, not measured". | A run whose first ten calls all failed has nothing to learn from the remaining 113. |
+| **Abort on the first 402.** | A payment error is never transient and never a lens result. It should stop the run *and* every run queued behind it — the failure is account-wide, not per-model. |
+
+A third is worth considering: once a model has recorded false positives on two
+lenses it is already disqualified by §2's own weighting, so the remaining
+must-block fixtures are only refining a number that will not change the decision.
+
+**Emit no scorecard on an aborted run.** This is the important half. A scorecard
+that exists will be read, and round five's looked entirely plausible. The safe
+failure is an absent artifact, not a caveated one.
+
+### Budget the round before you dispatch it, not after
+
+Rounds three through five spent a $100 monthly cap without anyone tracking the
+running total, and the overrun landed as corrupted data rather than as a billing
+error — which is the expensive way to find out.
+
+- **Estimate the whole round up front** with the formula below and compare it to
+  what is left, not to what the cap is.
+- **Design one wide round, not three narrow ones.** Each of rounds three, four
+  and five was a reaction to the previous one. A single round of the eight
+  candidates that actually mattered would have cost less than the three did and
+  finished sooner.
+- **Frontier tier has not won anything here.** The clean scorecard came from a
+  $2.54 model; the two $33.83 models produced false positives and a void run.
+  Order candidates cheapest-first so a cap is hit by the least informative runs.
+
+### Cost before you spend it
+
+A full comparison is 123 model calls. Estimate before dispatching, from the
+catalogue's own pricing, rather than after:
+
+```
+est $ = (123 x ~20k input / 1e6) x $in_per_M
+      + (123 x ~1.5k output / 1e6) x $out_per_M
+```
+
+Across the candidates in §5 that ranges from **$0.23** to **$33.83** per model —
+a two-order-of-magnitude spread that decides how wide a round you can afford. The
+frontier tier is not where the wins have been.
+
+### What a round costs in wall-clock
+
+Models do not finish together. In round three the four challengers completed in
+roughly the time the incumbent took to reach its halfway point, and the control
+was still running long after the rest were collected. Collect what has landed
+rather than blocking on the slowest — but do not conclude until the control is
+in, because the incumbent is the row every decision is measured against.
+
+## 7. One model per lens, not one model per repo
 
 The `review` job is a matrix over lenses and `model:` sits inside it, so each
 lens can run on its own model. The action's `mode: config` resolves it — the
@@ -319,7 +495,7 @@ policy, owasp_web, owasp_llm    → cheap tier        3 x $0.01 = $0.02
 Better judgment where judgment is needed, for less than a single-model frontier
 deployment — and less than the current single-model default.
 
-## 7. The trap when you change `model:`
+## 8. The trap when you change `model:`
 
 `models_config` pins OpenRouter routing **per model slug**:
 
@@ -337,7 +513,7 @@ no error, no warning, and the only symptom is diffs routing to providers you
 excluded on purpose.
 
 **Whenever you change `model:`, change the `modelOverrides` key in the same
-edit.** Under the per-lens matrix of §6 this becomes sharper: every distinct slug
+edit.** Under the per-lens matrix of §7 this becomes sharper: every distinct slug
 in the matrix needs its own override entry, or the lenses on the slugs you forgot
 run without the floor.
 

@@ -127,9 +127,35 @@ jobs:
             echo "release-please reported no release PR; nothing to arm."
             exit 0
           fi
-          # Already-enabled is not a failure, and neither is a PR that became
-          # mergeable and landed between these two steps.
-          gh pr merge "$num" --auto --merge             || echo "::warning::could not enable auto-merge on #$num — merge it manually"
+          # GitHub computes mergeability ASYNCHRONOUSLY. A PR created seconds ago
+          # reports mergeable=UNKNOWN, and `gh pr merge --auto` against UNKNOWN
+          # fails. This step runs immediately after release-please opens the PR,
+          # so it hit that window EVERY time: the arm failed, the warning was
+          # swallowed by `|| echo`, and every release since has needed a human to
+          # merge the release PR by hand — the exact approval step this step
+          # exists to remove.
+          #
+          # So: wait for GitHub to decide, then arm. Poll mergeable rather than
+          # sleeping a fixed amount, because the wait is usually ~2s and
+          # occasionally much longer.
+          for i in $(seq 1 30); do
+            state=$(gh pr view "$num" --json mergeable -q .mergeable 2>/dev/null || echo UNKNOWN)
+            [ "$state" != "UNKNOWN" ] && break
+            sleep 4
+          done
+          echo "mergeability resolved to '${state:-UNKNOWN}' after ${i}0s or less"
+
+          # --auto on an ALREADY-mergeable PR merges it on the spot rather than
+          # arming anything. That is the desired outcome either way: the release
+          # lands without a human. Both paths are a success.
+          if gh pr merge "$num" --auto --merge; then
+            echo "Release PR #$num will merge itself once checks pass (or already has)."
+          else
+            # Do not fail the workflow — a release PR that needs a manual merge is
+            # worse than automatic, not broken. But say why, loudly, instead of
+            # hiding the reason behind `|| echo` as this step used to.
+            echo "::warning::could not enable auto-merge on #$num (mergeable=${state:-UNKNOWN}) — merge it manually, and see the error above"
+          fi
 
       # Consumers pin `@v1`; keep it tracking the latest v1.x.x. Runs only when
       # release-please actually cut a release. `tag_name` and `sha` are

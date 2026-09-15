@@ -1,6 +1,6 @@
 {
   "name": "blind-peer-review",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "description": "Blind peer review for pull requests — independent, context-starved AI referees, any of which fails the merge.",
   "license": "Apache-2.0",
   "author": "James Crowley",

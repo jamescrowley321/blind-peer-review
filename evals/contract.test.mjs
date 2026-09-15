@@ -27,7 +27,7 @@ import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, co
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
-import { mkdtempSync, readFileSync as rf, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync as rf, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join as pjoin } from "node:path";
 import { tmpdir } from "node:os";
@@ -2402,6 +2402,57 @@ describe("the GitHub/Claude adapter pins a usable lens library", () => {
     assert.match(wf, /needs\.review\.result/, "the gate does not read the review jobs' result");
     assert.match(wf, /exit 1/, "the gate cannot fail");
   });
+});
+
+describe("gh in a checkout-less job must name its repo", () => {
+  // `gh` infers the repository from the git remote. A job with no
+  // actions/checkout has no remote, so every gh call there dies with
+  //     failed to run git: fatal: not a git repository
+  // before it reaches GitHub at all. That is what made every release need a
+  // manual merge: the arm step lives in a job that deliberately never checks out
+  // the tree, and `|| echo "...merge it manually"` hid the reason.
+  //
+  // Parsed by regex, not a YAML library, for the same reason the rest of this
+  // file is: this repo ships zero runtime dependencies. Jobs are keys at two
+  // spaces under `jobs:`, which is stable across every workflow here.
+  const dir = pjoin(REPO_ROOT, ".github/workflows");
+
+  const jobsOf = (text) => {
+    const body = text.split(/\njobs:\n/)[1];
+    if (!body) return [];
+    const out = [];
+    const re = /^ {2}([A-Za-z_][\w-]*):$/gm;
+    const marks = [...body.matchAll(re)];
+    for (let i = 0; i < marks.length; i++) {
+      const from = marks[i].index + marks[i][0].length;
+      const to = i + 1 < marks.length ? marks[i + 1].index : body.length;
+      out.push({ name: marks[i][1], text: body.slice(from, to) });
+    }
+    return out;
+  };
+
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".yml"))) {
+    test(`${file}: no bare gh call in a job without a checkout`, () => {
+      const text = rf(pjoin(dir, file), "utf8");
+      for (const job of jobsOf(text)) {
+        if (/uses:\s*actions\/checkout/.test(job.text)) continue;
+        // Join line continuations so a -R on the next line still counts.
+        const flat = job.text.replace(/\\\s*\n\s*/g, " ");
+        for (const line of flat.split("\n")) {
+          // `gh` followed by a real subcommand, in ANY position. Anchoring on
+          // line-start or a shell operator missed `if gh pr merge ...`, which is
+          // exactly the call that shipped broken — so match the subcommand
+          // instead, which also avoids matching the letters "gh" in prose.
+          if (!/\bgh\s+(?:pr|api|issue|run|release|repo|secret|variable|workflow|search|auth|label)\b/.test(line)) continue;
+          if (/^\s*#/.test(line)) continue;
+          assert.ok(
+            /\s-R\s|\s--repo[\s=]/.test(line),
+            `${file} job "${job.name}" has no checkout, so this gh call cannot resolve a repo — pass -R "$GITHUB_REPOSITORY":\n    ${line.trim()}`,
+          );
+        }
+      }
+    });
+  }
 });
 
 describe("engine pin", () => {

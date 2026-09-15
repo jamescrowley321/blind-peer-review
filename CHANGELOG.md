@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.3.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.2.1...v3.3.0) (2026-09-15)
+
+
+### Features
+
+* **lenses:** run all eight lenses by default, not five ([#99](https://github.com/jamescrowley321/blind-peer-review/issues/99)) ([0a65916](https://github.com/jamescrowley321/blind-peer-review/commit/0a65916ad4484a6961244b58b71176dc4fd96491))
+
 ## [3.2.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.2.0...v3.2.1) (2026-09-15)
 
 

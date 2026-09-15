@@ -18,7 +18,7 @@
 # clean scorecard in four rounds, and half the cost of the model it replaces). All overridable.
 
 name: 'Blind Peer Review'
-description: 'Fresh-context, diff-only adversarial PR review — five skeptical AI lenses that fail the merge on real defects.'
+description: 'Fresh-context, diff-only adversarial PR review — eight skeptical AI lenses that fail the merge on real defects.'
 author: 'James Crowley'
 
 branding:

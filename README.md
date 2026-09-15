@@ -50,9 +50,9 @@ run in parallel:
 | **Acceptance Criteria** | Whether every acceptance criterion in the PR body is implemented *and* tested | Unmet / partial ACs |
 | **Security Review** | Exploitable vulnerabilities (OWASP-aligned), concrete attack scenario required | Confirmed/likely exploits |
 | **Red Team** | Red-team attack paths — only active when auth/crypto/middleware/infra changes | Critical/high exploit chains |
-| **Policy & Provenance** *(opt-in)* | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
-| **OWASP Web Top 10** *(opt-in)* | The 2021 web risks (A01–A10), each finding tagged with its category | Exploitable A0x issues |
-| **OWASP LLM Top 10** *(opt-in)* | The GenAI/LLM 2026 risks (LLM01–LLM10); activates only on AI/LLM code | Exploitable LLM0x issues |
+| **Policy & Provenance** | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
+| **OWASP Web Top 10** | The 2021 web risks (A01–A10), each tagged with its category — only active when the diff has web/HTTP surface | Exploitable A0x issues |
+| **OWASP LLM Top 10** | The GenAI/LLM 2026 risks (LLM01–LLM10); activates only on AI/LLM code | Exploitable LLM0x issues |
 
 Findings use one severity vocabulary: **MUST FIX** (blocks), **SHOULD FIX**,
 **NITPICK**. Any MUST FIX makes that lens request changes, which fails the gate.

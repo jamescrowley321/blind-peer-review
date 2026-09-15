@@ -1,7 +1,7 @@
 ---
 name: check
-description: Run the multi-lens adversarial code review on the working diff — fresh-context skeptical reviewers (Cold Read, Edge Cases, Acceptance Criteria, Security Review, Red Team, plus opt-in Policy & Provenance / OWASP) that hunt bugs, security holes, and unmet acceptance criteria before you push. Use when the user asks to adversarially review changes, review the diff/branch, run the lenses, or check a change before committing, pushing, or opening a PR.
-argument-hint: "[--base <ref>] [--lens cold_read,security,...] [--add owasp_web,owasp_llm,policy]"
+description: Run the multi-lens adversarial code review on the working diff — fresh-context skeptical reviewers (Cold Read, Edge Cases, Acceptance Criteria, Security Review, Red Team, Policy & Provenance, OWASP Web and OWASP LLM) that hunt bugs, security holes, and unmet acceptance criteria before you push. Use when the user asks to adversarially review changes, review the diff/branch, run the lenses, or check a change before committing, pushing, or opening a PR.
+argument-hint: "[--base <ref>] [--lens cold_read,security,...] [--skip owasp_web,owasp_llm,policy]"
 allowed-tools: Read, Grep, Glob, Bash, Task
 ---
 
@@ -27,9 +27,16 @@ local twin of the CI merge gate; the personas are the same markdown files.
 ## 2. Choose the lenses
 
 - Read `${CLAUDE_PLUGIN_ROOT}/lenses/manifest.json` — the lens registry.
-- Default set = the code lenses: `cold_read, edge_case, acceptance, security, red_team`.
-- `--lens a,b,c` replaces the set; `--add x,y` adds opt-in lenses
-  (`owasp_web`, `owasp_llm`, `policy`).
+- Default set = every lens in the manifest with `default_enabled: true`, which is
+  now all of them. Read the flag; do not hard-code a list here, or a lens added
+  upstream silently stops running.
+- Four of them carry an `activation` other than `always` and self-skip when the
+  diff has no matching surface (`red_team` → auth/crypto/infra, `owasp_web` →
+  web/HTTP, `owasp_llm` → LLM/AI). A self-skip is a PASS with an explaining
+  summary, not a failure, and not a reason to drop the lens from the table.
+- `--lens a,b,c` replaces the set entirely; `--skip x,y` removes named lenses from
+  it. `--add x,y` is still accepted for compatibility but is now a no-op on lenses
+  that are already default — it cannot turn anything on that is not already on.
 
 ## 3. Resolve each persona (local override wins)
 

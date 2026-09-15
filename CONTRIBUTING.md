@@ -66,7 +66,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`, `style`
 - **Explain what and why**, not just how. If you change a persona, say what class
   of defect the change is meant to catch (or stop over-reporting).
 - **Fill in the AI-provenance block** in the PR description (see below).
-- Expect this action's own five lenses to review your PR. Resolve **MUST FIX**
+- Expect this action's own lenses to review your PR. Resolve **MUST FIX**
   findings before merge.
 
 ## Cutting a release

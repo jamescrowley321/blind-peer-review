@@ -1,19 +1,42 @@
 # Blind Peer Review
 
-**A fresh-context, diff-only adversarial code-review gate for GitHub pull
-requests.** Skeptical AI review lenses run in parallel — each a *fresh
-[pi](https://pi.dev) agent session that sees only the diff* — post their findings
-as PR reviews, and a fail-closed merge gate blocks the merge on any blocking finding.
+**Fresh-context, diff-only adversarial code review of the change you are about to
+push.** Skeptical review lenses run in parallel — each one a *separate agent
+session that sees only the diff* — and any of them can block.
 
 Built on the principle that a reviewer which already "saw" the code get written
 is biased toward confirming its own work. So every lens starts cold, with no
 plan, no task state, and no memory of the implementation — it reads the code the
 way an attacker or a new maintainer would.
 
-The reviewer personas are plain, harness-neutral markdown. The same lenses run as
-a **GitHub Action** (the CI merge gate), a **Claude Code plugin**
-(`/blind-peer-review`), and templates for **Codex** and **Cursor** — plus a local
-pre-push runner. Tune a lens once; every harness picks it up.
+## Start here: the Claude Code plugin
+
+Local, no API key, no per-PR cost — it runs on your existing Claude subscription:
+
+```
+/plugin marketplace add jamescrowley321/blind-peer-review
+/plugin install blind-peer-review@blind-peer-review
+/blind-peer-review:check
+```
+
+That reviews your working diff against `origin/main` and returns a fail-closed
+verdict. Nothing is posted anywhere; you fix the MUST FIX findings before you
+push, rather than after a bot has commented on your PR.
+
+**One caveat, stated up front.** Run in Claude Code, the lenses are subagents of
+the model that wrote the diff — Claude reviewing Claude, sharing the author's
+blind spots. If you have the `codex` CLI, the skill dispatches to it instead
+(one process per lens, a different model family, still free). See
+[`docs/local-review.md`](docs/local-review.md).
+
+## The other harnesses
+
+The personas are plain, harness-neutral markdown, so the same lenses also run as
+a **GitHub Action** (a fail-closed CI merge gate, billed to a model provider — see
+[Use it in CI](#use-it-in-ci)), through the **Claude GitHub App**, and as
+templates for **Codex** and **Cursor**. Tune a lens once; every harness picks it
+up. [`adapters/README.md`](adapters/README.md) compares them, including what each
+one does *not* give you.
 
 ## The lenses
 
@@ -34,7 +57,7 @@ run in parallel:
 Findings use one severity vocabulary: **MUST FIX** (blocks), **SHOULD FIX**,
 **NITPICK**. Any MUST FIX makes that lens request changes, which fails the gate.
 
-## Quick start
+## Use it in CI
 
 1. Add the caller workflow to your repo as `.github/workflows/blind-peer-review.yml`
    (copy [`examples/caller-workflow.yml`](examples/caller-workflow.yml)).

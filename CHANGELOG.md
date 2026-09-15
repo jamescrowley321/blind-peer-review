@@ -11,6 +11,15 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.2.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.3...v3.2.0) (2026-09-14)
+
+
+### Features
+
+* **adapters:** adversarial review on GitHub via the Claude App, one lens per job ([#94](https://github.com/jamescrowley321/blind-peer-review/issues/94)) ([9a6d3c5](https://github.com/jamescrowley321/blind-peer-review/commit/9a6d3c5b949eb665dbbb8d2bcaf04b1dc75dee3d))
+* **evals:** run them locally for free, and stop shipping a ceiling we measured as too low ([#93](https://github.com/jamescrowley321/blind-peer-review/issues/93)) ([14c6f39](https://github.com/jamescrowley321/blind-peer-review/commit/14c6f39995d1b79b1694b81e2195c4eca3cbd114))
+* **plugin:** dispatch the lenses to codex, one process per lens ([#92](https://github.com/jamescrowley321/blind-peer-review/issues/92)) ([135aef7](https://github.com/jamescrowley321/blind-peer-review/commit/135aef7623af29a078fc56a155df9a6185c82094))
+
 ## [3.1.3](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.2...v3.1.3) (2026-09-14)
 
 

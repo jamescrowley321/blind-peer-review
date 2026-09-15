@@ -127,34 +127,34 @@ jobs:
             echo "release-please reported no release PR; nothing to arm."
             exit 0
           fi
-          # GitHub computes mergeability ASYNCHRONOUSLY. A PR created seconds ago
-          # reports mergeable=UNKNOWN, and `gh pr merge --auto` against UNKNOWN
-          # fails. This step runs immediately after release-please opens the PR,
-          # so it hit that window EVERY time: the arm failed, the warning was
-          # swallowed by `|| echo`, and every release since has needed a human to
-          # merge the release PR by hand — the exact approval step this step
-          # exists to remove.
-          #
-          # So: wait for GitHub to decide, then arm. Poll mergeable rather than
-          # sleeping a fixed amount, because the wait is usually ~2s and
-          # occasionally much longer.
-          for i in $(seq 1 30); do
-            state=$(gh pr view "$num" --json mergeable -q .mergeable 2>/dev/null || echo UNKNOWN)
+          # This job has NO checkout step — it never needs the tree — so `gh` has
+          # no git remote to infer the repository from and fails with
+          #     failed to run git: fatal: not a git repository
+          # before it ever reaches GitHub. That is what made every release need a
+          # manual merge, and `|| echo "...merge it manually"` hid the reason, so
+          # it read like a permissions or mergeability problem. It was neither.
+          # Pass the repo explicitly.
+          repo="$GITHUB_REPOSITORY"
+
+          # Mergeability is computed asynchronously, so a freshly created PR can
+          # briefly report UNKNOWN. Short poll, because unlike the missing -R this
+          # genuinely is a race — just a much shorter one than it looked.
+          for _ in $(seq 1 15); do
+            state=$(gh pr view "$num" -R "$repo" --json mergeable -q .mergeable) || state=UNKNOWN
             [ "$state" != "UNKNOWN" ] && break
             sleep 4
           done
-          echo "mergeability resolved to '${state:-UNKNOWN}' after ${i}0s or less"
+          echo "Release PR #$num mergeable=$state"
 
-          # --auto on an ALREADY-mergeable PR merges it on the spot rather than
-          # arming anything. That is the desired outcome either way: the release
-          # lands without a human. Both paths are a success.
-          if gh pr merge "$num" --auto --merge; then
+          # --auto on an already-mergeable PR merges on the spot rather than
+          # arming anything. Either way the release lands without a human, so both
+          # are success.
+          if gh pr merge "$num" -R "$repo" --auto --merge; then
             echo "Release PR #$num will merge itself once checks pass (or already has)."
           else
-            # Do not fail the workflow — a release PR that needs a manual merge is
-            # worse than automatic, not broken. But say why, loudly, instead of
-            # hiding the reason behind `|| echo` as this step used to.
-            echo "::warning::could not enable auto-merge on #$num (mergeable=${state:-UNKNOWN}) — merge it manually, and see the error above"
+            # Warn, do not fail: a release PR that needs a manual merge is worse
+            # than automatic, not broken. gh's own stderr is left visible above.
+            echo "::warning::could not enable auto-merge on #$num (mergeable=$state) — merge it manually; gh's error is above"
           fi
 
       # Consumers pin `@v1`; keep it tracking the latest v1.x.x. Runs only when

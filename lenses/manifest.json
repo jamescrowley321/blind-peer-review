@@ -42,21 +42,21 @@
       "key": "policy",
       "name": "Policy & Provenance",
       "activation": "always",
-      "default_enabled": false,
+      "default_enabled": true,
       "summary": "AI-provenance disclosure, human accountability, no committed secrets."
     },
     {
       "key": "owasp_web",
       "name": "OWASP Web Top 10",
-      "activation": "always",
-      "default_enabled": false,
-      "summary": "OWASP Web Application Top 10 (2021)."
+      "activation": "web-surface",
+      "default_enabled": true,
+      "summary": "OWASP Web Top 10 (2021) risks; self-skips when the diff has no web/HTTP surface."
     },
     {
       "key": "owasp_llm",
       "name": "OWASP LLM Top 10",
       "activation": "llm-surface",
-      "default_enabled": false,
+      "default_enabled": true,
       "summary": "OWASP GenAI/LLM Top 10 (2026); self-skips when no LLM/AI surface."
     }
   ]

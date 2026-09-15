@@ -11,6 +11,14 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.2.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.2.0...v3.2.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **ci:** releases needed a manual merge because the auto-merge arm always raced ([#96](https://github.com/jamescrowley321/blind-peer-review/issues/96)) ([c6c179f](https://github.com/jamescrowley321/blind-peer-review/commit/c6c179f2daf9c64b73403c62edc0406d50477f01))
+* **ci:** the release auto-merge failed because gh had no repo, not a race ([#98](https://github.com/jamescrowley321/blind-peer-review/issues/98)) ([95b2e9c](https://github.com/jamescrowley321/blind-peer-review/commit/95b2e9c3a8fd73b22e68aec460e7f761352083ef))
+
 ## [3.2.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.1.3...v3.2.0) (2026-09-14)
 
 

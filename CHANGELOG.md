@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.4.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.3.2...v3.4.0) (2026-10-02)
+
+
+### Features
+
+* harden local review and report combined findings ([#106](https://github.com/jamescrowley321/blind-peer-review/issues/106)) ([f7704c7](https://github.com/jamescrowley321/blind-peer-review/commit/f7704c755bba4dc4bf3a90e13e18220fe317121e))
+
 ## [3.3.2](https://github.com/jamescrowley321/blind-peer-review/compare/v3.3.1...v3.3.2) (2026-10-02)
 
 

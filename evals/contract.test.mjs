@@ -22,7 +22,8 @@ import { composeFromAction, resolveContext, composePrompt, loadFixture, fixtureD
 import { truncateDiff, truncateDiffByBytes, byteMarker, renderGetPrDiff } from "./lib/pi-diff.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_THRESHOLD } from "./lib/bailout.mjs";
 import { chat, ModelError } from "./lib/openrouter.mjs";
-import { classifyStatus, probe } from "../scripts/provider-check.mjs";
+import { classifyStatus, probe, requestBudget } from "../scripts/provider-check.mjs";
+import "./lib/provider-check.test.mjs";
 import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
@@ -2278,22 +2279,23 @@ describe("provider pre-check", () => {
   });
 
   test("a reachable provider passes", async () => {
-    const r = await probe({ model: "m", key: "k", fetchImpl: async () => ({ ok: true, status: 200, text: async () => "" }) });
+    const r = await probe({ model: "google/gemini-2.5-pro", key: "k", fetchImpl: async () => new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n', { status: 200 }) });
     assert.equal(r.ok, true);
   });
 
   test("the probe never surfaces the provider's message body", async () => {
     const secret = '{"error":{"message":"available credits 0.00, in_flight_budget_exhausted"}}';
-    const r = await probe({ model: "m", key: "k", fetchImpl: async () => ({ ok: false, status: 402, text: async () => secret }) });
+    const r = await probe({ model: "google/gemini-2.5-pro", key: "k", fetchImpl: async () => ({ ok: false, status: 402, text: async () => secret }) });
     assert.equal(r.fatal, true);
     assert.doesNotMatch(JSON.stringify(r), /available credits|in_flight_budget_exhausted/,
       "account state must not reach the log — the status is the signal");
   });
 
-  test("the probe costs one token", async () => {
+  test("the probe reserves the model output ceiling", async () => {
     let body;
-    await probe({ model: "m", key: "k", fetchImpl: async (_u, o) => { body = JSON.parse(o.body); return { ok: true, status: 200, text: async () => "" }; } });
-    assert.equal(body.max_tokens, 1, "enough to exercise auth, credit and availability; not enough to cost anything");
+    await probe({ model: "google/gemini-2.5-pro", key: "k", fetchImpl: async (_u, o) => { body = JSON.parse(o.body); return new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n', { status: 200 }); } });
+    assert.equal(body.max_tokens, requestBudget("google/gemini-2.5-pro"), "the same output reservation as the pinned agent, rather than an affordable one-token probe");
+    assert.equal(body.stream, true, "cancel the tiny answer instead of consuming the reservation");
   });
 });
 

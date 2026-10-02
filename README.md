@@ -117,6 +117,7 @@ merge is blocked until the MUST FIX findings are resolved.
 | `provider` | `openrouter` | pi provider backend |
 | `model` | `z-ai/glm-5.2` | Any model your provider exposes |
 | `models_config` | — (empty) | JSON for pi's `~/.pi/agent/models.json` (path is `$HOME`-relative), written before the lens runs (`mode: lens` only). Enforce per-model OpenRouter routing guardrails — `compat.openRouterRouting` with `zdr: true`, `sort: "price"`, `quantizations`, and `ignore` lists — on the request itself, not just at the account level. **Strict allowlist:** only `providers.<provider>.modelOverrides.<model>.compat.openRouterRouting` with safe scalar/array keys is accepted; dangerous keys (`baseUrl`, `endpoint`, `headers`, `apiKey`, `token`) are rejected loudly to prevent redirecting key-bearing requests. Invalid/out-of-schema JSON fails the job. Empty/omitted removes any stale file (no-op on ephemeral runners). Must be workflow-author-controlled — never derive from untrusted PR/issue content. |
+| `trusted_lens_overrides` | `false` | `mode: lens`: load existing lens overrides at `.blind-peer-review/lenses/<key>.md` from the target PR's immutable base commit via GitHub API. Requires `contents: read`. Operator must protect allowed base branches and the workflow; never derive opt-in from PR content. Missing path uses pinned persona; retrieval/malformed-file failures fail closed. Pinned shared contract always applies. |
 | `allow_unfloored_model` | `false` | Escape hatch for the compliance-floor check. When `models_config` sets `zdr: true` or `data_collection: "deny"` for some model **and** the model this lens runs has no `modelOverrides` entry at all, the step **fails** — that combination sends the diff with none of the floor in force, on an otherwise green build, and a warning does not stop a merge. A floor covering some models and deliberately not others is fine and does not need this. Set `true` to state that running this model unfloored is intended. |
 | `thinking_level` | `medium` | `low` \| `medium` \| `high` |
 | `diff_max_lines` | `2000` | Diff truncation guard. The limit is disclosed to the agent so a truncated diff is not mistaken for a complete one — raise it for large PRs rather than letting reviews run on a partial diff. |
@@ -186,11 +187,12 @@ reads the PR and enforces a built-in baseline:
 - **Human accountability** — a named human is responsible for the change.
 - **No committed secrets or private data.**
 
-In CI the Policy & Provenance lens enforces **only** this trusted baseline — it does not
-read any rules file out of the pull request under review, so a PR can't weaken its
-own policy check (prompt-injection safety). To add project-specific policy for
-**local** review, commit `.blind-peer-review/lenses/policy.md` (a trusted
-override the local harnesses read). Pair the lens with the
+In CI the Policy & Provenance lens enforces this trusted baseline by default.
+To add project-specific policy, commit `.blind-peer-review/lenses/policy.md`:
+local harnesses read that file; CI reads its version at the PR's base commit only
+when `trusted_lens_overrides: 'true'` is enabled. Never take policy from the PR
+head. See [tuning a lens](#tune-a-lens-per-repo-override) for the trust assumptions.
+Pair the lens with the
 [PR template](.github/pull_request_template.md), which carries the AI-provenance
 block contributors fill in.
 
@@ -297,9 +299,26 @@ adapters, so the same personas review your code in CI *and* in your editor:
 
 Commit `.blind-peer-review/lenses/<key>.md` to *replace* a base persona for your
 repo (e.g. a PHI/PII-tuned `security.md`). The **local** harnesses read it — it's
-your own trusted file. **CI (the pi Action) never reads it**: a pull request must
-not be able to rewrite its own reviewer (OWASP LLM01), so the gate always runs the
-pinned base set. See [`lenses/README.md`](lenses/README.md).
+your own trusted file. CI uses the pinned personas by default. To opt in, add
+`trusted_lens_overrides: 'true'` to the action's `mode: lens` call and grant
+`contents: read` alongside the existing `pull-requests: write` permission.
+CI fetches the fixed override path through GitHub's API at the target PR's
+immutable **base SHA**, including when `pr_number` selects a PR on
+`workflow_dispatch`. A change to an override in the PR head cannot change the
+review of that PR; it applies to later PRs after merging into the base branch.
+
+Operators must protect each allowed base branch and the workflow that enables
+this input. The action does not verify branch protection or decide which base
+branches are trustworthy. An attacker who can write to the base branch or
+change the privileged workflow can change reviewer instructions. Keep the
+opt-in workflow-author-controlled; never derive it from PR content.
+
+Overrides must be regular UTF-8 Markdown files, begin with an H1 of at most
+200 characters, and fit within 64 KiB. Missing paths fall back to the pinned
+persona; API failures, symlinks/submodules, invalid encoding, malformed files,
+and oversized or truncated Git trees fail the job. Only existing lens keys can
+be overridden. The pinned shared contract, severity definitions, tool boundary
+and canonical lens name always apply. See [`lenses/README.md`](lenses/README.md).
 
 ## Local mode (pre-CI)
 

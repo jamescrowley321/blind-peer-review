@@ -48,9 +48,12 @@ that file *replaces* the base persona of the same key for the local harnesses.
 
 **Injection-safe split:** local harnesses (Claude Code, Codex, Cursor, the local
 runner) read the override — the developer authored those files, so they're
-trusted. **CI on an untrusted PR (the pi Action) never reads them** — a PR must
-not be able to rewrite its own reviewer (OWASP LLM01). CI runs the pinned base
-set only; see [`../lenses/README.md`](../lenses/README.md).
+trusted. **CI on an untrusted PR (the pi Action) never reads them from the PR
+checkout** — a PR must not be able to rewrite its own reviewer (OWASP LLM01).
+CI uses the pinned set by default; `trusted_lens_overrides: 'true'` loads
+overrides through GitHub's API at the target PR's immutable base SHA. Operators
+must protect that base branch and the enabling workflow. The pinned shared
+contract always applies; see [`../lenses/README.md`](../lenses/README.md).
 
 ## Getting the lenses into a consumer repo
 

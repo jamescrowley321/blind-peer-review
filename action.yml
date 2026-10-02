@@ -147,6 +147,10 @@ inputs:
     description: "PR number to review. Defaults to the triggering pull_request."
     required: false
     default: ''
+  trusted_lens_overrides:
+    description: "mode=lens: opt in to .blind-peer-review/lenses/<key>.md from the target PR's immutable BASE SHA via GitHub API (contents: read required). Default false. Operator must protect the base branch and workflow; never derive this input from PR content. Missing files use the pinned persona; API/malformed-file failures fail the job. Pinned shared contract, severity and trust boundary always apply. No custom paths, refs or new lens keys."
+    required: false
+    default: 'false'
   cleanup_agent_comments:
     description: "mode=lens: when true (default), the lens deletes the raw JSON comment the pi agent action posts on the PR as a side effect of running. That comment is the agent's final message verbatim — the same findings this action re-posts as a rendered `## <Lens>` review — so it is a duplicate, it is unreadable, and nothing cleans it up: one accumulates per lens per push (8 lenses x 7 pushes = 56 on one PR). Deletion is safe because the content is losslessly reproduced in the review this step posts. Set to false to keep them."
     required: false
@@ -244,6 +248,22 @@ runs:
       with:
         ref: ${{ steps.head.outputs.sha }}
         fetch-depth: 0
+
+    # Read the persona through Git objects at the PR's base commit. The PR
+    # checkout is untrusted evidence and is never a source of reviewer rules.
+    - name: Load trusted base lens override
+      if: inputs.mode == 'lens'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        TRUSTED_LENS_OVERRIDES: ${{ inputs.trusted_lens_overrides }}
+        LENS_KEY: ${{ inputs.lens }}
+        ACTION_PATH: ${{ github.action_path }}
+        PR_NUMBER: ${{ steps.ctx.outputs.pr_number }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const { run } = require("${{ github.action_path }}/scripts/trusted-lens.cjs");
+          await run({ core, github, context, env: process.env });
 
     # ── Compose the lens prompt: persona + shared output contract, PR number substituted. ──
     - name: Compose lens prompt

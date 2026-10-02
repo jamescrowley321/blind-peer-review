@@ -1,11 +1,62 @@
 # Multi-harness lens library — revival plan
 
-> **Status (updated 2026-09-07):** the Aug-13 plugin branch has been replayed onto
-> current `main` as `feat/multi-harness-lenses`. **W0 and W1.1–W1.2 are done and the
-> branch is green (147/147 + 29/29).** W1.3, W1.4, W2–W5 are outstanding. Nothing has
-> been pushed.
+> **Historical plan — reconciled 2026-10-01.** The September 7 branch status
+> below is an archive, not an active to-do list. The plugin, shared registry,
+> shared JSON contract, vendoring installer and Codex dispatch have since shipped
+> through v3.3.0. See the current-status section before reviving any work item.
 >
-> Written 2026-09-07 against `main` @ `0e5a06a` (v1.8.0).
+> Original plan written 2026-09-07 against `main` @ `0e5a06a` (v1.8.0).
+
+## Current implementation and backlog reconciliation
+
+The released baseline is **v3.3.0** (`version.txt`). The records below distinguish
+code that exists from host integration checks that still need evidence.
+
+| Historical item | Current evidence / remaining work |
+|---|---|
+| W0/W1 — local verdict and shared contract | `contracts/shared_review_contract.md` defines JSON findings; local runners adjudicate parsed severity and fail on invalid output. Offline local tests exist. Personas still contain CI tool wording; decoupling it remains a separate prompt change requiring evals. |
+| W2 — plugin distribution and naming | `.claude-plugin/` ships `blind-peer-review@blind-peer-review`, with `/blind-peer-review:check`; release-please tracks both manifest versions. A fresh host install and PASS/BLOCK smoke run are integration checks, not implied by JSON manifest validation. |
+| W3 — registry | `lenses/manifest.json` supplies the shared keys and display names to the action and local tooling. |
+| W4 — Codex/Cursor | `scripts/vendor.mjs` installs version-stamped local assets; `scripts/dispatch-codex.mjs` runs one read-only Codex process per lens. Cursor has an adapter template; loading/activation and fresh per-lens conversations still need a real Cursor runtime check. |
+| Cross-family plugin routing | Shipped in [v3.2.0](../CHANGELOG.md): the plugin prefers Codex dispatch when available and falls back to in-host Claude subagents with a same-family disclosure. It does not guarantee a different model family in every host. |
+| Maintenance under review | Current maintenance addresses empty lens selections, tracked working-tree coverage, provider-budget preflight and dependency-pin verification. These fixes are not part of the released v3.3.0 baseline. |
+| Further feature proposals | CI base-branch persona overrides and a deduplicated findings report are being implemented separately. Per-lens cross-model routing, focus input, recursion guard, and plan/prompt-review modes remain proposals, not completed acceptance checks. |
+
+### Issue #2 — harness adapters
+
+[#2](https://github.com/jamescrowley321/blind-peer-review/issues/2) still describes
+an unmerged old branch and the former plugin namespace. The namespace decision,
+plugin artifacts, vendoring path, and preferred out-of-host Claude → Codex routing
+have shipped. Codex and Cursor templates exist. Its original acceptance also asks
+for actual host loading and out-of-host review verification: Cursor still uses
+in-host fresh chats unless the caller chooses the pi runner. A Codex adapter in a
+Codex-authored session also cannot promise a different model family. Recommend
+rescoping the issue to those host checks and explicit routing expectations,
+rather than claiming all its acceptance criteria are satisfied.
+
+### Issue #33 — lens naming
+
+[#33](https://github.com/jamescrowley321/blind-peer-review/issues/33) proposed
+seven acceptance criteria. Descriptive names and snake_case keys shipped as the
+[v2.0.0 breaking rename](../CHANGELOG.md); the original proposal was not adopted
+verbatim.
+
+| Acceptance | Current status |
+|---|---|
+| AC-1: H1 equals display name with no subtitle | **Outstanding.** Current H1s retain subtitles, e.g. `# Security Review — Exploitable Vulnerability Agent`. No persona prompts are changed by this reconciliation. |
+| AC-2: no display-name containment | Current manifest names are distinct; offline cross-lens identity tests guard against accepting another lens's output. |
+| AC-3: old keys resolve with deprecation warning | **Not implemented.** The v2.0.0 release deliberately required callers to migrate their keys. Decide whether this historical compatibility requirement should be superseded. |
+| AC-4: retain old display-name aliases | **Not fully implemented.** The parser keeps current heading/subtitle aliases and an older OWASP heading; it does not retain the complete former `Sentinel`/`Viper`/`Blind Hunter` roster. Decide whether old-release output compatibility remains needed. |
+| AC-5: docs/examples/workflow use new keys | Current README, caller example and self-review workflow use manifest keys; CONTRIBUTING now describes the eight-persona roster. |
+| AC-6: release notes call out required-status-check rename | v2.0.0 records a breaking name/key/path migration, but does not explicitly explain branch-protection check-name migration. That guidance still needs a targeted migration note if this criterion is retained. |
+| AC-7: contract suite passes without todo | Offline contract checks pass on this maintenance branch; this does not establish the unfulfilled criteria above. |
+
+Recommend updating #33's scope before closing it. Removing H1 subtitles is a
+prompt change requiring fixtures and model evals, and compatibility policy needs
+an explicit decision. No issue or PR state was changed as part of this audit.
+
+## Archived September 7 plan
+
 
 ---
 

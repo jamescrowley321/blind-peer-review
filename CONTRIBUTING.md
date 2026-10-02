@@ -1,8 +1,9 @@
 # Contributing to Blind Peer Review
 
-Thanks for your interest in contributing. This repo is a **composite GitHub
-Action** — mostly `action.yml`, the persona prompts in `lenses/`, and a bit of
-Bash — so the contribution loop is lighter than a typical library.
+Thanks for your interest in contributing. This repo ships a **composite GitHub Action**, a Claude Code plugin, and local
+Codex, Cursor, and pi review paths. They share the lens registry and findings
+contract. Most implementation lives in Node scripts; Actions wiring also uses
+Bash wrappers.
 
 ## Code of Conduct
 
@@ -13,20 +14,26 @@ together.
 
 | Path | What it is |
 |------|------------|
-| `action.yml` | The composite action (`mode: lens` / `mode: gate`), Node steps — no shell |
-| `lenses/*.md` | The six review personas + the shared output contract |
-| `scripts/run-local.mjs` | Local pre-CI runner (Node) |
+| `action.yml` | The composite action (`mode: config` / `mode: preflight` / `mode: lens` / `mode: gate`) |
+| `lenses/manifest.json`, `lenses/*.md` | The eight review personas, registry, and CI instructions |
+| `contracts/shared_review_contract.md` | Shared JSON findings contract |
+| `scripts/run-local.mjs`, `scripts/dispatch-codex.mjs` | Local pi and Codex runners (Node) |
+| `.claude-plugin/`, `skills/check/`, `agents/`, `adapters/` | Plugin and local harness adapters |
 | `examples/caller-workflow.yml` | Drop-in consumer workflow |
 | `.github/blind-peer-review/policy.md` | This repo's own Policy & Provenance rules |
 | `.github/workflows/` | Self-review dogfood, lint, and release automation |
-| `release-please-config.json`, `.release-please-manifest.json`, `version.txt` | release-please config + tracked version (see [Cutting a release](#cutting-a-release)) |
+| `release-please-config.json`, `.release-please-manifest.json`, `version.txt`, `package.json` | release-please config + tracked version (see [Cutting a release](#cutting-a-release)) |
 
 ## Local development
 
-No build step. Validate your changes the way CI does (Node, no shell):
+No build step. Use Node 20 or newer (see `package.json`). Start with the offline
+checks that CI runs:
 
 ```bash
-node --check scripts/run-local.mjs                 # syntax-check the runner
+node --check scripts/run-local.mjs
+node --test evals/contract.test.mjs
+node evals/validate-fixtures.mjs
+node evals/verify-guards.mjs
 ```
 
 To exercise the personas against a real diff without opening a PR:
@@ -86,15 +93,16 @@ create` by hand — cutting a release *is* merging the release PR.
    wording in it if you want, then approve it like any other PR.
 3. **Merge the release PR.** On merge, the `Release Please` workflow publishes
    the `vX.Y.Z` GitHub Release **and**, in the same run, advances the `vX` major
-   tag (e.g. `v1`) to the released commit — so consumers pinned to `@v1` pick it
-   up automatically. No PAT, GitHub App, or manual tag move is involved.
+   tag (currently `v3`) to the released commit — so consumers pinned to `@v3` pick it
+   up automatically. The workflow moves the tag automatically. A configured release PAT or GitHub
+   App lets the release PR trigger its required CI checks; see [release setup](docs/releases.md).
 
 Why the major-tag move lives in the same workflow: a Release published with the
 default `GITHUB_TOKEN` can't trigger a *separate* `on: release` workflow, so a
-standalone tag-mover would silently stop `@v1` from advancing. Folding it into
+standalone tag-mover would silently stop `@v3` from advancing. Folding it into
 the release-please run avoids that (and avoids managing a token). If you ever
 must publish out-of-band, move the tag yourself:
-`git tag -f v1 <released-sha> && git push -f origin v1`.
+`git tag -f v3 <released-sha> && git push -f origin v3`.
 
 [release-please]: https://github.com/googleapis/release-please
 [Conventional Commit]: https://www.conventionalcommits.org/
@@ -112,7 +120,7 @@ all contributions regardless of how they were authored.
   description's **AI provenance** block, the **harness/agent(s)** and the
   **model(s)** used to produce the change (e.g. harness `Claude Code`, model
   `claude-opus-4-8`; or harness `ralph-orchestrator + pi`, model `z-ai/glm-5.2`).
-  This is enforced by the **Compliance** lens — a PR flagged AI-assisted that
+  This is enforced by the **Policy & Provenance** lens — a PR flagged AI-assisted that
   omits the harness or model **fails review**. See
   [`.github/pull_request_template.md`](.github/pull_request_template.md).
 - **A human is accountable.** A named human must review the change and attest to
@@ -124,8 +132,10 @@ all contributions regardless of how they were authored.
 ### What we look for
 
 - No hallucinated APIs, invented flags, or unpinned/unverified action refs.
-- Persona edits keep the strict `## <Lens>` output envelope (the merge gate parses it).
-- Step logic stays in Node (`shell: node {0}`); the runner passes `node --check`.
+- Persona edits keep the shared JSON findings contract; the action renders the
+  `## <Lens>` review header that the merge gate reads.
+- Keep review logic in testable Node modules and syntax-check changed scripts.
+  Bash wrappers handle Actions setup and invoke those modules.
 
 ## Provenance & credit
 

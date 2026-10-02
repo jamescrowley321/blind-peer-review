@@ -15,7 +15,7 @@ advisory visible only to you and the maintainers, where a fix can be coordinated
 
 When you report, please include as much of the following as you can:
 
-- The affected version / commit or tag (`v1`, a SHA, …).
+- The affected version / commit or tag (`v3`, a SHA, …).
 - The security impact — e.g. provider-key exposure, a prompt-injection that
   defeats the untrusted-PR-content trust boundary, a way to make the merge gate
   pass with unresolved MUST FIX findings, or forged/spoofed lens reviews.
@@ -33,14 +33,14 @@ When you report, please include as much of the following as you can:
 
 ## Supported versions
 
-This project is pre-1.0 and evolving. Security fixes are made against the latest
-release and the moving major tag (`v1`); there is no back-porting to older
-pre-release versions at this time.
+Security fixes are made against the latest release and the current moving major
+tag (`v3`). Older major releases are not supported; fixes are not backported.
 
 ## Scope
 
 In scope: `action.yml`, the lens personas and shared output contract in
-`lenses/`, the merge-gate and provenance logic, and `scripts/run-local.mjs`.
+`lenses/`, the merge-gate and provenance logic, the Claude Code plugin, local
+adapters, vendoring and review dispatch scripts, and the shared findings contract.
 
 Out of scope (report upstream): the [pi coding agent](https://pi.dev) runtime and
 [`shaftoe/pi-coding-agent-action`](https://github.com/shaftoe/pi-coding-agent-action),

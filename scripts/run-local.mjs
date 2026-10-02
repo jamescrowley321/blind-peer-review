@@ -7,7 +7,7 @@
 // .blind-peer-review/lenses/<lens>.md (trusted local tuning). Language-agnostic.
 //
 // Usage:
-//   node scripts/run-local.mjs                     # adversarial lenses vs origin/main
+//   node scripts/run-local.mjs                     # branch + working edits vs default branch
 //   node scripts/run-local.mjs --base main
 //   node scripts/run-local.mjs --lens security --lens red_team   # repeatable
 //   PI_BIN=pi MODEL=z-ai/glm-5.2 node scripts/run-local.mjs
@@ -15,20 +15,28 @@
 // Requires: git, the `pi` CLI on PATH, and a provider key in OPENROUTER_API_KEY.
 // Adjust the pi argv below for your pi version if needed.
 
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import outputTools from "./safe-output.cjs";
+const { writeOutput } = outputTools;
+
+import reportTools from "./findings-report.cjs";
+import { chooseLenses, reviewError } from "./dispatch-codex.mjs";
+const { writeLocalReport } = reportTools;
+
+import { scopeDiff } from "./scope-diff.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LENS_DIR = join(ROOT, "lenses");
 const CONTRACT = join(ROOT, "contracts", "shared_review_contract.md");
-const OUT = ".blind-peer-review/out";              // ephemeral: diff + per-lens findings
-const OVERRIDE_DIR = ".blind-peer-review/lenses";  // committed: per-repo persona overrides
+let OUT;              // ephemeral: diff + per-lens findings
+let OVERRIDE_DIR;  // committed: per-repo persona overrides
 
 // The lens registry is the shared, harness-neutral manifest — one source of truth.
-// (Local mode reviews code; Compliance is a PR-time policy check, so it is not in
-// the default local set — add it explicitly with --lens if wanted.)
+// Default selection follows manifest flags; --lens explicitly replaces it.
 let manifest;
 try {
   manifest = JSON.parse(readFileSync(join(LENS_DIR, "manifest.json"), "utf8"));
@@ -53,8 +61,8 @@ function printHelp() {
     .filter((l) => l.startsWith("//")).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
 }
 
-let base = "origin/main";
-const DEFAULT_LENSES = ["cold_read", "edge_case", "acceptance", "security", "red_team"];
+let base = null;
+
 let lensOverride = null;
 let PI_BIN = process.env.PI_BIN || "pi";
 let PROVIDER = process.env.PROVIDER || "openrouter";
@@ -87,19 +95,25 @@ for (let i = 0; i < argv.length; i++) {
   else { console.error(`Unknown arg: ${a}`); process.exit(2); }
 }
 
-const lenses = lensOverride ?? DEFAULT_LENSES;
+let lenses;
+try { lenses = chooseLenses(manifest, lensOverride?.join(",") ?? null); }
+catch (e) { console.error(`error: ${e.message}`); process.exit(2); }
 
-mkdirSync(OUT, { recursive: true });
-
-let diff;
+let diff, repo, patch;
 try {
-  diff = execFileSync("git", ["diff", `${base}...HEAD`], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-} catch {
-  console.error(`error: could not diff against '${base}' — is it fetched? (git fetch origin)`);
+  const scoped = scopeDiff({ base });
+  diff = scoped.diff;
+  base = scoped.base;
+  repo = scoped.root;
+  patch = scoped.outputPath;
+  OUT = dirname(patch);
+  OVERRIDE_DIR = join(repo, ".blind-peer-review/lenses");
+  writeOutput(patch, diff);
+  for (const warning of scoped.warnings) console.error(`warning: ${warning}`);
+} catch (e) {
+  console.error(`error: ${e.message}`);
   process.exit(1);
 }
-const patch = join(OUT, "review-diff.patch");
-writeFileSync(patch, diff);
 if (!diff.trim()) { console.log(`No changes vs ${base} — nothing to review.`); process.exit(0); }
 console.log(`Diff: ${diff.split("\n").length} lines vs ${base}`);
 
@@ -114,7 +128,7 @@ for (const key of lenses) {
   // A committed local override wins over the base persona (trusted, static tuning).
   const overridePath = join(OVERRIDE_DIR, `${key}.md`);
   const personaPath = existsSync(overridePath) ? overridePath : join(LENS_DIR, `${key}.md`);
-  if (!existsSync(personaPath)) { console.log(`skip: missing ${personaPath}`); continue; }
+  if (!existsSync(personaPath)) { verdicts.push({ key, name, state: "FAILED", note: `missing ${personaPath}` }); continue; }
   if (personaPath === overridePath) console.log(`  (local override: ${overridePath})`);
 
   const persona = readFileSync(personaPath, "utf8").split("__PR_NUMBER__").join("N/A (local review)");
@@ -136,7 +150,7 @@ for (const key of lenses) {
 
   console.log(`── ${name} ──`);
   const res = spawnSync(PI_BIN, ["--provider", PROVIDER, "--model", MODEL, "--thinking", THINKING], {
-    input: prompt, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
+    cwd: repo, input: prompt, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
   });
   if (res.error) {
     console.log(`  ! could not run ${PI_BIN}: ${res.error.message}`);
@@ -144,9 +158,15 @@ for (const key of lenses) {
     continue;
   }
   const out = res.stdout || "";
-  writeFileSync(join(OUT, `${key}.json`), out);
+  try {
+    writeOutput(join(OUT, `${key}.json`), out);
+    if (res.status !== 0) writeOutput(join(OUT, `${key}.err`), res.stderr || "");
+  } catch (e) {
+    console.log(`  ! could not safely write review output: ${e.message}`);
+    verdicts.push({ key, name, state: "FAILED", must: 0, note: e.message });
+    continue;
+  }
   if (res.status !== 0) {
-    writeFileSync(join(OUT, `${key}.err`), res.stderr || "");
     console.log(`  ! exit ${res.status} (see ${join(OUT, `${key}.err`)})`);
     verdicts.push({ key, name, state: "FAILED", must: 0, note: `exit ${res.status}` });
     continue;
@@ -155,9 +175,10 @@ for (const key of lenses) {
   // "no MUST FIX findings" is a pass, and substring matching would block it.
   let parsed = null;
   try { parsed = JSON.parse(out.trim()); } catch { /* handled below */ }
-  if (!parsed || !Array.isArray(parsed.findings)) {
+  const invalid = reviewError(parsed, name);
+  if (invalid) {
     console.log(`  ! ${join(OUT, `${key}.json`)} is not the contract object — lens FAILED`);
-    verdicts.push({ key, name, state: "FAILED", must: 0, note: "output is not the contract object" });
+    verdicts.push({ key, name, state: "FAILED", must: 0, note: invalid });
     continue;
   }
   const must = parsed.findings.filter((f) => f && f.severity === "MUST FIX").length;
@@ -175,6 +196,11 @@ for (const v of verdicts) {
   console.log(`  ${v.state.padEnd(6)} ${v.name}${detail}`);
 }
 const blocked = verdicts.filter((v) => v.state !== "PASS");
+try {
+  writeLocalReport(OUT, verdicts.map((v) => ({ ...v, verdict: v.state })), blocked.length ? "BLOCK" : "PASS");
+} catch (e) {
+  console.error(`warning: combined report could not be written: ${e.message}`);
+}
 if (blocked.length) {
   for (const v of verdicts) {
     for (const f of (v.findings || []).filter((f) => f.severity === "MUST FIX")) {

@@ -17,10 +17,13 @@ Before you open a PR (or when asked to "review my changes" / "run the lenses"),
 review the working diff with fresh, skeptical lenses. Each lens sees ONLY the diff
 — no plan, no intent, no other lens's findings.
 
-1. Diff: `git diff $(git merge-base HEAD origin/main)...HEAD` (fall back to
-   `git diff HEAD`). Write it to `.blind-peer-review/out/review-diff.patch` and
-   have every lens read that file, so they all review the exact same bytes and
-   none of them has to run git itself.
+1. Run `node .blind-peer-review/vendor/scope-diff.mjs [--base <ref>]` from
+   the repository root. It writes `.blind-peer-review/out/review-diff.patch` with
+   committed branch changes, staged/unstaged edits, and nonignored untracked
+   files, excluding review outputs. It uses the recorded remote default branch
+   or main/master; if none is available, report its warning that only working
+   edits were scoped. An explicit invalid base is an error: stop. If the patch
+   is empty, stop; otherwise have every lens read those exact bytes.
 2. **Run each lens in its own agent session — one lens per invocation.** In Codex
    that is a separate `codex exec` per lens, not one session that does all five.
    A single session carries each lens's reasoning and output into the next, which

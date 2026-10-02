@@ -14,6 +14,7 @@
 // in rather than reached for, so a test supplies stubs with no ceremony. `env`
 // is passed for the same reason: the module never touches process.env.
 
+const { buildReport, renderReport, parseReview } = require(__dirname + "/findings-report.cjs");
 const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
 
 async function run({ core, github, context, env }) {
@@ -68,6 +69,23 @@ async function run({ core, github, context, env }) {
   core.info(`Lenses on ${headSha.slice(0, 12)}: ${latestByLens.size} / ${EXPECTED.length} (requesting changes: ${blocked.length})`);
   for (const [lens, r] of latestByLens) core.info(`  ${r.state.padEnd(18)} ## ${lens}`);
   if (missing.length) core.info(`  MISSING: ${missing.join(", ")}`);
+
+  // Display the exact reviews selected above. The summary cannot adjudicate or
+  // change their GitHub state, even when a body is unreadable or dismissed.
+  try {
+    const entries = EXPECTED.map((name) => {
+      const review = latestByLens.get(name);
+      if (!review) return { name, verdict: "FAILED", state: "MISSING", note: "No expected bot review at this head", findings: [] };
+      let findings = [], note = "";
+      try { findings = parseReview(review.body || ""); }
+      catch (e) { note = `Findings display unavailable: ${e.message}. Read the original review.`; }
+      return { name, verdict: review.state === "CHANGES_REQUESTED" ? "BLOCK" : "PASS", state: review.state, note, findings };
+    });
+    const report = buildReport(entries, { verdict: missing.length || blocked.length ? "BLOCK" : "PASS", context: `PR #${prNumber}, head ${headSha}` });
+    await core.summary.addRaw(renderReport(report)).write();
+  } catch (e) {
+    core.warning(`Combined findings report could not be written: ${e.message}`);
+  }
 
   if (missing.length > 0) {
     core.setFailed(

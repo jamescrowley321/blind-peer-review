@@ -11,9 +11,13 @@ or before you help open a PR, run this review. Each lens is a **fresh, skeptical
 reviewer that sees only the diff — do not let the intent or one lens's output bias
 another.
 
-1. Get the diff: `git diff $(git merge-base HEAD origin/main)...HEAD` (fall back to
-   `git diff HEAD`). Write it to `.blind-peer-review/out/review-diff.patch` so every
-   lens reads the exact same bytes.
+1. Run `node .blind-peer-review/vendor/scope-diff.mjs [--base <ref>]` from
+   the repository root. It writes `.blind-peer-review/out/review-diff.patch` with
+   committed branch changes, staged/unstaged edits, and nonignored untracked
+   files, excluding review outputs. It uses the recorded remote default branch
+   or main/master; if none is available, report its warning that only working
+   edits were scoped. An explicit invalid base is an error: stop. If the patch
+   is empty, stop; otherwise have every lens read those exact bytes.
 2. **Run each lens in its own fresh chat — one lens per conversation.** Several
    lenses in one thread is not a blind review: each carries the previous ones'
    reasoning into the next, so you get agreement rather than independence.

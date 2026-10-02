@@ -12,6 +12,7 @@
 // says it is guarding while guarding nothing. runParseStep therefore keeps the
 // string-lift path for the `yml` argument and uses this module otherwise.
 
+const { renderReview } = require(__dirname + "/findings-report.cjs");
 const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
 
 // ── Lens identity ──
@@ -192,17 +193,7 @@ async function run({ core, github, context, env }) {
   core.info(`Parsed ${findings.length} finding(s) for "${lensName}".`);
 
   // ── 3. Render the review body: `## <Lens Name>` + summary + bullets. ──
-  const lines = [`## ${lensName}`, ""];
-  if (summary) lines.push(`> ${summary}`, "");
-  if (findings.length === 0) {
-    lines.push("No findings.");
-  } else {
-    for (const f of findings) {
-      lines.push(`- [${f.severity}] \`${f.location}\` — ${f.detail}`);
-      lines.push(`  - Fix: ${f.recommendation}`);
-    }
-  }
-  const body = lines.join("\n");
+  const body = renderReview(lensName, summary, findings);
   const event = findings.some((f) => f.severity === "MUST FIX") ? "REQUEST_CHANGES" : "COMMENT";
 
   // ── 4. Build the inline-comment anchor. The GitHub review API requires

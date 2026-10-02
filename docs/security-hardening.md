@@ -86,6 +86,36 @@ approve). On top of that:
   gate on a `review:ai` label so runs are opt-in.
 - **Fewer lenses** — trim the matrix + gate `lenses` for lower-risk repos.
 
+## Trusted base-commit lens overrides
+
+`trusted_lens_overrides: 'true'` opts a lens job into a replacement persona at
+`.blind-peer-review/lenses/<existing-key>.md`. It requires `contents: read`;
+the existing `pull-requests: write` permission still posts the review. The
+loader resolves the specified target PR through GitHub's API, verifies its
+immutable base commit in the workflow repository, walks three nonrecursive Git
+trees, and reads the selected regular-file blob. It never reads reviewer rules
+from the PR checkout, follows a symlink, uses the head SHA, or accepts a custom
+path/ref. Explicit `pr_number` also resolves the correct PR on dispatch.
+
+**Trust assumption:** operators protect every permitted base branch and the
+workflow enabling this input. Branch protection is not checked by the action.
+An attacker who can change the base branch or privileged workflow can change
+reviewer instructions; this feature does not defend against that authority.
+Never derive opt-in from PR title, body, comments, or other untrusted input.
+Changes to an override in the PR being reviewed apply only after merge, to
+later PRs. The pinned shared output contract, severity definitions and trust
+boundary always take precedence; personas cannot replace shared rules or add
+new lens keys.
+
+Only a path absent from a complete accessible tree falls back to the pinned
+persona. Auth/API/network errors (including GitHub's access-hiding 404), invalid
+UTF-8/base64, malformed metadata, symlinks, submodules, oversized files and
+truncated trees fail closed. Personas are capped at 64 KiB, tree responses at
+4096 entries, and each API request has a 15-second timeout. Prompt transport
+uses random Actions environment delimiters. The model still reads adversarial
+PR content: pinned instructions and the read-tool boundary reduce risk but do
+not guarantee that a model obeys its contract.
+
 ## OWASP integration roadmap
 
 The security lenses already cover much of the **OWASP Web Top 10 (2021)** —
@@ -97,10 +127,11 @@ The plan makes that explicit and adds LLM coverage:
 - ✅ **Phase 2 — `owasp_llm` lens** (opt-in): the GenAI/LLM Top 10 2026
   (LLM01–LLM10), tagged `LLM0x`, activating only when the diff touches AI/LLM
   surface. Notes when the OWASP **Agentic (ASI) Top 10** also applies.
-- 🔭 **Phase 3 — per-repo OWASP tuning** via a committed
+- ✅ **Phase 3 — per-repo OWASP tuning** via a committed
   `.blind-peer-review/lenses/owasp_web.md` (or `owasp_llm.md`) override that the
-  local harnesses read, so a repo can tighten the checklist to its domain. CI keeps
-  running the pinned base packs (injection-safe — no rule text from the PR checkout).
+  local harnesses read, so a repo can tighten the checklist to its domain. CI
+  opts in with `trusted_lens_overrides: 'true'` and reads only the immutable base
+  version under the operator trust assumptions above.
 - ✅ **Reflexive check:** the self-review workflow runs `owasp_llm` on *this* repo
   — LLM01 and LLM06 are exactly the controls above, and this document is the
   residual-risk record.

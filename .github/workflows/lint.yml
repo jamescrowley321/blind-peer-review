@@ -265,6 +265,9 @@ jobs:
       - name: Unit-test head-SHA resolution (the workflow_dispatch path)
         run: node --test scripts/head-sha.test.mjs
 
+      - name: Unit-test trusted base lens overrides (immutable base, fail closed)
+        run: node --test scripts/trusted-lens.test.mjs
+
       # The free local eval path. Its danger is that a run through it looks like
       # a measurement of the model named by --model; these pin what keeps the two
       # distinguishable.

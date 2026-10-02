@@ -33,6 +33,7 @@ function run({ env }) {
 
   const pr = (env.IN_PR || "").trim() || (env.EVENT_PR || "").trim();
   if (!pr) die("No PR number (not a pull_request event and pr_number unset)");
+  if (!/^[1-9][0-9]*$/.test(pr) || !Number.isSafeInteger(Number(pr))) die("PR number must be a positive integer");
   append("pr_number", pr);
 
   if (env.IN_MODE === "lens") {

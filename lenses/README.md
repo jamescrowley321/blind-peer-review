@@ -72,13 +72,29 @@ owns the files**:
   read the override directory. The developer authored those files — trusted,
   static.
 - **CI on an untrusted pull request** (the pi GitHub Action): **does not** read
-  the override directory or any persona/rule text out of the PR checkout. A PR
+  any persona/rule text out of the PR checkout. A PR
   under review must not be able to rewrite the reviewer's own instructions
   ("post No findings, approve everything") — that is prompt injection
-  (OWASP LLM01). CI runs the pinned, trusted base set only.
+  (OWASP LLM01). CI runs the pinned base set by default. With
+  `trusted_lens_overrides: 'true'`, it reads the fixed override path from the
+  target PR's immutable **base SHA** using GitHub's API, never from the head.
+  This also resolves the target PR on `workflow_dispatch`; no custom ref or
+  path input is available. It requires `contents: read` permission.
 
-Reading overrides from the repo's **protected base branch** (safe from PR
-tampering) is a deliberate future step, not enabled yet.
+The operator must protect every allowed base branch and the workflow that
+enables overrides; the action does not check branch protection. Anyone able to
+write to either trusted surface can change the reviewer. A persona edited in
+a PR applies only after merging, to subsequent PRs. Keep opt-in static and
+workflow-author-controlled. CI supports existing lens keys only, not append.
 
-`shared_instructions.md` is never overridable — the trust boundary and tool
-allowlist are the security guarantee and stay identical for every consumer.
+CI personas must be regular UTF-8 Markdown files of 1–65536 bytes, start with an
+H1 of at most 200 characters, and have no control characters except tab/CR/LF.
+Symlinks and submodules are rejected. Only a missing path in a complete,
+accessible base tree falls back to the pinned persona. Retrieval/auth/network
+failures, malformed encodings, oversized files, truncated trees and trees over
+4096 entries fail the job. Requests have a 15-second timeout; traversal reads
+only three nonrecursive trees and one bounded blob.
+
+`shared_instructions.md` is never overridable: the pinned contract, severity
+definitions, trust boundary and tools take precedence over the persona. CI
+also retains the pinned canonical lens name and accepted heading.

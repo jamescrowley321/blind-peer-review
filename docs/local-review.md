@@ -18,7 +18,14 @@ between them.
 /blind-peer-review:check
 ```
 
-Reviews the working diff against `origin/main`. Options:
+Reviews committed branch changes, staged/unstaged edits, and nonignored
+untracked files against the default branch's merge base. The recorded
+`origin/HEAD` is preferred, followed by remote/local main or master. Without an
+available default branch, the helper explicitly warns that only working edits
+are included. An invalid explicit base fails. The scope represents final files
+on disk: a staged deletion followed by an identical recreated untracked file
+has no net change. To review only the pending commit, supply a separately
+captured staged patch to the dispatcher. Options:
 
 ```
 /blind-peer-review:check --base release/2.1
@@ -55,6 +62,7 @@ If the `codex` CLI is on your PATH, `/blind-peer-review:check` uses it
 automatically. To run it directly:
 
 ```
+node scripts/scope-diff.mjs [--base <ref>]
 node scripts/dispatch-codex.mjs --diff .blind-peer-review/out/review-diff.patch --repo .
 node scripts/dispatch-codex.mjs --diff my.patch --repo . --lens security,cold_read
 ```
@@ -91,9 +99,27 @@ Needs the [`pi`](https://pi.dev) CLI and a provider key. This is the same engine
 the CI gate uses, so it is the way to reproduce a CI verdict locally, or to review
 with a specific model rather than whichever one your subscription serves.
 
-> **Not covered by tests.** Unlike the plugin and the codex dispatch, this script
-> has no unit tests. Treat a surprising result as possibly the runner rather than
-> the lens, and check the CI gate before drawing conclusions from it.
+> The local pi runner has offline CLI regression coverage using a stub provider.
+> Live provider behavior still depends on the installed pi CLI and model.
+
+## Combined findings report
+
+Both scripted local runners write `.blind-peer-review/out/review-summary.md`
+and `review-summary.json` beside the original per-lens JSON files. The report
+keeps every lens's PASS, BLOCK, or FAILED verdict. Identical findings at the
+same location share one entry with each lens attributed; distinct issue text,
+recommendations, or severities remain separate. Grouping never changes severity
+or the review verdict.
+
+The GitHub gate writes the same display to its job summary, using exactly the
+latest expected bot reviews at the current PR head that it adjudicates. It also
+shows missing lenses and the actual GitHub review states, including dismissed
+reviews. Unreadable review bodies are labeled rather than guessed. Summary
+write failures warn without changing the gate decision.
+
+Report text is escaped for Markdown and bounded to 256 KiB. Long fields and
+omitted display entries are marked explicitly; the original per-lens files or
+GitHub reviews retain the complete findings.
 
 ## Tuning a lens for your repo
 

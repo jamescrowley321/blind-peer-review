@@ -72,6 +72,8 @@ for (const f of readdirSync(join(ROOT, "lenses"))) {
 // the manifest itself.
 const vendoredManifest = { ...manifest, shared_instructions: "../shared_review_contract.md" };
 writeFileSync(join(lensDir, "manifest.json"), `${JSON.stringify(vendoredManifest, null, 2)}\n`);
+writeFileSync(join(dest, "safe-output.cjs"), readFileSync(join(ROOT, "scripts", "safe-output.cjs")));
+writeFileSync(join(dest, "scope-diff.mjs"), readFileSync(join(ROOT, "scripts", "scope-diff.mjs")));
 writeFileSync(join(dest, "shared_review_contract.md"), readFileSync(join(ROOT, "contracts", "shared_review_contract.md")));
 
 writeFileSync(join(dest, "SOURCE.md"), `# Vendored lens library

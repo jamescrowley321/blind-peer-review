@@ -14,9 +14,23 @@ local twin of the CI merge gate; the personas are the same markdown files.
 
 ## 1. Scope the diff
 
-- Base ref = the `--base <ref>` argument if given, else `origin/main`. Compute the
-  change with `git diff <base>...HEAD`. If `<base>` is unresolved (not fetched),
-  fall back to `git diff --merge-base <default-branch> HEAD`, then `git diff HEAD`.
+- Run the bundled helper from the repository under review:
+
+  ```
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/scope-diff.mjs [--base <ref>]
+  ```
+
+  It writes `.blind-peer-review/out/review-diff.patch`, comparing the merge base
+  with the current working tree: committed branch changes, staged changes,
+  unstaged changes, and all nonignored untracked files. Review outputs under
+  `.blind-peer-review/out/` are excluded. The patch represents the final file
+  versions, rather than concatenating intermediate diffs.
+- Without `--base`, the helper resolves the recorded `origin/HEAD`, then
+  `origin/main`, `origin/master`, `main`, or `master`. If none is available it
+  reviews working edits against `HEAD` and emits a warning that committed branch
+  changes are excluded; repeat that warning to the user. An explicit unresolved
+  `--base`, missing `HEAD`, or unrelated base is an error: stop and report it,
+  never fall back silently or run lenses against a stale patch.
 - If the diff is empty, say so and stop.
 - Write the diff to `.blind-peer-review/out/review-diff.patch` so every lens reads
   the exact same bytes. This is required, not an optimisation: the lens agents have
@@ -37,6 +51,9 @@ local twin of the CI merge gate; the personas are the same markdown files.
 - `--lens a,b,c` replaces the set entirely; `--skip x,y` removes named lenses from
   it. `--add x,y` is still accepted for compatibility but is now a no-op on lenses
   that are already default — it cannot turn anything on that is not already on.
+- Validate every requested/removed key against the manifest and stop on unknown
+  keys. Deduplicate the final selected set. If no lenses remain after selection
+  and skips, stop with an error; zero reviewers cannot produce PASS.
 
 ## 3. Resolve each persona (local override wins)
 
@@ -59,16 +76,23 @@ the lenses to it instead of running them in-host:
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-codex.mjs \
-  --diff .blind-peer-review/out/review-diff.patch --repo . [--lens a,b]
+  --diff .blind-peer-review/out/review-diff.patch --repo . --lens "<selected keys joined by commas>"
 ```
 
-It runs one `codex exec` per lens, in parallel, each in a read-only sandbox, and
-writes `.blind-peer-review/out/<key>.json` per lens. It exits 1 on BLOCK, 0 on
-PASS, 2 if codex is unavailable. Report its table and verdict as your own and
-**skip sections 5 and 6** — it has already adjudicated, and the same-family
-caveat does not apply because a different family did the reviewing.
+Pass the actual final selected set from section 2, including `--skip` exclusions;
+never omit `--lens` and accidentally restore skipped defaults.
 
-Why prefer it: in-host, the lenses are subagents of the model that wrote the
+It runs one `codex exec` per lens, in parallel, each in a read-only sandbox, and
+writes `.blind-peer-review/out/<key>.json` per lens plus combined
+`review-summary.md` and `review-summary.json`. The combined report groups exact
+duplicate findings by location while preserving every lens verdict and distinct
+issue. It exits 1 on BLOCK, 0 on
+PASS, 2 if codex is unavailable. Report its table and verdict as your own and
+**skip sections 5 and 6** — it has already adjudicated and reported reviewer
+identity. Codex is a different family when Claude authored the changes; if Codex
+authored them, state that the review still shares the author's model family.
+
+When Claude authored the changes, prefer it: in-host, the lenses are subagents of the model that wrote the
 diff, so the reviewer shares the author's blind spots. Codex is a different
 family, runs on the author's existing Codex auth, and costs nothing at this
 project's usual provider. It also enforces the contract via `--output-schema`,
@@ -119,8 +143,7 @@ Do not soften or re-adjudicate a lens's MUST FIX — surface it as written.
 ## 6. State who reviewed it
 
 Only when section 4a ran — the in-host path. If the lenses were dispatched to
-codex, say that instead: the reviewer was a different family, which is the whole
-point of preferring it.
+codex, report that identity and whether the author used the same model family.
 
 End the summary with this line, verbatim:
 

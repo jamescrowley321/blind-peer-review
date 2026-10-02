@@ -28,9 +28,15 @@
 //             1 a lens blocked (MUST FIX) or failed; 2 misuse/unavailable.
 
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve, isAbsolute } from "node:path";
 import { promisify } from "node:util";
+
+import outputTools from "./safe-output.cjs";
+const { prepareOutput, writeOutput } = outputTools;
+
+import reportTools from "./findings-report.cjs";
+const { writeLocalReport } = reportTools;
 
 const run = promisify(execFile);
 const HERE = new URL(".", import.meta.url).pathname;
@@ -42,13 +48,13 @@ const ROOT = resolve(HERE, "..");
  */
 export function chooseLenses(manifest, lensArg) {
   const byKey = new Map(manifest.lenses.map((l) => [l.key, l]));
-  const keys = lensArg
+  const keys = lensArg != null
     ? lensArg.split(",").map((s) => s.trim()).filter(Boolean)
     : manifest.lenses.filter((l) => l.default_enabled).map((l) => l.key);
   const unknown = keys.filter((k) => !byKey.has(k));
   if (unknown.length) throw new Error(`unknown lens(es): ${unknown.join(", ")}`);
   if (!keys.length) throw new Error("no lenses selected");
-  return keys;
+  return [...new Set(keys)];
 }
 
 /**
@@ -66,20 +72,42 @@ export function personaPath(repoDir, lensDir, key, exists = existsSync) {
  * passed. Decided on the parsed `severity` field, never by searching text for
  * "MUST FIX": a lens reporting "no MUST FIX findings" is a pass.
  */
+/** Validate the local JSON result even when the CLI ignores --output-schema. */
+export function reviewError(result, expectedLens) {
+  const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+  if (!object(result)) return "review must be an object";
+  if (Object.keys(result).some((k) => !["lens", "summary", "findings"].includes(k))) return "unexpected review field";
+  if (typeof result.lens !== "string" || !result.lens.length) return "lens must be a nonempty string";
+  if (expectedLens && result.lens !== expectedLens) return `expected lens ${JSON.stringify(expectedLens)}, got ${JSON.stringify(result.lens)}`;
+  if (typeof result.summary !== "string") return "summary must be a string";
+  if (!Array.isArray(result.findings)) return "no `findings` array";
+  for (const [i, f] of result.findings.entries()) {
+    if (!object(f)) return `finding ${i} must be an object`;
+    if (Object.keys(f).some((k) => !["severity", "location", "detail", "recommendation"].includes(k))) return `unexpected field in finding ${i}`;
+    if (!["MUST FIX", "SHOULD FIX", "NITPICK"].includes(f.severity)) return `invalid severity in finding ${i}`;
+    for (const k of ["location", "detail", "recommendation"]) {
+      if (typeof f[k] !== "string" || !f[k].length) return `finding ${i} needs a nonempty ${k}`;
+    }
+  }
+  return null;
+}
+
 export function adjudicate(results) {
+  if (!results.length) throw new Error("no lenses returned results");
   const rows = [];
   let blocked = false;
   for (const r of results) {
-    if (!r.ok) {
-      rows.push({ key: r.key, verdict: "FAILED", note: r.why, mustFix: [] });
+    const why = r.ok ? reviewError(r.result) : r.why;
+    if (!r.ok || why) {
+      rows.push({ key: r.key, verdict: "FAILED", note: why, mustFix: [] });
       blocked = true;
       continue;
     }
-    const mustFix = (r.result.findings || []).filter((f) => f.severity === "MUST FIX");
+    const mustFix = r.result.findings.filter((f) => f.severity === "MUST FIX");
     rows.push({
       key: r.key,
       verdict: mustFix.length ? "BLOCK" : "PASS",
-      note: `${(r.result.findings || []).length} finding(s), ${mustFix.length} MUST FIX`,
+      note: `${r.result.findings.length} finding(s), ${mustFix.length} MUST FIX`,
       mustFix,
     });
     if (mustFix.length) blocked = true;
@@ -101,11 +129,11 @@ const argv = process.argv.slice(2);
 const opt = { lens: null, diff: null, out: ".blind-peer-review/out", lensDir: null, repo: process.cwd() };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
-  if (a === "--lens") opt.lens = argv[++i];
-  else if (a === "--diff") opt.diff = argv[++i];
-  else if (a === "--out") opt.out = argv[++i];
-  else if (a === "--lens-dir") opt.lensDir = argv[++i];
-  else if (a === "--repo") opt.repo = argv[++i];
+  if (["--lens", "--diff", "--out", "--lens-dir", "--repo"].includes(a)) {
+    const value = argv[++i];
+    if (value === undefined || value.startsWith("--")) die(`${a} requires a value`);
+    opt[({ "--lens-dir": "lensDir" })[a] || a.slice(2)] = value;
+  }
   else if (a === "-h" || a === "--help") {
     console.log(readFileSync(new URL(import.meta.url), "utf8").split("\n")
       .filter((l) => l.startsWith("//")).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
@@ -127,11 +155,9 @@ if (!lensDir) die("no lens library found — vendor one, or pass --lens-dir");
 
 const manifest = JSON.parse(readFileSync(join(lensDir, "manifest.json"), "utf8"));
 const byKey = new Map(manifest.lenses.map((l) => [l.key, l]));
-const keys = opt.lens
-  ? opt.lens.split(",").map((s) => s.trim()).filter(Boolean)
-  : manifest.lenses.filter((l) => l.default_enabled).map((l) => l.key);
-const unknown = keys.filter((k) => !byKey.has(k));
-if (unknown.length) die(`unknown lens(es): ${unknown.join(", ")}`);
+let keys;
+try { keys = chooseLenses(manifest, opt.lens); }
+catch (e) { die(e.message); }
 
 // The contract the lens must satisfy. Prefer the vendored copy so the review
 // uses the same text the personas were vendored with.
@@ -143,12 +169,6 @@ if (!contractPath) die("no shared_review_contract.md found");
 const schemaPath = join(ROOT, "contracts/review.schema.json");
 if (!existsSync(schemaPath)) die(`no schema at ${schemaPath}`);
 
-/** A developer-authored override in the repo under review wins over the base persona. */
-function resolvePersona(key) {
-  const override = join(repo, ".blind-peer-review/lenses", `${key}.md`);
-  return existsSync(override) ? override : join(lensDir, `${key}.md`);
-}
-
 async function codexAvailable() {
   try {
     await run("codex", ["--version"], { timeout: 15_000 });
@@ -159,11 +179,12 @@ async function codexAvailable() {
 }
 
 const outDir = isAbsolute(opt.out) ? opt.out : resolve(repo, opt.out);
-mkdirSync(outDir, { recursive: true });
+try { prepareOutput(join(outDir, "review-diff.patch")); }
+catch (e) { die(e.message); }
 
 function prompt(key) {
   const lens = byKey.get(key);
-  const persona = readFileSync(resolvePersona(key), "utf8").replace(/__PR_NUMBER__/g, "N/A (local)");
+  const persona = readFileSync(personaPath(repo, lensDir, key), "utf8").replace(/__PR_NUMBER__/g, "N/A (local)");
   const contract = readFileSync(contractPath, "utf8");
   return [
     "LOCAL MODE — there is no pull request. You are reviewing a diff on disk.",
@@ -188,34 +209,45 @@ function prompt(key) {
 }
 
 async function dispatch(key) {
-  const lastMsg = join(outDir, `${key}.codex-last.json`);
-  rmSync(lastMsg, { force: true });
-  const args = [
-    "exec",
-    "--sandbox", "read-only",
-    "--skip-git-repo-check",
-    "--output-schema", schemaPath,
-    "--output-last-message", lastMsg,
-    "-",                                  // prompt on stdin: never on the command line
-  ];
-  const child = run("codex", args, { cwd: repo, timeout: 900_000, maxBuffer: 64 * 1024 * 1024 });
-  child.child.stdin.end(prompt(key));
+  let privateOut, lastMsg;
   try {
-    await child;
-  } catch (e) {
-    return { key, ok: false, why: `codex exec failed: ${(e.message || String(e)).split("\n")[0]}` };
-  }
-  if (!existsSync(lastMsg)) return { key, ok: false, why: "codex wrote no final message" };
-  let parsed;
+    prepareOutput(join(outDir, `${key}.json`));
+    rmSync(join(outDir, `${key}.json`), { force: true });
+    privateOut = mkdtempSync(join(outDir, ".codex-output-"));
+    lastMsg = join(privateOut, "last.json");
+  } catch (e) { return { key, ok: false, why: e.message }; }
   try {
-    parsed = JSON.parse(readFileSync(lastMsg, "utf8"));
-  } catch (e) {
-    return { key, ok: false, why: `final message is not JSON (${e.message})` };
+    const args = [
+      "exec",
+      "--sandbox", "read-only",
+      "--skip-git-repo-check",
+      "--output-schema", schemaPath,
+      "--output-last-message", lastMsg,
+      "-",                                  // prompt on stdin: never on the command line
+    ];
+    try {
+      const input = prompt(key);
+      const child = run("codex", args, { cwd: repo, timeout: 900_000, maxBuffer: 64 * 1024 * 1024 });
+      child.child.stdin.end(input);
+      await child;
+    } catch (e) {
+      return { key, ok: false, why: `codex exec failed: ${(e.message || String(e)).split("\n")[0]}` };
+    }
+    if (!existsSync(lastMsg)) return { key, ok: false, why: "codex wrote no final message" };
+    let parsed;
+    try {
+      parsed = JSON.parse(readFileSync(lastMsg, "utf8"));
+    } catch (e) {
+      return { key, ok: false, why: `final message is not JSON (${e.message})` };
+    }
+    writeOutput(join(outDir, `${key}.json`), `${JSON.stringify(parsed, null, 2)}\n`);
+    rmSync(lastMsg, { force: true });
+    const why = reviewError(parsed, byKey.get(key).name);
+    if (why) return { key, ok: false, why };
+    return { key, ok: true, result: parsed };
+  } finally {
+    rmSync(privateOut, { recursive: true, force: true });
   }
-  writeFileSync(join(outDir, `${key}.json`), `${JSON.stringify(parsed, null, 2)}\n`);
-  rmSync(lastMsg, { force: true });
-  if (!Array.isArray(parsed.findings)) return { key, ok: false, why: "no `findings` array" };
-  return { key, ok: true, result: parsed };
 }
 
 if (!(await codexAvailable())) {
@@ -225,37 +257,26 @@ if (!(await codexAvailable())) {
 console.log(`Dispatching ${keys.length} lens(es) to codex, one process each: ${keys.join(", ")}`);
 const results = await Promise.all(keys.map(dispatch));
 
-let blocked = false;
-const rows = [];
-for (const r of results) {
-  if (!r.ok) {
-    // A review nobody could read has not passed.
-    rows.push([byKey.get(r.key).name, "FAILED", r.why]);
-    blocked = true;
-    continue;
-  }
-  // Decide on the PARSED severity field, never by searching text for "MUST FIX":
-  // a lens reporting "no MUST FIX findings" is a pass.
-  const must = r.result.findings.filter((f) => f.severity === "MUST FIX");
-  rows.push([byKey.get(r.key).name, must.length ? "BLOCK" : "PASS", `${r.result.findings.length} finding(s), ${must.length} MUST FIX`]);
-  if (must.length) blocked = true;
+const { blocked, rows } = adjudicate(results);
+try {
+  const byResult = new Map(results.map((r) => [r.key, r]));
+  writeLocalReport(outDir, rows.map((r) => ({ ...r, name: byKey.get(r.key).name, findings: byResult.get(r.key).ok ? byResult.get(r.key).result.findings : [] })), blocked ? "BLOCK" : "PASS");
+} catch (e) {
+  console.error(`dispatch-codex: warning: combined report could not be written: ${e.message}`);
 }
-
-const w = Math.max(...rows.map((r) => r[0].length));
+const w = Math.max(...rows.map((r) => byKey.get(r.key).name.length));
 console.log("");
-for (const [name, verdict, note] of rows) console.log(`  ${name.padEnd(w)}  ${verdict.padEnd(6)}  ${note}`);
+for (const r of rows) console.log(`  ${byKey.get(r.key).name.padEnd(w)}  ${r.verdict.padEnd(6)}  ${r.note}`);
 console.log("");
-
-for (const r of results) {
-  if (!r.ok) continue;
-  for (const f of r.result.findings.filter((x) => x.severity === "MUST FIX")) {
+for (const r of rows) {
+  for (const f of r.mustFix) {
     console.log(`MUST FIX  [${byKey.get(r.key).name}]  ${f.location}\n  ${f.detail}\n  → ${f.recommendation}\n`);
   }
 }
 
 console.log(blocked ? "Verdict: BLOCK" : "Verdict: PASS");
-console.log(`Reviewed out-of-host by codex — a different model family from the one that wrote this diff.`);
-console.log(`Per-lens objects in ${outDir}/`);
+console.log("Reviewed out-of-host by codex. Reviewer independence depends on the author: Codex-authored changes still use the same model family.");
+console.log(`Per-lens objects and combined review-summary.md in ${outDir}/`);
 process.exit(blocked ? 1 : 0);
 
 }

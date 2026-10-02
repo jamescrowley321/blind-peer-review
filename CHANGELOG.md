@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.3.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.3.0...v3.3.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* preflight the lens budget and distinguish provider limits ([#107](https://github.com/jamescrowley321/blind-peer-review/issues/107)) ([0af438d](https://github.com/jamescrowley321/blind-peer-review/commit/0af438dd32ce0e15c9260b055382e57f1c052ede))
+
 ## [3.3.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.2.1...v3.3.0) (2026-09-15)
 
 

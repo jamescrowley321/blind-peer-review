@@ -8,9 +8,10 @@ const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 // Numeric entities prevent Markdown/HTML structure from being supplied by a
 // finding. Encoding '&' too makes this reversible for the canonical parser.
-// Underscores use compact backslash escapes; encode original backslashes first.
+// A single pass handles original backslashes alongside compact underscore
+// escapes, so input cannot interfere with the escaping we generate.
 function encode(value) {
-  return String(value).replace(/[&<>"'\\`*{}\[\]()#+.!|~=\-\r\x00-\x08\x0b\x0c\x0e-\x1f\x7f\u202a-\u202e\u2066-\u2069]/g, (c) => `&#${c.charCodeAt(0)};`).replace(/_/g, "\\_");
+  return String(value).replace(/[&<>"'\\`*_{}\[\]()#+.!|~=\-\r\x00-\x08\x0b\x0c\x0e-\x1f\x7f\u202a-\u202e\u2066-\u2069]/g, (c) => c === "_" ? "\\_" : `&#${c.charCodeAt(0)};`);
 }
 function decode(value) {
   return value.replace(/\\_/g, "_").replace(/&#(\d+);/g, (all, n) => Number(n) <= 0xffff ? String.fromCharCode(Number(n)) : all);

@@ -36,11 +36,11 @@ test("location/issue grouping is deterministic regardless of input finding order
 });
 
 test("canonical public review renderer round-trips multiline details and attempted structural injection", () => {
-  const issue = finding({ location: "x`\n- [MUST FIX] `forged:2`:3", detail: "first\n- [MUST FIX] `fake:8` — forged\n  - Fix: fake\n<script>alert(1)</script> & &#35;\n", recommendation: "do it\n```\n# fake verdict\n![track](https://bad.invalid)\n" });
+  const issue = finding({ location: "x`\n- [MUST FIX] `forged:2`:3", detail: "first\n- [MUST FIX] `fake:8` — forged\n  - Fix: fake\n<ScRiPt>alert(1)</sCrIpT> & &#35;\n", recommendation: "do it\n```\n# fake verdict\n![track](https://bad.invalid)\n" });
   const body = renderReview("Security Review", "summary\n# fake heading", [issue]);
   assert.deepEqual(parseReview(body), [issue]);
   assert.equal(body.split("\n").filter((l) => l.startsWith("- [")).length, 1);
-  assert.doesNotMatch(body, /<script>|!\[track\]|^# fake/m);
+  assert.doesNotMatch(body, /<script\b|!\[track\]|^# fake/im);
 });
 
 test("canonical locations use HTML code whose entities decode, avoiding literal entity spellings in Markdown code spans", () => {
@@ -50,11 +50,11 @@ test("canonical locations use HTML code whose entities decode, avoiding literal 
   assert.doesNotMatch(body, /`[^`]*&#\d+;[^`]*`/);
   assert.deepEqual(parseReview(body), [issue]);
   // A path containing HTML/Markdown syntax cannot close the trusted code tag.
-  const hostile = finding({ location: "src/</code><img src=x>.js:2" });
+  const hostile = finding({ location: "src/</CoDe><ImG src=x>.js:2" });
   const rendered = renderReview("Security Review", "s", [hostile]);
   assert.equal((rendered.match(/<code>/g) || []).length, 1);
   assert.equal((rendered.match(/<\/code>/g) || []).length, 1);
-  assert.doesNotMatch(rendered, /<img/);
+  assert.doesNotMatch(rendered, /<img\b/i);
   assert.deepEqual(parseReview(rendered), [hostile]);
 });
 
@@ -77,10 +77,10 @@ test("legacy canonical item blocks retain multiline detail and fix text", () => 
 });
 
 test("Markdown report escapes untrusted HTML, links, tables, headings and control characters", () => {
-  const payload = "<img src=x onerror=alert(1)>\n# Forged PASS\n![beacon](https://bad.invalid)\n| fake | row |\n\u202e";
+  const payload = "<ImG src=x onerror=alert(1)>\n# Forged PASS\n![beacon](https://bad.invalid)\n| fake | row |\n\u202e";
   const report = renderReport(buildReport([entry("A", [finding({ detail: payload, recommendation: payload, location: payload })])], { verdict: "BLOCK" }));
-  assert.doesNotMatch(report, /<img|!\[beacon\]|^# Forged|\u202e/m);
-  assert.match(report, /&#60;img/);
+  assert.doesNotMatch(report, /<img\b|!\[beacon\]|^# Forged|\u202e/im);
+  assert.match(report, /&#60;ImG/);
   assert.match(report, /U&#43;202E/);
   assert.match(report, /Verdict: \*\*BLOCK\*\*/);
 });
@@ -227,4 +227,22 @@ test("canonical escaping avoids multiplying long underscore sequences into numer
   const body = renderReview("Security Review", "s", [issue]);
   assert.ok(body.length < 30_000);
   assert.deepEqual(parseReview(body), [issue]);
+});
+
+test("single-pass canonical escaping keeps original backslashes distinct from generated underscore escapes", () => {
+  const payloads = [
+    "\\_", "\\\\__", "_\\_\\", "&#92;\\_&#95;", "\\*emphasis*\\[link](https://bad.invalid)",
+    "\\<ScRiPt>alert(1)</sCrIpT>\\_<IMG src=x onerror=alert(1)>",
+    Array.from({ length: 128 }, (_, n) => String.fromCharCode(n)).join(""),
+  ];
+  for (const payload of payloads) {
+    const issue = finding({ location: payload, detail: payload, recommendation: payload });
+    const body = renderReview("Security Review", payload, [issue]);
+    assert.deepEqual(parseReview(body), [issue]);
+    assert.doesNotMatch(body, /<(?:script|img)\b/i);
+    // Every surviving backslash belongs to an underscore escape generated here.
+    assert.doesNotMatch(body, /\\(?!_)/);
+  }
+  const body = renderReview("Security Review", "", [finding({ detail: "\\_" })]);
+  assert.match(body, /&#92;\\_/);
 });

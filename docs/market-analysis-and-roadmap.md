@@ -1,6 +1,13 @@
 # Automated / AI Code-Review Landscape — Market Analysis & Long-Term Roadmap for `blind-peer-review`
 
-> **Scope.** A current (2026) competitive analysis of the automated / AI code-review
+> **Historical snapshot — reviewed 2026-10-01.** The research below was collected
+> on 2026-08-13. Vendor pricing, capabilities, compliance attestations and market
+> figures have not been refreshed; do not reuse them as current product claims.
+> The roadmap records proposals at that date, and several have since shipped.
+> See [current implementation and backlog reconciliation](multi-harness-plan.md#current-implementation-and-backlog-reconciliation)
+> for repository status.
+>
+> **Original scope.** An August 2026 competitive analysis of the automated / AI code-review
 > tool and plugin landscape, and a phased roadmap for **blind-peer-review** — the
 > open-source (Apache-2.0), harness-neutral, multi-lens, fail-closed PR-review gate
 > in this repo.

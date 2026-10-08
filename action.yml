@@ -323,7 +323,7 @@ runs:
     - name: Run adversarial lens
       id: pi
       if: inputs.mode == 'lens'
-      uses: shaftoe/pi-coding-agent-action@853a9af5ac64e79c79fa6bb3958314aa1acf7e92 # v2.28.1
+      uses: shaftoe/pi-coding-agent-action@babaa1a909dd7021abc538be6f20c1757b3b8fb7 # v2.29.1
       with:
         github_token: ${{ inputs.github_token }}
         provider: ${{ inputs.provider }}

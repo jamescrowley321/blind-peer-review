@@ -90,3 +90,12 @@ test("citations in a posted review do not change what parseReview reads back", (
   assert.match(body, /Unverified citations \(not in the pinned catalogue\): A99/);
   assert.deepEqual(parseReview(body), findings);
 });
+
+test("the combined report lists every unverified ID in full", () => {
+  const { buildReport, renderReport } = require("./findings-report.cjs");
+  const report = buildReport([{ key: "owasp_web", name: "OWASP Web Top 10", verdict: "PASS", findings: [
+    { severity: "SHOULD FIX", location: "src/a.js:1", detail: "[A11:2025] [LLM03:2025] [CWE-99999] made up", recommendation: "fix" },
+  ] }], { verdict: "PASS" });
+  const line = renderReport(report).split("\n").find((l) => l.startsWith("Unverified citations"));
+  for (const id of ["A11:2025", "LLM03:2025", "CWE&#45;99999"]) assert.ok(line.includes(id), line);
+});

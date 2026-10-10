@@ -59,7 +59,7 @@ function renderCitations({ known, unknown }, encode) {
     lines.push("Citations: " + known.map((c) => `[${encode(c.id)} ${encode(c.name)}](${c.url})` + (c.kind === "deprecated" ? " (deprecated)" : "")).join(" · "));
   }
   if (unknown.length) {
-    lines.push("Unverified citations (not in the pinned catalogue): " + unknown.map(encode).join(", "));
+    lines.push("Unverified citations (not in the pinned catalogue): " + unknown.map((id) => encode(id)).join(", "));
   }
   return lines;
 }

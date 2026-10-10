@@ -6,7 +6,10 @@
   "lenses": {
     "owasp_web": {
       "block": true,
-      "location_matches": "^src/routes/greeting\\.js:"
+      "location_matches": "^src/routes/greeting\\.js:",
+      "cites_any": [
+        "A05:2025"
+      ]
     }
   }
 }

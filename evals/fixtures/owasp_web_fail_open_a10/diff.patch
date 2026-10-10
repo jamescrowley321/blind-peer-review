@@ -1,0 +1,24 @@
+DIFFGIT a/src/middleware/require-admin.js b/src/middleware/require-admin.js
+new file mode 100644
+index 0000000..d8cc518
+--- /dev/null
++++ b/src/middleware/require-admin.js
+@@ -0,0 +1,18 @@
++"use strict";
++
++const { verifySession } = require("../auth/session");
++
++// Gate the /admin routes on an admin session.
++module.exports = async function requireAdmin(req, res, next) {
++  try {
++    const session = await verifySession(req.cookies.sid);
++    if (!session.roles.includes("admin")) {
++      return res.status(403).json({ error: "forbidden" });
++    }
++    req.session = session;
++  } catch (err) {
++    // Session store hiccups should not lock admins out of the console.
++    console.warn("session check failed, continuing", err.message);
++  }
++  return next();
++};

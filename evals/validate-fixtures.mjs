@@ -12,6 +12,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { listFixtureIds, loadFixture, fixtureDiffPayload, FIXTURES_DIR } from "./lib/fixtures.mjs";
 import { LENS_KEYS } from "./lib/lenses.mjs";
+import { createRequire } from "node:module";
+
+const { loadCatalogue } = createRequire(import.meta.url)("../scripts/citations.cjs");
+const CATALOGUE = loadCatalogue();
 
 const errors = [];
 const fail = (id, msg) => errors.push(`[${id}] ${msg}`);
@@ -145,6 +149,11 @@ for (const id of ids) {
     if (fx.class === "must-not-block" && expect.block !== false) fail(id, `${lensKey}: class is must-not-block but block is not false`);
     if (expect.block === true && !expect.location_matches && !expect.location_not_asserted) {
       fail(id, `${lensKey}: a must-block expectation needs \`location_matches\` — blocking for the wrong reason is not a pass. If the finding cannot be anchored to a diff path (e.g. it is about the PR body), set \`location_not_asserted\` to the reason instead.`);
+    }
+    if (expect.cites_any != null) {
+      if (!Array.isArray(expect.cites_any) || !expect.cites_any.length) fail(id, `${lensKey}: cites_any must be a non-empty array of citation IDs`);
+      else for (const c of expect.cites_any) if (!CATALOGUE.has(c)) fail(id, `${lensKey}: cites_any names ${c}, which is not in citations/ — the fixture could never pass`);
+      if (expect.block !== true) fail(id, `${lensKey}: cites_any asserts what a blocking finding cites; it needs block: true`);
     }
     if (expect.max_findings != null && (!Number.isInteger(expect.max_findings) || expect.max_findings < 0)) {
       fail(id, `${lensKey}: max_findings must be a non-negative integer`);

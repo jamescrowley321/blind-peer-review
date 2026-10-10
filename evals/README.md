@@ -76,10 +76,15 @@ Asserted:
   2 of 3 times is flagged instability, not a pass.
 - **`location_matches`** — for must-block fixtures, a regex on the finding
   `location` only. Blocking for the wrong reason is not a pass.
+- **Citations** — every year-qualified ID or CWE a finding cites must resolve
+  in [`citations/`](../citations/); a fabricated ID fails the run whatever the
+  verdict, because the posted review renders it as a link. A fixture's
+  `cites_any` additionally requires every rep to cite one of the listed entries,
+  e.g. SSRF under `A01:2025` rather than the 2021 `A10`.
 - **JSON validity** — the action's real parser must accept the output. It also
   enforces the lens name and the severity enum, so those come along for free.
 
-Never asserted: `detail` or `recommendation` prose, finding counts, ordering,
+Never asserted: `detail` or `recommendation` prose (citation tags aside), finding counts, ordering,
 severity wording beyond the enum. Failure detail *is* printed in the scorecard so
 a failure is diagnosable without a rerun — printed for diagnosis, not asserted.
 

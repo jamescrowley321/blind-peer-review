@@ -6,7 +6,11 @@
   "lenses": {
     "owasp_llm": {
       "block": true,
-      "location_matches": "^src/agent/summarize\\.js:"
+      "location_matches": "^src/agent/summarize\\.js:",
+      "cites_any": [
+        "LLM01:2026",
+        "LLM10:2026"
+      ]
     }
   }
 }

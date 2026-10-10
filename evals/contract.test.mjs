@@ -846,6 +846,14 @@ describe("scoring policy", () => {
     const bad = foldReps(run(), f("[A11:2025] made-up category"));
     assert.equal(bad.pass, false);
     assert.match(bad.reason, /absent from the pinned catalogue: A11:2025/);
+    assert.match(violations(score([bad]), THRESHOLDS).join(" "), /FABRICATED CITATION — A11:2025/);
+    const mustBlock = run({ fx: { class: "must-block", guards: "g" }, expect: { block: true } });
+    const blocked = foldReps(mustBlock, [0, 1, 2].map(() => rep(true, { findings: [{ severity: "MUST FIX", location: "a.js:1", detail: "[LLM11:2026] x" }] })));
+    const ok = foldReps({ ...mustBlock, id: "ok" }, [0, 1, 2, 3].map(() => rep(true)));
+    // Recall over five passing fixtures would absorb one failure; the
+    // fabricated citation must still be reported.
+    const many = [blocked, ...[0, 1, 2, 3].map((i) => ({ ...ok, id: `ok${i}` }))];
+    assert.match(violations(score(many), THRESHOLDS).join(" "), /FABRICATED CITATION — LLM11:2026/);
     assert.equal(foldReps(run(), f("[A05:2025 · CWE-79] real")).pass, true);
   });
 

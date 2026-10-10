@@ -127,6 +127,12 @@ export function violations(byLens, thresholds = THRESHOLDS) {
     for (const r of l.mustNotBlock) {
       if (r.everBlocked) out.push(`${l.lens}/${r.id}: FALSE POSITIVE — a must-not-block fixture blocked the merge`);
     }
+    // A fabricated citation is published as a link, so it is never absorbed by
+    // a recall tolerance, on either fixture class. Citing a defensible
+    // neighbouring category (`cites_any` miss) stays inside recall.
+    for (const r of [...l.mustBlock, ...l.mustNotBlock]) {
+      if (r.fabricated?.length) out.push(`${l.lens}/${r.id}: FABRICATED CITATION — ${r.fabricated.join(", ")} not in citations/`);
+    }
     if (l.recall != null && l.recall < thresholds.mustBlockRecall) {
       out.push(`${l.lens}: must-block recall ${pct(l.recall)} < ${pct(thresholds.mustBlockRecall)}`);
     }

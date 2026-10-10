@@ -5,7 +5,12 @@
     "document": "https://genai.owasp.org/download/52117/?tmstv=1765059207",
     "sha256": "a2db94cd00b08e0b3a5e5b619afe024bdbcd74503111085705e4f3dd886fcb5c",
     "retrieved": "2026-10-10",
-    "note": "the document writes ASI01 without a year; the year is added here so every catalogue ID names its edition"
+    "note": "the document writes ASI01 without a year; the year is added here so every catalogue ID names its edition",
+    "edition_probe": {
+      "url": "https://genai.owasp.org/resources/",
+      "pattern": "Agentic Applications for (20\\d{2})",
+      "edition": 2026
+    }
   },
   "entries": [
     {

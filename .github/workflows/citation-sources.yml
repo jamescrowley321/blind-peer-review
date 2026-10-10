@@ -1,0 +1,56 @@
+name: Citation source drift
+
+# Re-fetches every source behind citations/ and keeps ONE tracking issue open
+# while anything drifted: a dead page, a changed source document, or a newer
+# OWASP edition (#121). Scheduled rather than per-PR: it measures the outside
+# world, not the change under review.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Check sources
+        id: check
+        run: |
+          set +e
+          node scripts/check-citation-sources.mjs > "$RUNNER_TEMP/drift.txt"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/drift.txt"
+          if [ "$code" -gt 1 ]; then exit "$code"; fi
+          echo "drifted=$([ "$code" -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the tracking issue
+        if: steps.check.outputs.drifted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Citation sources drifted"
+        run: |
+          body="$RUNNER_TEMP/body.md"
+          {
+            echo "The scheduled check found drift between \`citations/\` and its sources ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)):"
+            echo
+            sed 's/^/- /' "$RUNNER_TEMP/drift.txt"
+            echo
+            echo "Regenerate the affected catalogue from its source, update the lens personas if IDs changed, and close this issue."
+          } > "$body"
+          [ -s "$body" ] || { echo "::error::empty issue body"; exit 1; }
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "in:title \"$TITLE\"" --json number,title --jq "map(select(.title == \"$TITLE\"))[0].number // empty")
+          if [ -n "$n" ]; then
+            gh issue edit "$n" -R "$GITHUB_REPOSITORY" --body-file "$body"
+          else
+            gh issue create -R "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$body"
+          fi

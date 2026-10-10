@@ -3,7 +3,12 @@
     "title": "OWASP Top 10:2025",
     "url": "https://top10.owasp.org/2025/",
     "retrieved": "2026-10-10",
-    "cwes_from": "each category page's \"List of Mapped CWEs\" section"
+    "cwes_from": "each category page's \"List of Mapped CWEs\" section",
+    "edition_probe": {
+      "url": "https://top10.owasp.org/",
+      "pattern": "Top 10:(20\\d{2})",
+      "edition": 2025
+    }
   },
   "entries": [
     {

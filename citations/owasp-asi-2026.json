@@ -1,0 +1,62 @@
+{
+  "source": {
+    "title": "OWASP Top 10 for Agentic Applications for 2026",
+    "url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/",
+    "document": "https://genai.owasp.org/download/52117/?tmstv=1765059207",
+    "sha256": "a2db94cd00b08e0b3a5e5b619afe024bdbcd74503111085705e4f3dd886fcb5c",
+    "retrieved": "2026-10-10",
+    "note": "the document writes ASI01 without a year; the year is added here so every catalogue ID names its edition"
+  },
+  "entries": [
+    {
+      "id": "ASI01:2026",
+      "name": "Agent Goal Hijack",
+      "page": 10
+    },
+    {
+      "id": "ASI02:2026",
+      "name": "Tool Misuse and Exploitation",
+      "page": 13
+    },
+    {
+      "id": "ASI03:2026",
+      "name": "Identity and Privilege Abuse",
+      "page": 16
+    },
+    {
+      "id": "ASI04:2026",
+      "name": "Agentic Supply Chain Vulnerabilities",
+      "page": 19
+    },
+    {
+      "id": "ASI05:2026",
+      "name": "Unexpected Code Execution (RCE)",
+      "page": 22
+    },
+    {
+      "id": "ASI06:2026",
+      "name": "Memory & Context Poisoning",
+      "page": 25
+    },
+    {
+      "id": "ASI07:2026",
+      "name": "Insecure Inter-Agent Communication",
+      "page": 28
+    },
+    {
+      "id": "ASI08:2026",
+      "name": "Cascading Failures",
+      "page": 31
+    },
+    {
+      "id": "ASI09:2026",
+      "name": "Human-Agent Trust Exploitation",
+      "page": 34
+    },
+    {
+      "id": "ASI10:2026",
+      "name": "Rogue Agents",
+      "page": 37
+    }
+  ]
+}

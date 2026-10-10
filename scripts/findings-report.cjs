@@ -1,5 +1,6 @@
 // Display-only reports. Gate decisions always come from their original channel.
 const { writeOutput } = require("./safe-output.cjs");
+const { resolveCitations, renderCitations } = require("./citations.cjs");
 const path = require("node:path");
 const SEVERITIES = ["MUST FIX", "SHOULD FIX", "NITPICK"];
 const FORMAT = "<!-- blind-peer-review:rendered-v1 -->";
@@ -31,6 +32,9 @@ function encodeCode(value) {
 function renderReview(lens, summary, findings) {
   const lines = [`## ${lens}`, "", FORMAT, ""];
   if (summary) lines.push(...encode(summary).split("\n").map((l) => `> ${l}`), "");
+  // Above the first finding block, where parseReview never reads.
+  const cited = renderCitations(resolveCitations(findings.map((f) => f.detail)), encode);
+  if (cited.length) lines.push(...cited, "");
   if (!findings.length) lines.push("No findings.");
   for (const f of findings) {
     const detail = encode(f.detail).split("\n");
@@ -116,7 +120,7 @@ function renderReport(report) {
   for (const group of report.groups) {
     for (const issue of group.issues) {
       const block = [`### ${display(group.location, 2000).replace(/\n/g, " ")}`, "", `**${display(issue.severity, 100)}** — ${issue.attributions.map((a) => display(a.lens, 500) + (a.count > 1 ? ` (${a.count} identical findings)` : "")).join(", ")}`, "",
-        ...display(issue.detail).split("\n").map((l) => `> ${l}`), "", "Fix:", "", ...display(issue.recommendation).split("\n").map((l) => `> ${l}`), ""];
+        ...display(issue.detail).split("\n").map((l) => `> ${l}`), "", ...citationLines(issue.detail), "Fix:", "", ...display(issue.recommendation).split("\n").map((l) => `> ${l}`), ""];
       const size = Buffer.byteLength(block.join("\n")) + 1;
       if (bytes + size > MAX_REPORT_BYTES - 1000) { omitted++; continue; }
       lines.push(...block); bytes += size;
@@ -125,6 +129,11 @@ function renderReport(report) {
   if (!report.groups.length) lines.push("No parsed findings. See each lens verdict for missing or unreadable reviews.");
   if (omitted) lines.push(`${omitted} distinct finding(s) omitted from this bounded display. Read the original per-lens reviews for the complete findings.`);
   return lines.join("\n") + "\n";
+}
+
+function citationLines(detail) {
+  const lines = renderCitations(resolveCitations([detail]), display);
+  return lines.length ? [...lines, ""] : [];
 }
 
 function writeLocalReport(outDir, entries, verdict) {

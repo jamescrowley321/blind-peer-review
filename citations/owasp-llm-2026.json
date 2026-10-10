@@ -1,0 +1,103 @@
+{
+  "source": {
+    "title": "OWASP GenAI LLM Top 10 2026",
+    "url": "https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/",
+    "document": "https://genai.owasp.org/download/56857/?tmstv=1785822482",
+    "sha256": "ef87993a4e50ae9d83b41ff7a3d3e6320a82dfa8d4ec6bf98d0ce264b2e6108e",
+    "retrieved": "2026-10-10",
+    "cwes_from": "primary (●) CWEs in the document's MITRE CWE mapping table, page 78",
+    "note": "genai.owasp.org/llmrisk/ pages describe the 2025 list, whose numbering differs; do not cite them for 2026 IDs"
+  },
+  "entries": [
+    {
+      "id": "LLM01:2026",
+      "name": "Prompt Injection",
+      "page": 10,
+      "cwes": [
+        1427
+      ]
+    },
+    {
+      "id": "LLM02:2026",
+      "name": "Sensitive Information Disclosure",
+      "page": 18,
+      "cwes": [
+        200,
+        212,
+        359,
+        532
+      ]
+    },
+    {
+      "id": "LLM03:2026",
+      "name": "Excessive Agency",
+      "page": 23,
+      "cwes": [
+        285,
+        732
+      ]
+    },
+    {
+      "id": "LLM04:2026",
+      "name": "Supply Chain",
+      "page": 27,
+      "cwes": [
+        494,
+        829
+      ]
+    },
+    {
+      "id": "LLM05:2026",
+      "name": "Data and Model Poisoning",
+      "page": 33,
+      "cwes": [
+        349,
+        829
+      ]
+    },
+    {
+      "id": "LLM06:2026",
+      "name": "Unbounded Consumption",
+      "page": 38,
+      "cwes": [
+        400,
+        770
+      ]
+    },
+    {
+      "id": "LLM07:2026",
+      "name": "Misinformation",
+      "page": 43,
+      "cwes": [
+        1426
+      ]
+    },
+    {
+      "id": "LLM08:2026",
+      "name": "Hidden Context Exposure",
+      "page": 46,
+      "cwes": [
+        200
+      ]
+    },
+    {
+      "id": "LLM09:2026",
+      "name": "Vector and Embedding Weaknesses",
+      "page": 50,
+      "cwes": [
+        200,
+        285
+      ]
+    },
+    {
+      "id": "LLM10:2026",
+      "name": "Improper Output Handling",
+      "page": 55,
+      "cwes": [
+        79,
+        116,
+        1426
+      ]
+    }
+  ]
+}

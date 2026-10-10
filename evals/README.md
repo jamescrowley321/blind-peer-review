@@ -76,7 +76,8 @@ Asserted:
   2 of 3 times is flagged instability, not a pass.
 - **`location_matches`** — for must-block fixtures, a regex on the finding
   `location` only. Blocking for the wrong reason is not a pass.
-- **Citations** — every year-qualified ID or CWE a finding cites must resolve
+- **Citations** — every year-qualified ID or CWE in a finding's `detail` (where
+  lenses cite and the renderer resolves) must resolve
   in [`citations/`](../citations/); a fabricated ID fails the run whatever the
   verdict, because the posted review renders it as a link. A fixture's
   `cites_any` additionally requires every rep to cite one of the listed entries,

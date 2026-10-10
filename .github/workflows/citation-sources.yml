@@ -13,6 +13,11 @@ permissions:
   contents: read
   issues: write
 
+# Lookup-then-create is not atomic; overlapping runs could open two issues.
+concurrency:
+  group: citation-source-drift
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest

@@ -47,13 +47,22 @@ export async function findDrift(catalogues, get) {
       }
     }
     for (const e of entries) if (e.url) await fetchOk(file, e.url, `${e.id} page`);
+    // Templated entry links (CWE) are checked through one sample: the template
+    // is what breaks, and 1,400 weekly requests would only re-test it.
+    if (source.entry_url && entries.length) {
+      const e = entries[0];
+      await fetchOk(file, source.entry_url.replace("{n}", e.id.replace(/^CWE-/, "")), `${e.id} page (entry_url template)`);
+    }
     if (source.edition_probe) {
       const { url, pattern, edition } = source.edition_probe;
       const res = await fetchOk(file, url, "edition probe");
       if (res) {
         const years = [...res.body.toString("utf8").matchAll(new RegExp(pattern, "g"))].map((m) => Number(m[1]));
         const newer = years.filter((y) => y > edition);
-        if (newer.length) drift.push(`${file}: ${url} mentions edition ${Math.max(...newer)}, newer than the catalogue's ${edition}`);
+        // A page that names no edition at all (reworded, or a 200 challenge
+        // page) would otherwise disable detection silently.
+        if (!years.length) drift.push(`${file}: edition probe ${url} matched no edition with /${pattern}/; the probe needs updating`);
+        else if (newer.length) drift.push(`${file}: ${url} mentions edition ${Math.max(...newer)}, newer than the catalogue's ${edition}`);
       }
     }
   }

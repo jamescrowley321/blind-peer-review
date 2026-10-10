@@ -37,6 +37,18 @@ test("a newer edition named by the probe is drift; the current one is not", asyn
   assert.match(d, /mentions edition 2028, newer than the catalogue's 2025/);
 });
 
+test("a probe that matches no edition is reported, not passed", async () => {
+  const c = cat({ url: "https://s/", edition_probe: { url: "https://s/", pattern: "Top 10:(20\\d{2})", edition: 2025 } });
+  const [d] = await findDrift(c, stub({ "https://s/": "<html>Just a moment...</html>" }));
+  assert.match(d, /matched no edition/);
+});
+
+test("a templated entry URL is checked through one sample entry", async () => {
+  const c = cat({ url: "https://s/", entry_url: "https://s/defs/{n}.html" }, [{ id: "CWE-5" }, { id: "CWE-6" }]);
+  assert.deepEqual(await findDrift(c, stub({ "https://s/": "", "https://s/defs/5.html": "" })), []);
+  assert.deepEqual(await findDrift(c, stub({ "https://s/": "" })), ["x.json: CWE-5 page (entry_url template) https://s/defs/5.html returned HTTP 404"]);
+});
+
 test("a network failure is reported, not thrown", async () => {
   const d = await findDrift(cat({ url: "https://s/" }), async () => { throw new Error("ECONNRESET"); });
   assert.deepEqual(d, ["x.json: source page https://s/ could not be fetched (ECONNRESET)"]);

@@ -101,12 +101,28 @@ function buildReport(entries, { verdict, context = "" } = {}) {
   return {
     verdict, context,
     lenses: entries.map(({ key, name, verdict, state, note }) => ({ key, name, verdict, ...(state ? { state } : {}), note: note || "" })),
-    groups: [...groups].sort(([a], [b]) => compare(a, b)).map(([location, issues]) => ({
-      location,
-      issues: [...issues.values()].map((f) => ({ ...f, attributions: f.attributions.sort((a, b) => compare(a.lens, b.lens)) })).sort((a, b) =>
-        SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity) || compare(a.detail, b.detail) || compare(a.recommendation, b.recommendation)),
-    })),
+    groups: [...groups].sort(([a], [b]) => compare(a, b)).map(([location, issues]) => {
+      const sorted = [...issues.values()].map((f) => ({ ...f, attributions: f.attributions.sort((a, b) => compare(a.lens, b.lens)) })).sort((a, b) =>
+        SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity) || compare(a.detail, b.detail) || compare(a.recommendation, b.recommendation));
+      const shared = sharedWeaknesses(sorted);
+      return { location, issues: sorted, ...(shared.length ? { shared } : {}) };
+    }),
   };
+}
+
+// Several lenses overlap on security (#118). Their wording differs, so exact
+// deduplication never merges them; a CWE they both cite, at one location, says
+// they found the same weakness. Display only: every finding is still shown.
+function sharedWeaknesses(issues) {
+  const byCwe = new Map();
+  for (const issue of issues) {
+    for (const c of resolveCitations([issue.detail]).known.filter((k) => k.id.startsWith("CWE-"))) {
+      if (!byCwe.has(c.id)) byCwe.set(c.id, { cwe: c.id, name: c.name, lenses: new Set() });
+      for (const a of issue.attributions) byCwe.get(c.id).lenses.add(a.lens);
+    }
+  }
+  return [...byCwe.values()].filter((s) => s.lenses.size > 1)
+    .map((s) => ({ ...s, lenses: [...s.lenses].sort(compare) })).sort((a, b) => compare(a.cwe, b.cwe));
 }
 
 function renderReport(report) {
@@ -118,6 +134,11 @@ function renderReport(report) {
   let bytes = Buffer.byteLength(lines.join("\n"));
   let omitted = 0;
   for (const group of report.groups) {
+    if (group.shared) {
+      const block = [`### ${display(group.location, 2000).replace(/\n/g, " ")}`, "",
+        ...group.shared.map((s) => `Same weakness reported by ${s.lenses.map((l) => display(l, 500)).join(", ")}: ${display(s.cwe)} ${display(s.name)}`), ""];
+      lines.push(...block); bytes += Buffer.byteLength(block.join("\n")) + 1;
+    }
     for (const issue of group.issues) {
       const block = [`### ${display(group.location, 2000).replace(/\n/g, " ")}`, "", `**${display(issue.severity, 100)}** — ${issue.attributions.map((a) => display(a.lens, 500) + (a.count > 1 ? ` (${a.count} identical findings)` : "")).join(", ")}`, "",
         ...display(issue.detail).split("\n").map((l) => `> ${l}`), "", ...citationLines(issue.detail), "Fix:", "", ...display(issue.recommendation).split("\n").map((l) => `> ${l}`), ""];

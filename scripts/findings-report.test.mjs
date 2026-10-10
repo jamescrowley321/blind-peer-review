@@ -30,6 +30,20 @@ test("grouping deduplicates exact issues with every lens attribution and retains
   assert.match(renderReport(report), /FAILED/);
 });
 
+test("findings from different lenses citing one CWE at one location are marked as the same weakness", () => {
+  const report = buildReport([
+    entry("Security Review", [finding({ severity: "MUST FIX", detail: "[A05:2025 · CWE-89] raw SQL from req.query" })]),
+    entry("Cold Read", [finding({ detail: "[CWE-89] string-built query" })]),
+    entry("Edge Cases", [finding({ detail: "[CWE-89] same lens set as below, alone" }), finding({ location: "a.js:1", detail: "[CWE-89] elsewhere" })]),
+    entry("Red Team", [finding({ detail: "[CWE-79] different weakness" })]),
+  ], { verdict: "BLOCK" });
+  const g = report.groups.find((x) => x.location === "src/x.js:2");
+  assert.deepEqual(g.shared, [{ cwe: "CWE-89", name: "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')", lenses: ["Cold Read", "Edge Cases", "Security Review"] }]);
+  assert.equal(g.issues.length, 4, "grouping never hides a finding");
+  assert.equal(report.groups.find((x) => x.location === "a.js:1").shared, undefined, "one lens alone is not shared");
+  assert.match(renderReport(report), /Same weakness reported by Cold Read, Edge Cases, Security Review: CWE&#45;89/);
+});
+
 test("location/issue grouping is deterministic regardless of input finding order", () => {
   const a = finding({ location: "z:2" }), b = finding({ location: "a:1", detail: "second" }), c = finding({ location: "a:1", detail: "first" });
   assert.deepEqual(buildReport([entry("A", [a, b, c])], { verdict: "PASS" }), buildReport([entry("A", [c, a, b])], { verdict: "PASS" }));

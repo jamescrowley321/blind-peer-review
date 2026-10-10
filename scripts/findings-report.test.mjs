@@ -44,6 +44,13 @@ test("findings from different lenses citing one CWE at one location are marked a
   assert.match(renderReport(report), /Same weakness reported by Cold Read, Edge Cases, Security Review: CWE&#45;89/);
 });
 
+test("same-weakness notes stay inside the report's byte budget", () => {
+  const many = (lens) => entry(lens, Array.from({ length: 3000 }, (_, i) => finding({ location: `src/f${i}.js:1`, detail: `[CWE-89] ${lens} ${"x".repeat(40)}` })));
+  const md = renderReport(buildReport([many("Security Review"), many("Cold Read")], { verdict: "BLOCK" }));
+  assert.ok(Buffer.byteLength(md) <= MAX_REPORT_BYTES, `${Buffer.byteLength(md)} bytes`);
+  assert.match(md, /same-weakness note\(s\) omitted/);
+});
+
 test("location/issue grouping is deterministic regardless of input finding order", () => {
   const a = finding({ location: "z:2" }), b = finding({ location: "a:1", detail: "second" }), c = finding({ location: "a:1", detail: "first" });
   assert.deepEqual(buildReport([entry("A", [a, b, c])], { verdict: "PASS" }), buildReport([entry("A", [c, a, b])], { verdict: "PASS" }));

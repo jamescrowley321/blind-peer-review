@@ -132,12 +132,14 @@ function renderReport(report) {
   for (const row of report.lenses) lines.push(`| ${display(row.name, 500).replace(/\n/g, " ")} | ${display(row.verdict, 100)} | ${display(row.state || "local")} | ${display(row.note, 1000).replace(/\n/g, " ")} |`);
   lines.push("", "Findings are grouped by location. Distinct text and severity remain separate; grouping never changes an independent verdict.", "");
   let bytes = Buffer.byteLength(lines.join("\n"));
-  let omitted = 0;
+  let omitted = 0, omittedShared = 0;
   for (const group of report.groups) {
     if (group.shared) {
       const block = [`### ${display(group.location, 2000).replace(/\n/g, " ")}`, "",
         ...group.shared.map((s) => `Same weakness reported by ${s.lenses.map((l) => display(l, 500)).join(", ")}: ${display(s.cwe)} ${display(s.name)}`), ""];
-      lines.push(...block); bytes += Buffer.byteLength(block.join("\n")) + 1;
+      const size = Buffer.byteLength(block.join("\n")) + 1;
+      if (bytes + size > MAX_REPORT_BYTES - 1000) omittedShared++;
+      else { lines.push(...block); bytes += size; }
     }
     for (const issue of group.issues) {
       const block = [`### ${display(group.location, 2000).replace(/\n/g, " ")}`, "", `**${display(issue.severity, 100)}** — ${issue.attributions.map((a) => display(a.lens, 500) + (a.count > 1 ? ` (${a.count} identical findings)` : "")).join(", ")}`, "",
@@ -148,6 +150,7 @@ function renderReport(report) {
     }
   }
   if (!report.groups.length) lines.push("No parsed findings. See each lens verdict for missing or unreadable reviews.");
+  if (omittedShared) lines.push(`${omittedShared} same-weakness note(s) omitted from this bounded display.`);
   if (omitted) lines.push(`${omitted} distinct finding(s) omitted from this bounded display. Read the original per-lens reviews for the complete findings.`);
   return lines.join("\n") + "\n";
 }

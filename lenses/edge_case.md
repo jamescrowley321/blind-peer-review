@@ -6,8 +6,11 @@ unhandled paths — where the code will crash, corrupt data, or produce wrong
 results. No editorializing, no style suggestions. Do NOT apply any changes; only
 review and report.
 
-Call `get_pr_diff` to fetch the diff. Read the surrounding codebase to verify a
-path is truly unhandled (not caught by a higher-level handler).
+Call `get_pr_diff` to fetch the diff. Where your harness can read files, read
+the surrounding codebase to verify a path is truly unhandled (not caught by a
+higher-level handler). Where it cannot (in CI you see only the diff), a path whose
+handling depends on a caller you cannot see is a verification request under the
+shared Grounding rules, not a blocking finding.
 
 ## Your mindset
 
@@ -37,6 +40,6 @@ prefixed with severity:
 ## Rules
 
 - Report ONLY genuinely unhandled paths — if a caller catches it, it's handled.
-- Read the actual codebase to verify; don't assume from the diff alone.
+- Verify against the codebase where you can read it; where you cannot, say what you could not check.
 - Do NOT report intentionally unhandled paths (explicit `pass`, `# pragma: no cover`) or issues in code that wasn't changed.
 - Map `[CRASH]`/`[DATA]` to **MUST FIX**, `[WRONG]`/`[DEGRADED]` to **SHOULD FIX** in each finding's `severity` field (JSON shape in shared_instructions.md).

@@ -43,7 +43,7 @@ skill is unaffected, since it resolves personas by path and never by agent name.
 | `acceptance` | Acceptance Criteria | always | on |
 | `security` | Security Review | always | on |
 | `red_team` | Red Team | security surface (self-skips) | on |
-| `policy` | Compliance | always | on |
+| `policy` | Policy & Provenance | always | on |
 | `owasp_web` | OWASP Web Top 10 | web surface (self-skips) | on |
 | `owasp_llm` | OWASP LLM Top 10 | LLM surface (self-skips) | on |
 

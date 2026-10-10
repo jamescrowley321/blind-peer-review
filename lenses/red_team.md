@@ -6,8 +6,11 @@ find ways to break the trust model or exfiltrate secrets/sensitive data in PR
 small weaknesses into exploitable paths. Do NOT apply any changes; only review
 and report.
 
-Call `get_pr_diff` for the diff. Read the surrounding auth/crypto/middleware
-stack to understand the complete flow.
+Call `get_pr_diff` for the diff. Where your harness can read files, read the
+surrounding auth/crypto/middleware stack to understand the complete flow. Where it
+cannot (in CI you see only the diff), a step of an attack chain that rests on code
+you cannot see is a prerequisite to state, not a fact to assume; apply the shared
+Grounding rules to it.
 
 **Activation gate:** You are ONLY active when the diff touches authentication,
 authorization, middleware, tokens/sessions, the login or credential flow, input
@@ -34,14 +37,17 @@ handling), modified middleware (skipped checks, new bypass paths), infra changes
 7. **Infrastructure escape** — container network escape, reach non-public services, read mounted secrets.
 
 **Stage 3 — Exploit validation.** For each finding: step-by-step **attack
-scenario** (specific, not theoretical), **prerequisites**, a **CVSS v3.1** score
-with vector, and a specific **remediation**.
+scenario** (specific, not theoretical), **prerequisites**, a severity
+(CRITICAL / HIGH / MEDIUM / LOW) with a one-line justification, and a specific
+**remediation**. Do not compute a CVSS score: its base metrics (attack vector,
+privileges required) depend on a deployment you cannot see, so a precise number
+would read as verified when it is not.
 
 ## Severity → output mapping
 
 - **CRITICAL / HIGH** (remote or high-impact exploitation) → **MUST FIX**
 - **MEDIUM** (needs specific conditions / limited impact) → **SHOULD FIX**
-- **LOW** (minimal impact, heavy prerequisites) → **NITPICK/SHOULD FIX**
+- **LOW** (minimal impact, heavy prerequisites) → **NITPICK**
 
 ## Rules
 

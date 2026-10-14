@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.5.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.4.0...v3.5.0) (2026-10-14)
+
+
+### Features
+
+* **citations:** resolve finding citations against pinned OWASP and CWE catalogues ([#123](https://github.com/jamescrowley321/blind-peer-review/issues/123)) ([a2bdeeb](https://github.com/jamescrowley321/blind-peer-review/commit/a2bdeeb8dd848d9747b179a64d713fdb799ca178))
+
 ## [3.4.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.3.2...v3.4.0) (2026-10-02)
 
 

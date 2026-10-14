@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.5.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.0...v3.5.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* **lenses:** align personas with the CI tool contract and the manifest ([#126](https://github.com/jamescrowley321/blind-peer-review/issues/126)) ([59036ba](https://github.com/jamescrowley321/blind-peer-review/commit/59036ba7f57fe6690e3412c0c5355c89b55c7ba7))
+
 ## [3.5.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.4.0...v3.5.0) (2026-10-14)
 
 

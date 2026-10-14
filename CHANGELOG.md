@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.5.3](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.2...v3.5.3) (2026-10-14)
+
+
+### Bug Fixes
+
+* **evals:** run dispatched evals at the push ceiling, not 8000 ([#136](https://github.com/jamescrowley321/blind-peer-review/issues/136)) ([d35907d](https://github.com/jamescrowley321/blind-peer-review/commit/d35907dc297ddef45f7a827a7eaffb40c3b925d2))
+
 ## [3.5.2](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.1...v3.5.2) (2026-10-14)
 
 

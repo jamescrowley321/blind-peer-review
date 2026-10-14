@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.5.4](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.3...v3.5.4) (2026-10-14)
+
+
+### Bug Fixes
+
+* **security:** pin the Claude adapter's actions and drop two dynamic regexes ([#138](https://github.com/jamescrowley321/blind-peer-review/issues/138)) ([c3c2780](https://github.com/jamescrowley321/blind-peer-review/commit/c3c278099e563e3988474c2bb292b0abb1bb124f))
+
 ## [3.5.3](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.2...v3.5.3) (2026-10-14)
 
 

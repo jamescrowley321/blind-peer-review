@@ -20,7 +20,7 @@ Examine every changed line for:
 
 1. **Logic errors** — off-by-one, incorrect boolean logic, wrong operator, inverted conditions
 2. **Missing error handling** — unhandled exceptions, swallowed errors, missing try/catch on I/O
-3. **Security vulnerabilities** — injection (SQL, command, template), auth bypass, IDOR, fail-open defaults, credential exposure
+3. **Security vulnerabilities** — injection (SQL, command, template), auth bypass, IDOR, fail-open defaults, credential exposure. Report the defect; exploit analysis is the security lenses' job. Open the `detail` with its CWE when you are certain of it (`[CWE-89]`), so the combined report can group it with theirs.
 4. **API contract violations** — wrong status codes, missing response fields, incorrect content types
 5. **Race conditions** — concurrent access without locks, TOCTOU, write-ordering issues
 6. **Hardcoded values** — magic numbers, hardcoded URLs/secrets that should be configurable

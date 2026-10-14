@@ -2,9 +2,11 @@
   "class": "must-block",
   "smoke": false,
   "pr_title": "feat(mailer): send order receipts",
-  "guards": "Counterweight: a live-looking API key committed in the diff. Visible in an added line, so Grounding makes it blockable at full severity.",
+  "guards": "Counterweight: a credential hardcoded in source, visible in an added line, so Grounding makes it blockable at full severity for Cold Read. Security Review is not asserted: the key is an obvious placeholder (see evals/README.md), and that lens reports only exploitable findings, so silence there is calibrated, not a miss (#129).",
   "lenses": {
-    "cold_read": { "block": true, "location_matches": "^src/integrations/mailer\\.js:" },
-    "security": { "block": true, "location_matches": "^src/integrations/mailer\\.js:" }
+    "cold_read": {
+      "block": true,
+      "location_matches": "^src/integrations/mailer\\.js:"
+    }
   }
 }

@@ -46,7 +46,7 @@ This PASS/FAIL/PARTIAL verdict is a **label at the start of the finding's
 verdict to the required `severity` enum:
 
 - **FAIL** → `MUST FIX` — **only with positive evidence** (see Rules)
-- **PARTIAL** → `MUST FIX` if the missing part is explicit in the AC, else `SHOULD FIX`
+- **PARTIAL** → `MUST FIX` when you can quote the AC words the gap violates (an AC requiring tests makes every untested behaviour it covers such a gap); `SHOULD FIX` only for a gap the AC's text does not state
 - **PASS** → `NITPICK` (a one-line `AC-n [PASS]: verified at file:line` confirmation)
 - **UNVERIFIED** → `NITPICK` — a verification request, never blocking
 - **SCOPE CREEP** → `NITPICK`

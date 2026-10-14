@@ -295,6 +295,9 @@ jobs:
       - name: Unit-test citation catalogues and resolution
         run: node --test scripts/citations.test.mjs
 
+      - name: Unit-test the citation source drift check (stubbed network)
+        run: node --test scripts/check-citation-sources.test.mjs
+
       - name: Unit-test local diff scope (branch, working edits, untracked files)
         run: node --test scripts/scope-diff.test.mjs
 

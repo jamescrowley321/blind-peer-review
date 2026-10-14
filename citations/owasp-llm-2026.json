@@ -6,7 +6,12 @@
     "sha256": "ef87993a4e50ae9d83b41ff7a3d3e6320a82dfa8d4ec6bf98d0ce264b2e6108e",
     "retrieved": "2026-10-10",
     "cwes_from": "primary (●) CWEs in the document's MITRE CWE mapping table, page 78",
-    "note": "genai.owasp.org/llmrisk/ pages describe the 2025 list, whose numbering differs; do not cite them for 2026 IDs"
+    "note": "genai.owasp.org/llmrisk/ pages describe the 2025 list, whose numbering differs; do not cite them for 2026 IDs",
+    "edition_probe": {
+      "url": "https://genai.owasp.org/resources/",
+      "pattern": "LLM Top 10 (20\\d{2})",
+      "edition": 2026
+    }
   },
   "entries": [
     {

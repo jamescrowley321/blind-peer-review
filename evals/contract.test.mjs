@@ -1934,6 +1934,12 @@ describe("evals.yml wires plan-frozen inputs to the compose step", () => {
       Number(fallback[1]) >= 24000,
       `the push-triggered ceiling is ${fallback[1]}; 8000 was measured as producing void rows`,
     );
+    // A dispatch fills `inputs.max_tokens` from its own default, so the
+    // fallback above never applies to one. That default sat at 8000 and voided
+    // the first dispatch after the key rotation.
+    const dispatchDefault = workflow.match(/^ {6}max_tokens:\n(?: {8}.*\n)*? {8}default: (\d+)$/m);
+    assert.ok(dispatchDefault, "workflow_dispatch has no `max_tokens` default");
+    assert.equal(dispatchDefault[1], fallback[1], "a dispatch and a push must run at the same ceiling");
   });
 
   test("the workflow still runs the three phases as separate steps", () => {

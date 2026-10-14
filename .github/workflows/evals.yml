@@ -71,7 +71,7 @@ on:
       max_tokens:
         description: "Per-call ceiling. Reasoning tokens count against it, so a reasoning model can exhaust it mid-JSON and score as a quality failure when the cause is this cap. Raise it before comparing models."
         type: number
-        default: 8000
+        default: 32000
 
 permissions:
   contents: read

@@ -118,15 +118,16 @@ not guarantee that a model obeys its contract.
 
 ## OWASP integration roadmap
 
-The security lenses already cover much of the **OWASP Web Top 10 (2021)** —
+The security lenses already cover much of the **OWASP Top 10:2025** —
 Security Review and Red Team hit injection, broken access control, SSRF, crypto misuse.
 The plan makes that explicit and adds LLM coverage:
 
-- ✅ **Phase 1 — `owasp_web` lens** (opt-in): the OWASP Web Top 10 (2021), each
-  finding tagged with its `A0x` category. Runs as its own parallel job.
-- ✅ **Phase 2 — `owasp_llm` lens** (opt-in): the GenAI/LLM Top 10 2026
-  (LLM01–LLM10), tagged `LLM0x`, activating only when the diff touches AI/LLM
-  surface. Notes when the OWASP **Agentic (ASI) Top 10** also applies.
+- ✅ **Phase 1 — `owasp_web` lens**: the OWASP Top 10:2025, each finding cited
+  by category (`A05:2025`). Runs as its own parallel job.
+- ✅ **Phase 2 — `owasp_llm` lens**: the GenAI LLM Top 10 2026
+  (`LLM01:2026`–`LLM10:2026`) and, for agent code, the Agentic Top 10 2026
+  (`ASI01:2026`–`ASI10:2026`), activating only when the diff touches AI/LLM
+  surface.
 - ✅ **Phase 3 — per-repo OWASP tuning** via a committed
   `.blind-peer-review/lenses/owasp_web.md` (or `owasp_llm.md`) override that the
   local harnesses read, so a repo can tighten the checklist to its domain. CI
@@ -136,13 +137,14 @@ The plan makes that explicit and adds LLM coverage:
   — LLM01 and LLM06 are exactly the controls above, and this document is the
   residual-risk record.
 
-Both OWASP lenses are off by default; enable them via the `ENABLED` toggle list
-in the caller (they run in parallel with the rest).
+Both OWASP lenses run by default and self-skip when the diff has no matching
+surface. Their citation IDs resolve against the pinned catalogues in
+`citations/`; see the README.
 
 ### References
 
-- OWASP Top 10 for LLM Applications — **2026** (LLM01–LLM10), OWASP GenAI
-  Security Project.
-- OWASP Top 10 for Agentic Applications (ASI) — 2026.
-- OWASP Top 10 (Web) — 2021.
+- [OWASP GenAI LLM Top 10 2026](https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/)
+  (LLM01–LLM10), OWASP GenAI Security Project.
+- [OWASP Top 10 for Agentic Applications for 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/) (ASI01–ASI10).
+- [OWASP Top 10:2025](https://top10.owasp.org/2025/) (web).
 - Simon Willison, "The lethal trifecta" (2025).

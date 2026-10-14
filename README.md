@@ -51,11 +51,22 @@ run in parallel:
 | **Security Review** | Exploitable vulnerabilities (OWASP-aligned), concrete attack scenario required | Confirmed/likely exploits |
 | **Red Team** | Red-team attack paths — only active when auth/crypto/middleware/infra changes | Critical/high exploit chains |
 | **Policy & Provenance** | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
-| **OWASP Web Top 10** | The 2021 web risks (A01–A10), each tagged with its category — only active when the diff has web/HTTP surface | Exploitable A0x issues |
-| **OWASP LLM Top 10** | The GenAI/LLM 2026 risks (LLM01–LLM10); activates only on AI/LLM code | Exploitable LLM0x issues |
+| **OWASP Web Top 10** | The OWASP Top 10:2025 web risks, each finding cited by category — only active when the diff has web/HTTP surface | Exploitable A0x issues |
+| **OWASP LLM Top 10** | The GenAI LLM Top 10 2026 and, for agents, the Agentic Top 10 2026; activates only on AI/LLM code | Exploitable LLM/ASI issues |
 
 Findings use one severity vocabulary: **MUST FIX** (blocks), **SHOULD FIX**,
 **NITPICK**. Any MUST FIX makes that lens request changes, which fails the gate.
+
+### Citations
+
+The OWASP lenses cite each finding by a year-qualified ID, `[A05:2025 · CWE-79]`
+or `[LLM03:2026]`, and never by URL: a reviewer that cannot fetch can only guess
+one. The posted review renders each ID's link from pinned catalogues in
+[`citations/`](citations/): [OWASP Top 10:2025](https://top10.owasp.org/2025/),
+the [OWASP GenAI LLM Top 10 2026](https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/)
+and [Agentic Top 10 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+(document and page), and MITRE CWE 4.20. An ID the catalogues do not hold is
+listed as unverified. The finding still stands, but its citation does not.
 
 ## Use it in CI
 

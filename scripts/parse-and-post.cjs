@@ -14,6 +14,7 @@
 
 const { renderReview } = require(__dirname + "/findings-report.cjs");
 const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
+const { resolveCitations, renderCitations } = require(__dirname + "/citations.cjs");
 
 // ── Lens identity ──
 //
@@ -236,7 +237,9 @@ async function run({ core, github, context, env }) {
     const key = `${loc.path}:${loc.line}`;
     if (used.has(key)) continue;
     used.add(key);
-    comments.push({ path: loc.path, line: loc.line, body: `[${f.severity}] ${f.detail}\n\nFix: ${f.recommendation}` });
+    // Unresolved IDs match the citation pattern, so they carry no markup.
+    const cited = renderCitations(resolveCitations([f.detail]), String);
+    comments.push({ path: loc.path, line: loc.line, body: `[${f.severity}] ${f.detail}\n\nFix: ${f.recommendation}` + (cited.length ? `\n\n${cited.join("\n")}` : "") });
   }
   // Fallback anchor: first changed file's first changed line, body="See the review summary."
   if (!comments.length) {

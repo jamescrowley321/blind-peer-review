@@ -17,6 +17,7 @@
     "scripts/",
     "lenses/",
     "contracts/",
+    "citations/",
     "adapters/",
     "agents/",
     "skills/",

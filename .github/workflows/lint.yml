@@ -41,6 +41,11 @@ jobs:
             "scripts/compose-prompt.cjs",
             "scripts/parse-and-post.cjs",
             "scripts/check-example.mjs",
+            "scripts/citations.cjs",
+            "citations/owasp-web-2025.json",
+            "citations/owasp-llm-2026.json",
+            "citations/owasp-asi-2026.json",
+            "citations/cwe.json",
           ];
           const missing = required.filter((f) => !fs.existsSync(f));
           if (missing.length) {
@@ -284,6 +289,11 @@ jobs:
 
       - name: Unit-test combined findings reports (local and gate)
         run: node --test scripts/findings-report.test.mjs
+
+      # Citation IDs are rendered as links from citations/, never from model
+      # text; these pin the catalogues' shape and the posted-review round trip.
+      - name: Unit-test citation catalogues and resolution
+        run: node --test scripts/citations.test.mjs
 
       - name: Unit-test local diff scope (branch, working edits, untracked files)
         run: node --test scripts/scope-diff.test.mjs

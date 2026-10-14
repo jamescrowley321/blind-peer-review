@@ -99,3 +99,22 @@ test("the combined report lists every unverified ID in full", () => {
   const line = renderReport(report).split("\n").find((l) => l.startsWith("Unverified citations"));
   for (const id of ["A11:2025", "LLM03:2025", "CWE&#45;99999"]) assert.ok(line.includes(id), line);
 });
+
+test("every citation ID a persona names resolves in the catalogue", () => {
+  const lensDir = join(DIR, "..", "lenses");
+  for (const f of readdirSync(lensDir).filter((n) => n.endsWith(".md"))) {
+    const { unknown } = resolveCitations([readFileSync(join(lensDir, f), "utf8")]);
+    assert.deepEqual(unknown, [], `${f} names IDs the catalogue does not hold`);
+  }
+});
+
+test("the OWASP personas name every entry of the editions they claim", () => {
+  const lensDir = join(DIR, "..", "lenses");
+  const expect = { "owasp_web.md": ["owasp-web-2025.json"], "owasp_llm.md": ["owasp-llm-2026.json", "owasp-asi-2026.json"] };
+  for (const [lens, files] of Object.entries(expect)) {
+    const text = readFileSync(join(lensDir, lens), "utf8");
+    for (const file of files) {
+      for (const e of catalogues[file].entries) assert.ok(text.includes(`${e.id} ${e.name}`), `${lens} is missing "${e.id} ${e.name}"`);
+    }
+  }
+});

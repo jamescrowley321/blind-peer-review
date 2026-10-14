@@ -1,0 +1,15 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "feat(preview): server-side link previews",
+  "guards": "Server fetches a request-supplied URL with no allowlist (SSRF). Under OWASP Top 10:2025 SSRF is part of A01 Broken Access Control; a lens still citing the 2021 A10 SSRF category fails the citation check.",
+  "lenses": {
+    "owasp_web": {
+      "block": true,
+      "location_matches": "^src/routes/preview\\.js:",
+      "cites_any": [
+        "A01:2025"
+      ]
+    }
+  }
+}

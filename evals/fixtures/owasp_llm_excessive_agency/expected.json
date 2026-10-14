@@ -1,0 +1,17 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "feat(support): let the support agent act on accounts",
+  "guards": "Model-chosen tool calls run destructive operations (delete, refund) with schema-owner DB credentials and no human confirmation, driven by ticket text. LLM03:2026 Excessive Agency is the target; ASI02/ASI03 are accepted for the agentic framing.",
+  "lenses": {
+    "owasp_llm": {
+      "block": true,
+      "location_matches": "^src/agent/support-agent\\.js:",
+      "cites_any": [
+        "LLM03:2026",
+        "ASI02:2026",
+        "ASI03:2026"
+      ]
+    }
+  }
+}

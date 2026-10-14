@@ -1,0 +1,22 @@
+DIFFGIT a/src/routes/preview.js b/src/routes/preview.js
+new file mode 100644
+index 0000000..9bbcf86
+--- /dev/null
++++ b/src/routes/preview.js
+@@ -0,0 +1,16 @@
++"use strict";
++
++const express = require("express");
++const router = express.Router();
++
++// Link previews: fetch the page server-side and return its <title>.
++router.get("/preview", async (req, res) => {
++  const target = req.query.url;
++  if (!target) return res.status(400).json({ error: "url required" });
++  const upstream = await fetch(target, { redirect: "follow" });
++  const html = await upstream.text();
++  const title = (html.match(/<title>([^<]*)<\/title>/i) || [])[1] || "";
++  res.json({ url: target, title, status: upstream.status });
++});
++
++module.exports = router;

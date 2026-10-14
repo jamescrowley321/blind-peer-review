@@ -249,16 +249,19 @@ export function botReview({ lens, state = "COMMENTED", commit_id = HEAD_SHA, id 
 
 /**
  * Read findings back out of the review body the action RENDERED. Used only for
- * reporting and for `location_matches`; the block/no-block verdict always comes
- * from the review `event` the action chose, never from this.
+ * reporting, `location_matches` and citation scoring; the block/no-block
+ * verdict always comes from the review `event` the action chose, never from
+ * this. Delegates to the action's own parser: since the canonical format
+ * (`<code>` locations, entity-encoded text) a local backtick-only regex here
+ * matched nothing, so every `location_matches` failed.
  */
 export function parseReviewBody(body) {
-  const out = [];
-  for (const line of String(body || "").split("\n")) {
-    const m = line.match(/^- \[(MUST FIX|SHOULD FIX|NITPICK)\] `([^`]+)` — (.*)$/);
-    if (m) out.push({ severity: m[1], location: m[2], detail: m[3] });
+  const { parseReview } = require_("../../scripts/findings-report.cjs");
+  try {
+    return parseReview(String(body || ""));
+  } catch {
+    return [];
   }
-  return out;
 }
 
 /** A top-level PR comment as the pi agent action leaves it: the raw JSON reply. */

@@ -12,7 +12,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { runParseStep, runGateStep, runPreflightStep, checkRun, botReview, agentJsonComment, HEAD_SHA } from "./lib/harness.mjs";
+import { runParseStep, runGateStep, runPreflightStep, checkRun, botReview, agentJsonComment, HEAD_SHA, parseReviewBody } from "./lib/harness.mjs";
 import { LENS_KEYS, lensName, personaHeading, shippedLensKeys, readPersona, readShared } from "./lib/lenses.mjs";
 import { foldReps, score, violations, THRESHOLDS } from "./lib/scorecard.mjs";
 import { extractStepScript, runNodeScript } from "./lib/action-script.mjs";
@@ -831,6 +831,39 @@ describe("scoring policy", () => {
     assert.equal(foldReps(mustBlock, wrong).pass, false);
     const right = [0, 1, 2].map(() => rep(true, { findings: [{ severity: "MUST FIX", location: "src/auth.js:9", detail: "d" }] }));
     assert.equal(foldReps(mustBlock, right).pass, true);
+  });
+
+  test("the scorer reads findings back out of the canonical rendered review", () => {
+    // parseReviewBody matched only the pre-#106 backtick format, so after the
+    // canonical <code>/entity rendering every location_matches failed.
+    const { renderReview } = _cr(import.meta.url)("../scripts/findings-report.cjs");
+    const findings = [{ severity: "MUST FIX", location: "src/routes/preview.js:10", detail: "[A01:2025 · CWE-918] ssrf", recommendation: "allowlist" }];
+    assert.deepEqual(parseReviewBody(renderReview("OWASP Web Top 10", "s", findings)), findings);
+  });
+
+  test("a citation absent from the pinned catalogue fails the run, whatever the verdict", () => {
+    const f = (detail) => [0, 1, 2].map(() => rep(false, { findings: [{ severity: "NITPICK", location: "a.js:1", detail }] }));
+    const bad = foldReps(run(), f("[A11:2025] made-up category"));
+    assert.equal(bad.pass, false);
+    assert.match(bad.reason, /absent from the pinned catalogue: A11:2025/);
+    assert.match(violations(score([bad]), THRESHOLDS).join(" "), /FABRICATED CITATION — A11:2025/);
+    const mustBlock = run({ fx: { class: "must-block", guards: "g" }, expect: { block: true } });
+    const blocked = foldReps(mustBlock, [0, 1, 2].map(() => rep(true, { findings: [{ severity: "MUST FIX", location: "a.js:1", detail: "[LLM11:2026] x" }] })));
+    const ok = foldReps({ ...mustBlock, id: "ok" }, [0, 1, 2, 3].map(() => rep(true)));
+    // Recall over five passing fixtures would absorb one failure; the
+    // fabricated citation must still be reported.
+    const many = [blocked, ...[0, 1, 2, 3].map((i) => ({ ...ok, id: `ok${i}` }))];
+    assert.match(violations(score(many), THRESHOLDS).join(" "), /FABRICATED CITATION — LLM11:2026/);
+    assert.equal(foldReps(run(), f("[A05:2025 · CWE-79] real")).pass, true);
+  });
+
+  test("cites_any requires every rep to cite one of the expected entries", () => {
+    const mustBlock = run({ fx: { class: "must-block", guards: "g" }, expect: { block: true, cites_any: ["A01:2025"] } });
+    const cite = (detail) => rep(true, { findings: [{ severity: "MUST FIX", location: "src/a.js:1", detail }] });
+    assert.equal(foldReps(mustBlock, [cite("[A01:2025] ssrf"), cite("[A01:2025 · CWE-918] ssrf"), cite("[A01:2025] ssrf")]).pass, true);
+    const r = foldReps(mustBlock, [cite("[A01:2025] ssrf"), cite("[A05:2025] wrong category"), cite("[A01:2025] ssrf")]);
+    assert.equal(r.pass, false);
+    assert.match(r.reason, /cite one of A01:2025/);
   });
 
   test("truncation is reported as a harness limit, never as lens quality", () => {

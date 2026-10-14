@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.5.2](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.1...v3.5.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **lenses:** make the acceptance PARTIAL severity rule mechanical ([#134](https://github.com/jamescrowley321/blind-peer-review/issues/134)) ([5bc73e3](https://github.com/jamescrowley321/blind-peer-review/commit/5bc73e3befe56a42949dc78303a658dec58f8b3e))
+
 ## [3.5.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.0...v3.5.1) (2026-10-14)
 
 

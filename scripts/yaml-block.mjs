@@ -18,7 +18,12 @@
  */
 export function readBlockScalar(yml, key) {
   const lines = String(yml).split("\n");
-  const at = lines.findIndex((l) => new RegExp(`^\\s*${key}:\\s*\\|\\s*$`).test(l));
+  // A string comparison, not a RegExp built from `key`: the key is matched
+  // literally, so a `.` or `+` in it cannot change what matches.
+  const at = lines.findIndex((l) => {
+    const t = l.trimStart();
+    return t.startsWith(`${key}:`) && /^\s*\|\s*$/.test(t.slice(key.length + 1));
+  });
   if (at === -1) return null;
   const indent = lines[at].search(/\S/);
   const body = [];

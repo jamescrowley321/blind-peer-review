@@ -1797,7 +1797,7 @@ describe("extracted step modules stay wired to action.yml", () => {
         // invoke node on the module, so the shell must be bash.
         assert.match(body, /shell: bash/, `step "${step}" must use shell: bash to invoke node`);
         assert.match(
-          body, new RegExp(`run: node "\\$\\{\\{ github\\.action_path \\}\\}/${mod.replace("scripts/", "scripts/")}"`),
+          body, new RegExp(`run: node "\\$\\{\\{ github\\.action_path \\}\\}/${mod.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
           `step "${step}" must run node on ${mod} via the github.action_path context`,
         );
       }

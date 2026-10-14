@@ -93,3 +93,12 @@ test("the matcher rejects empty and junk", () => {
     assert.ok(!matches(junk), `accepted ${JSON.stringify(junk)}`);
   }
 });
+
+// The local agents restate the name the model must emit. agents/policy.md said
+// "Compliance" while the manifest said "Policy & Provenance" (#119).
+test("each local agent tells the model to emit its manifest name", () => {
+  for (const l of lenses) {
+    const agent = readFileSync(new URL(`../agents/${l.key}.md`, import.meta.url), "utf8");
+    assert.deepEqual([...agent.matchAll(/"lens": "([^"]+)"/g)].map((m) => m[1]), [l.name], `agents/${l.key}.md`);
+  }
+});

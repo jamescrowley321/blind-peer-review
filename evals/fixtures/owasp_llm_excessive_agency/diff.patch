@@ -1,0 +1,31 @@
+DIFFGIT a/src/agent/support-agent.js b/src/agent/support-agent.js
+new file mode 100644
+index 0000000..98a6b79
+--- /dev/null
++++ b/src/agent/support-agent.js
+@@ -0,0 +1,25 @@
++"use strict";
++
++const { chat } = require("./llm");
++const db = require("../db/admin-pool"); // connects as the schema owner
++
++// Customer-support agent: answers tickets and can act on the customer's account.
++const tools = {
++  lookup_customer: ({ email }) => db.query("SELECT * FROM customers WHERE email = $1", [email]),
++  delete_customer: ({ id }) => db.query("DELETE FROM customers WHERE id = $1", [id]),
++  refund_order: ({ orderId, amount }) => db.query("UPDATE orders SET refunded = $2 WHERE id = $1", [orderId, amount]),
++};
++
++async function handleTicket(ticket) {
++  let messages = [{ role: "user", content: ticket.body }];
++  for (let step = 0; step < 20; step++) {
++    const reply = await chat({ messages, tools: Object.keys(tools) });
++    if (!reply.toolCall) return reply.text;
++    // Execute whatever tool the model picked, with the arguments it picked.
++    const result = await tools[reply.toolCall.name](reply.toolCall.args);
++    messages.push({ role: "tool", name: reply.toolCall.name, content: JSON.stringify(result) });
++  }
++  return "escalated";
++}
++
++module.exports = { handleTicket };

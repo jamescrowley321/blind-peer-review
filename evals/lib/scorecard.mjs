@@ -4,6 +4,10 @@
 // verdict is what actually stops a merge; detail text is model-nondeterministic
 // and is only ever printed for diagnosis.
 
+import { createRequire } from "node:module";
+
+const { resolveCitations } = createRequire(import.meta.url)("../../scripts/citations.cjs");
+
 export const THRESHOLDS = {
   mustBlockRecall: 0.8,   // fraction of must-block fixtures that block unanimously
   jsonValidity: 0.95,     // fraction of reps whose output the action could parse
@@ -36,6 +40,15 @@ export function foldReps(run, reps) {
   const locRe = run.expect.location_matches ? new RegExp(run.expect.location_matches) : null;
   const locationOk = !locRe || parsed.some((r) => (r.findings || []).some((f) => locRe.test(String(f.location))));
 
+  // Citation IDs are rendered as links in the posted review, so they are part
+  // of the output contract, not prose: an ID absent from the pinned catalogue
+  // is a fabricated citation wherever it appears. `cites_any` additionally
+  // requires every rep to cite at least one of the expected entries.
+  const citedPerRep = parsed.map((r) => resolveCitations((r.findings || []).map((f) => f.detail)));
+  const fabricated = [...new Set(citedPerRep.flatMap((c) => c.unknown))];
+  const wantCites = run.expect.cites_any || [];
+  const citesOk = !wantCites.length || citedPerRep.every((c) => c.known.some((k) => wantCites.includes(k.id)));
+
   let pass, reason;
   if (parsed.length !== reps.length) {
     pass = false;
@@ -56,6 +69,12 @@ export function foldReps(run, reps) {
   } else if (wantBlock && !locationOk) {
     pass = false;
     reason = `blocked, but no finding location matched /${run.expect.location_matches}/`;
+  } else if (fabricated.length) {
+    pass = false;
+    reason = `cited ID(s) absent from the pinned catalogue: ${fabricated.join(", ")}`;
+  } else if (!citesOk) {
+    pass = false;
+    reason = `expected every rep to cite one of ${wantCites.join(", ")}; at least one did not`;
   } else if (run.expect.max_findings != null && parsed.some((r) => (r.findings || []).length > run.expect.max_findings)) {
     // Activation gates: a lens whose gate fires must emit [] and stop. "Did not
     // block" is not enough — a skipping lens that still files NITPICKs is not
@@ -71,7 +90,7 @@ export function foldReps(run, reps) {
   return {
     id: run.id, lens: run.lensKey, class: run.fx.class, guards: run.fx.guards,
     expectBlock: wantBlock, verdicts, unanimous, everBlocked, alwaysBlocked,
-    locationOk, jsonValid: parsed.length, reps: reps.length, truncated, providerErrors, pass, reason,
+    locationOk, citesOk, fabricated, jsonValid: parsed.length, reps: reps.length, truncated, providerErrors, pass, reason,
     severities: tally(parsed.flatMap((r) => (r.findings || []).map((f) => f.severity))),
     reps_detail: reps,
   };
@@ -107,6 +126,12 @@ export function violations(byLens, thresholds = THRESHOLDS) {
   for (const l of Object.values(byLens)) {
     for (const r of l.mustNotBlock) {
       if (r.everBlocked) out.push(`${l.lens}/${r.id}: FALSE POSITIVE — a must-not-block fixture blocked the merge`);
+    }
+    // A fabricated citation is published as a link, so it is never absorbed by
+    // a recall tolerance, on either fixture class. Citing a defensible
+    // neighbouring category (`cites_any` miss) stays inside recall.
+    for (const r of [...l.mustBlock, ...l.mustNotBlock]) {
+      if (r.fabricated?.length) out.push(`${l.lens}/${r.id}: FABRICATED CITATION — ${r.fabricated.join(", ")} not in citations/`);
     }
     if (l.recall != null && l.recall < thresholds.mustBlockRecall) {
       out.push(`${l.lens}: must-block recall ${pct(l.recall)} < ${pct(thresholds.mustBlockRecall)}`);

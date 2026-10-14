@@ -29,7 +29,7 @@
       "name": "Security Review",
       "activation": "always",
       "default_enabled": true,
-      "summary": "Exploitable auth / PHI / PII / tenant-isolation vulnerabilities."
+      "summary": "Exploitable vulnerabilities with a concrete attack scenario: auth bypass, access control, injection, credential exposure, SSRF, crypto misuse."
     },
     {
       "key": "red_team",

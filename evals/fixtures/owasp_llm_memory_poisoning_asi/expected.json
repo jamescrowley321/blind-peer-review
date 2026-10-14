@@ -1,0 +1,17 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "feat(research): remember what the agent learns",
+  "guards": "Content from browsed pages can make the model write to a memory store shared across all users that is prepended to every later session's system prompt: persistent cross-user poisoning. ASI06:2026 Memory & Context Poisoning is the target; LLM01/LLM05 are accepted.",
+  "lenses": {
+    "owasp_llm": {
+      "block": true,
+      "location_matches": "^src/agent/memory\\.js:",
+      "cites_any": [
+        "ASI06:2026",
+        "LLM01:2026",
+        "LLM05:2026"
+      ]
+    }
+  }
+}

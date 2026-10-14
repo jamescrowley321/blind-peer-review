@@ -1,0 +1,17 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "fix(admin): keep admins in when the session store is slow",
+  "guards": "Admin middleware swallows a session-verification exception and calls next(): the authorization check fails open. A10:2025 Mishandling of Exceptional Conditions is the new 2025 category for this; A01/A07 are accepted as defensible alternatives.",
+  "lenses": {
+    "owasp_web": {
+      "block": true,
+      "location_matches": "^src/middleware/require-admin\\.js:",
+      "cites_any": [
+        "A10:2025",
+        "A01:2025",
+        "A07:2025"
+      ]
+    }
+  }
+}

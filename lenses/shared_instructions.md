@@ -55,8 +55,11 @@ does not license a blocking severity.
 
 - **MUST FIX** — blocks merge. Crash, data loss, exploitable vulnerability,
   broken acceptance criterion, or logic error.
-- **SHOULD FIX** — should fix but not blocking. Edge case, missing test,
-  degraded behavior.
+- **SHOULD FIX** — should fix but not blocking. Edge case, additional test
+  coverage not explicitly required by an acceptance criterion, degraded behavior.
+  A demonstrably unmet **explicit test requirement** is a broken acceptance
+  criterion: **MUST FIX**, even when the implementation itself works. Grounding
+  still applies: unseen or truncated test code cannot prove a missing test.
 - **NITPICK** — style, naming, minor cleanup.
 
 **Grounding (this governs severity — read it before assigning MUST FIX):**

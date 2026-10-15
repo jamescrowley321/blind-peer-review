@@ -1,0 +1,10 @@
+DIFFGIT a/src/exports/metadata.js b/src/exports/metadata.js
+new file mode 100644
+--- /dev/null
++++ b/src/exports/metadata.js
+@@ -0,0 +1,5 @@
++"use strict";
++
++function metadata(record) {
++  return { id: record.id, retentionDays: 7 };
++}

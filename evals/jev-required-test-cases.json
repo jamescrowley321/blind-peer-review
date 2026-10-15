@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "labelStatus": "agent-authored draft; not human validated",
+  "cases": [
+    {
+      "id": "status_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/status.test.js",
+      "rationale": "The complete new suite asserts only expect(result.id).toBe(\"j1\");; it omits the required assertion expect(result.status).toBe(\"queued\");.",
+      "family": "status",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: status returns both id and status.\nAC-2: The status unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/status.js b/src/status.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/status.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return { id: job.id, status: job.status }; }\ndiff --git a/tests/status.test.js b/tests/status.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/status.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"status\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result.id).toBe(\"j1\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "status_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/status.test.js",
+      "rationale": "The visible suite asserts expect(result.id).toBe(\"j1\"); and expect(result.status).toBe(\"queued\");, demonstrating the explicitly required behavior.",
+      "family": "status",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: status returns both id and status.\nAC-2: The status unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/status.js b/src/status.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/status.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return { id: job.id, status: job.status }; }\ndiff --git a/tests/status.test.js b/tests/status.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/status.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"status\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result.id).toBe(\"j1\");\n+    expect(result.status).toBe(\"queued\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "status_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/status.test.js",
+      "rationale": "No hunk for tests/status.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "status",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: status returns both id and status.\nAC-2: The status unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/status.js b/src/status.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/status.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return { id: job.id, status: job.status }; }\n"
+      }
+    },
+    {
+      "id": "tenant_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/tenant.test.js",
+      "rationale": "The complete new suite asserts only expect(response.status).toBe(200);; it omits the required assertion expect(otherTenantResponse.status).toBe(404);.",
+      "family": "tenant",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: another tenant receives HTTP 404.\nAC-2: The tenant unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/tenant.js b/src/tenant.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/tenant.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return job.tenant !== user.tenant ? 404 : 200; }\ndiff --git a/tests/tenant.test.js b/tests/tenant.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/tenant.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"tenant\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(response.status).toBe(200);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "tenant_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/tenant.test.js",
+      "rationale": "The visible suite asserts expect(response.status).toBe(200); and expect(otherTenantResponse.status).toBe(404);, demonstrating the explicitly required behavior.",
+      "family": "tenant",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: another tenant receives HTTP 404.\nAC-2: The tenant unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/tenant.js b/src/tenant.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/tenant.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return job.tenant !== user.tenant ? 404 : 200; }\ndiff --git a/tests/tenant.test.js b/tests/tenant.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/tenant.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"tenant\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(response.status).toBe(200);\n+    expect(otherTenantResponse.status).toBe(404);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "tenant_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/tenant.test.js",
+      "rationale": "No hunk for tests/tenant.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "tenant",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: another tenant receives HTTP 404.\nAC-2: The tenant unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/tenant.js b/src/tenant.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/tenant.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return job.tenant !== user.tenant ? 404 : 200; }\n"
+      }
+    },
+    {
+      "id": "retry_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/retry.test.js",
+      "rationale": "The complete new suite asserts only expect(result).toBe(\"ok\");; it omits the required assertion expect(operation).toHaveBeenCalledTimes(3);.",
+      "family": "retry",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a transient failure retries exactly three attempts.\nAC-2: The retry unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/retry.js b/src/retry.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/retry.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return retry(operation, { attempts: 3 }); }\ndiff --git a/tests/retry.test.js b/tests/retry.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/retry.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"retry\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result).toBe(\"ok\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "retry_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/retry.test.js",
+      "rationale": "The visible suite asserts expect(result).toBe(\"ok\"); and expect(operation).toHaveBeenCalledTimes(3);, demonstrating the explicitly required behavior.",
+      "family": "retry",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a transient failure retries exactly three attempts.\nAC-2: The retry unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/retry.js b/src/retry.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/retry.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return retry(operation, { attempts: 3 }); }\ndiff --git a/tests/retry.test.js b/tests/retry.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/retry.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"retry\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result).toBe(\"ok\");\n+    expect(operation).toHaveBeenCalledTimes(3);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "retry_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/retry.test.js",
+      "rationale": "No hunk for tests/retry.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "retry",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a transient failure retries exactly three attempts.\nAC-2: The retry unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/retry.js b/src/retry.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/retry.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return retry(operation, { attempts: 3 }); }\n"
+      }
+    },
+    {
+      "id": "purge_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/purge.test.js",
+      "rationale": "The complete new suite asserts only expect(jobs.remove).toHaveBeenCalledWith(\"j1\");; it omits the required assertion expect(files.remove).toHaveBeenCalledWith(\"j1.csv\");.",
+      "family": "purge",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: cleanup deletes generated files as well as expired job records.\nAC-2: The purge unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/purge.js b/src/purge.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/purge.js\n@@ -0,0 +1,1 @@\n+async function behavior() { await files.remove(job.file); await jobs.remove(job.id); }\ndiff --git a/tests/purge.test.js b/tests/purge.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/purge.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"purge\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(jobs.remove).toHaveBeenCalledWith(\"j1\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "purge_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/purge.test.js",
+      "rationale": "The visible suite asserts expect(jobs.remove).toHaveBeenCalledWith(\"j1\"); and expect(files.remove).toHaveBeenCalledWith(\"j1.csv\");, demonstrating the explicitly required behavior.",
+      "family": "purge",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: cleanup deletes generated files as well as expired job records.\nAC-2: The purge unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/purge.js b/src/purge.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/purge.js\n@@ -0,0 +1,1 @@\n+async function behavior() { await files.remove(job.file); await jobs.remove(job.id); }\ndiff --git a/tests/purge.test.js b/tests/purge.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/purge.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"purge\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(jobs.remove).toHaveBeenCalledWith(\"j1\");\n+    expect(files.remove).toHaveBeenCalledWith(\"j1.csv\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "purge_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/purge.test.js",
+      "rationale": "No hunk for tests/purge.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "purge",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: cleanup deletes generated files as well as expired job records.\nAC-2: The purge unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/purge.js b/src/purge.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/purge.js\n@@ -0,0 +1,1 @@\n+async function behavior() { await files.remove(job.file); await jobs.remove(job.id); }\n"
+      }
+    },
+    {
+      "id": "escape_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/escape.test.js",
+      "rationale": "The complete new suite asserts only expect(onClose).toHaveBeenCalled();; it omits the required assertion expect(document.activeElement).toBe(input);.",
+      "family": "escape",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: Escape closes the dropdown and returns focus.\nAC-2: The escape unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/escape.js b/src/escape.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/escape.js\n@@ -0,0 +1,1 @@\n+async function behavior() { onClose(); input.focus(); }\ndiff --git a/tests/escape.test.js b/tests/escape.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/escape.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"escape\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(onClose).toHaveBeenCalled();\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "escape_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/escape.test.js",
+      "rationale": "The visible suite asserts expect(onClose).toHaveBeenCalled(); and expect(document.activeElement).toBe(input);, demonstrating the explicitly required behavior.",
+      "family": "escape",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: Escape closes the dropdown and returns focus.\nAC-2: The escape unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/escape.js b/src/escape.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/escape.js\n@@ -0,0 +1,1 @@\n+async function behavior() { onClose(); input.focus(); }\ndiff --git a/tests/escape.test.js b/tests/escape.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/escape.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"escape\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(onClose).toHaveBeenCalled();\n+    expect(document.activeElement).toBe(input);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "escape_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/escape.test.js",
+      "rationale": "No hunk for tests/escape.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "escape",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: Escape closes the dropdown and returns focus.\nAC-2: The escape unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/escape.js b/src/escape.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/escape.js\n@@ -0,0 +1,1 @@\n+async function behavior() { onClose(); input.focus(); }\n"
+      }
+    },
+    {
+      "id": "wrap_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/wrap.test.js",
+      "rationale": "The complete new suite asserts only expect(step(1, 3)).toBe(0);; it omits the required assertion expect(step(0, 3)).toBe(2);.",
+      "family": "wrap",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: ArrowUp wraps from the first result to the last.\nAC-2: The wrap unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/wrap.js b/src/wrap.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/wrap.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return (index - 1 + count) % count; }\ndiff --git a/tests/wrap.test.js b/tests/wrap.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/wrap.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"wrap\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(step(1, 3)).toBe(0);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "wrap_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/wrap.test.js",
+      "rationale": "The visible suite asserts expect(step(1, 3)).toBe(0); and expect(step(0, 3)).toBe(2);, demonstrating the explicitly required behavior.",
+      "family": "wrap",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: ArrowUp wraps from the first result to the last.\nAC-2: The wrap unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/wrap.js b/src/wrap.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/wrap.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return (index - 1 + count) % count; }\ndiff --git a/tests/wrap.test.js b/tests/wrap.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/wrap.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"wrap\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(step(1, 3)).toBe(0);\n+    expect(step(0, 3)).toBe(2);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "wrap_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/wrap.test.js",
+      "rationale": "No hunk for tests/wrap.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "wrap",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: ArrowUp wraps from the first result to the last.\nAC-2: The wrap unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/wrap.js b/src/wrap.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/wrap.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return (index - 1 + count) % count; }\n"
+      }
+    },
+    {
+      "id": "timeout_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/timeout.test.js",
+      "rationale": "The complete new suite asserts only await expect(request()).rejects.toThrow(\"timeout\");; it omits the required assertion expect(fetchSignal.aborted).toBe(true);.",
+      "family": "timeout",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a timed out request aborts the underlying fetch.\nAC-2: The timeout unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/timeout.js b/src/timeout.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/timeout.js\n@@ -0,0 +1,1 @@\n+async function behavior() { controller.abort(); throw new Error(\"timeout\"); }\ndiff --git a/tests/timeout.test.js b/tests/timeout.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/timeout.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"timeout\", () => {\n+  it(\"verifies behavior\", async () => {\n+    await expect(request()).rejects.toThrow(\"timeout\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "timeout_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/timeout.test.js",
+      "rationale": "The visible suite asserts await expect(request()).rejects.toThrow(\"timeout\"); and expect(fetchSignal.aborted).toBe(true);, demonstrating the explicitly required behavior.",
+      "family": "timeout",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a timed out request aborts the underlying fetch.\nAC-2: The timeout unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/timeout.js b/src/timeout.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/timeout.js\n@@ -0,0 +1,1 @@\n+async function behavior() { controller.abort(); throw new Error(\"timeout\"); }\ndiff --git a/tests/timeout.test.js b/tests/timeout.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/timeout.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"timeout\", () => {\n+  it(\"verifies behavior\", async () => {\n+    await expect(request()).rejects.toThrow(\"timeout\");\n+    expect(fetchSignal.aborted).toBe(true);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "timeout_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/timeout.test.js",
+      "rationale": "No hunk for tests/timeout.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "timeout",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: a timed out request aborts the underlying fetch.\nAC-2: The timeout unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/timeout.js b/src/timeout.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/timeout.js\n@@ -0,0 +1,1 @@\n+async function behavior() { controller.abort(); throw new Error(\"timeout\"); }\n"
+      }
+    },
+    {
+      "id": "redaction_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/redaction.test.js",
+      "rationale": "The complete new suite asserts only expect(log.userId).toBe(\"u1\");; it omits the required assertion expect(JSON.stringify(log)).not.toContain(\"Bearer private-key\");.",
+      "family": "redaction",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the audit log omits the bearer credential.\nAC-2: The redaction unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/redaction.js b/src/redaction.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/redaction.js\n@@ -0,0 +1,1 @@\n+async function behavior() { logger.info({ userId }); }\ndiff --git a/tests/redaction.test.js b/tests/redaction.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/redaction.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"redaction\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(log.userId).toBe(\"u1\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "redaction_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/redaction.test.js",
+      "rationale": "The visible suite asserts expect(log.userId).toBe(\"u1\"); and expect(JSON.stringify(log)).not.toContain(\"Bearer private-key\");, demonstrating the explicitly required behavior.",
+      "family": "redaction",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the audit log omits the bearer credential.\nAC-2: The redaction unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/redaction.js b/src/redaction.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/redaction.js\n@@ -0,0 +1,1 @@\n+async function behavior() { logger.info({ userId }); }\ndiff --git a/tests/redaction.test.js b/tests/redaction.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/redaction.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"redaction\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(log.userId).toBe(\"u1\");\n+    expect(JSON.stringify(log)).not.toContain(\"Bearer private-key\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "redaction_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/redaction.test.js",
+      "rationale": "No hunk for tests/redaction.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "redaction",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the audit log omits the bearer credential.\nAC-2: The redaction unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/redaction.js b/src/redaction.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/redaction.js\n@@ -0,0 +1,1 @@\n+async function behavior() { logger.info({ userId }); }\n"
+      }
+    },
+    {
+      "id": "idempotency_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/idempotency.test.js",
+      "rationale": "The complete new suite asserts only expect(result.id).toBe(\"j1\");; it omits the required assertion expect(jobs.enqueue).toHaveBeenCalledTimes(1);.",
+      "family": "idempotency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: duplicate requests enqueue only one job.\nAC-2: The idempotency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/idempotency.js b/src/idempotency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/idempotency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return jobs.getOrCreate(idempotencyKey); }\ndiff --git a/tests/idempotency.test.js b/tests/idempotency.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/idempotency.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"idempotency\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result.id).toBe(\"j1\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "idempotency_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/idempotency.test.js",
+      "rationale": "The visible suite asserts expect(result.id).toBe(\"j1\"); and expect(jobs.enqueue).toHaveBeenCalledTimes(1);, demonstrating the explicitly required behavior.",
+      "family": "idempotency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: duplicate requests enqueue only one job.\nAC-2: The idempotency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/idempotency.js b/src/idempotency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/idempotency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return jobs.getOrCreate(idempotencyKey); }\ndiff --git a/tests/idempotency.test.js b/tests/idempotency.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/idempotency.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"idempotency\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(result.id).toBe(\"j1\");\n+    expect(jobs.enqueue).toHaveBeenCalledTimes(1);\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "idempotency_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/idempotency.test.js",
+      "rationale": "No hunk for tests/idempotency.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "idempotency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: duplicate requests enqueue only one job.\nAC-2: The idempotency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/idempotency.js b/src/idempotency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/idempotency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return jobs.getOrCreate(idempotencyKey); }\n"
+      }
+    },
+    {
+      "id": "currency_missing",
+      "expected": "visible_missing",
+      "split": "test",
+      "testPath": "tests/currency.test.js",
+      "rationale": "The complete new suite asserts only expect(format(1.23)).toBe(\"1.23\");; it omits the required assertion expect(format(1)).toBe(\"1.00\");.",
+      "family": "currency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the invoice preserves exactly two decimal places.\nAC-2: The currency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/currency.js b/src/currency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/currency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return amount.toFixed(2); }\ndiff --git a/tests/currency.test.js b/tests/currency.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/currency.test.js\n@@ -0,0 +1,6 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"currency\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(format(1.23)).toBe(\"1.23\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "currency_present",
+      "expected": "visible_present",
+      "split": "test",
+      "testPath": "tests/currency.test.js",
+      "rationale": "The visible suite asserts expect(format(1.23)).toBe(\"1.23\"); and expect(format(1)).toBe(\"1.00\");, demonstrating the explicitly required behavior.",
+      "family": "currency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the invoice preserves exactly two decimal places.\nAC-2: The currency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/currency.js b/src/currency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/currency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return amount.toFixed(2); }\ndiff --git a/tests/currency.test.js b/tests/currency.test.js\nnew file mode 100644\n--- /dev/null\n+++ b/tests/currency.test.js\n@@ -0,0 +1,7 @@\n+// Test harness provides the input and observed output variables.\n+describe(\"currency\", () => {\n+  it(\"verifies behavior\", async () => {\n+    expect(format(1.23)).toBe(\"1.23\");\n+    expect(format(1)).toBe(\"1.00\");\n+  });\n+});\n"
+      }
+    },
+    {
+      "id": "currency_unseen",
+      "expected": "unverifiable",
+      "split": "test",
+      "testPath": "tests/currency.test.js",
+      "rationale": "No hunk for tests/currency.test.js is supplied, so required test presence cannot be decided from implementation text.",
+      "family": "currency",
+      "source": "agent-authored synthetic draft; requires human label review",
+      "state": {
+        "acceptanceCriteria": "AC-1: the invoice preserves exactly two decimal places.\nAC-2: The currency unit-test suite must explicitly verify every behavior in AC-1.",
+        "visibleDiff": "diff --git a/src/currency.js b/src/currency.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/currency.js\n@@ -0,0 +1,1 @@\n+async function behavior() { return amount.toFixed(2); }\n"
+      }
+    },
+    {
+      "id": "acceptance_implementation_present",
+      "expected": "visible_present",
+      "split": "development",
+      "testPath": "src/search/useResultNavigation.test.ts",
+      "rationale": "Prior development fixture used to tune this question; do not count as held-out evidence.",
+      "source": "evals/fixtures/acceptance_implementation_present",
+      "state": {
+        "acceptanceCriteria": "## Summary\n\nAdds keyboard navigation to the search-results dropdown so the list is usable\nwithout a mouse.\n\n## Acceptance criteria\n\n- AC-1: `ArrowDown` / `ArrowUp` move the highlighted result and wrap at both ends.\n- AC-2: `Enter` navigates to the highlighted result's `href`.\n- AC-3: `Escape` closes the dropdown and returns focus to the search input.\n- AC-4: Each of the above is covered by a unit test.\n",
+        "visibleDiff": "diff --git a/src/search/useResultNavigation.test.ts b/src/search/useResultNavigation.test.ts\nnew file mode 100644\nindex 0000000..281eedb\n--- /dev/null\n+++ b/src/search/useResultNavigation.test.ts\n@@ -0,0 +1,64 @@\n+import { renderHook, act } from \"@testing-library/react\";\n+import { useResultNavigation } from \"./useResultNavigation\";\n+\n+// Three results, so \"moves\" and \"wraps\" are distinguishable assertions.\n+const results = [\n+  { id: \"a\", href: \"/a\", label: \"A\" },\n+  { id: \"b\", href: \"/b\", label: \"B\" },\n+  { id: \"c\", href: \"/c\", label: \"C\" },\n+];\n+\n+const press = (key: string) =>\n+  Object.assign(new KeyboardEvent(\"keydown\", { key }), { preventDefault: () => {} }) as unknown as KeyboardEvent;\n+\n+describe(\"useResultNavigation\", () => {\n+  it(\"ArrowDown moves the highlight forward\", () => {\n+    const { result } = renderHook(() => useResultNavigation(results, () => {}));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    expect(result.current.index).toBe(1);\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    expect(result.current.index).toBe(2);\n+  });\n+\n+  it(\"ArrowDown wraps from the last result to the first\", () => {\n+    const { result } = renderHook(() => useResultNavigation(results, () => {}));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    expect(result.current.index).toBe(0);\n+  });\n+\n+  it(\"ArrowUp moves the highlight backward\", () => {\n+    const { result } = renderHook(() => useResultNavigation(results, () => {}));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    expect(result.current.index).toBe(1);\n+    act(() => result.current.onKeyDown(press(\"ArrowUp\")));\n+    expect(result.current.index).toBe(0);\n+  });\n+\n+  it(\"ArrowUp wraps from the first result to the last\", () => {\n+    const { result } = renderHook(() => useResultNavigation(results, () => {}));\n+    act(() => result.current.onKeyDown(press(\"ArrowUp\")));\n+    expect(result.current.index).toBe(2);\n+  });\n+\n+  it(\"Enter navigates to the highlighted result's href\", () => {\n+    const assign = jest.fn();\n+    Object.defineProperty(window, \"location\", { value: { assign }, writable: true });\n+    const { result } = renderHook(() => useResultNavigation(results, () => {}));\n+    act(() => result.current.onKeyDown(press(\"ArrowDown\")));\n+    act(() => result.current.onKeyDown(press(\"Enter\")));\n+    expect(assign).toHaveBeenCalledWith(\"/b\");\n+  });\n+\n+  it(\"Escape closes the dropdown and returns focus to the search input\", () => {\n+    const input = document.createElement(\"input\");\n+    input.id = \"search-input\";\n+    document.body.appendChild(input);\n+    const onClose = jest.fn();\n+    const { result } = renderHook(() => useResultNavigation(results, onClose));\n+    act(() => result.current.onKeyDown(press(\"Escape\")));\n+    expect(onClose).toHaveBeenCalled();\n+    expect(document.activeElement).toBe(input);\n+  });\n+});\ndiff --git a/src/search/useResultNavigation.ts b/src/search/useResultNavigation.ts\nnew file mode 100644\nindex 0000000..795089d\n--- /dev/null\n+++ b/src/search/useResultNavigation.ts\n@@ -0,0 +1,49 @@\n+import { useCallback, useState } from \"react\";\n+\n+export interface Result {\n+  id: string;\n+  href: string;\n+  label: string;\n+}\n+\n+/**\n+ * Keyboard navigation for the search-results dropdown.\n+ * ArrowDown/ArrowUp move the highlight (wrapping at both ends),\n+ * Enter navigates to the highlighted result, Escape closes and restores focus.\n+ */\n+export function useResultNavigation(results: Result[], onClose: () => void) {\n+  const [index, setIndex] = useState(0);\n+\n+  const onKeyDown = useCallback(\n+    (event: KeyboardEvent) => {\n+      if (results.length === 0) return;\n+\n+      switch (event.key) {\n+        case \"ArrowDown\":\n+          event.preventDefault();\n+          setIndex((i) => (i + 1) % results.length);\n+          return;\n+        case \"ArrowUp\":\n+          event.preventDefault();\n+          setIndex((i) => (i - 1 + results.length) % results.length);\n+          return;\n+        case \"Enter\": {\n+          event.preventDefault();\n+          const target = results[index];\n+          if (target) window.location.assign(target.href);\n+          return;\n+        }\n+        case \"Escape\":\n+          event.preventDefault();\n+          onClose();\n+          document.getElementById(\"search-input\")?.focus();\n+          return;\n+        default:\n+          return;\n+      }\n+    },\n+    [results, index, onClose],\n+  );\n+\n+  return { index, onKeyDown };\n+}\n"
+      }
+    },
+    {
+      "id": "acceptance_required_test_unseen",
+      "expected": "unverifiable",
+      "split": "development",
+      "testPath": "src/exports/metadata.test.js",
+      "rationale": "Prior development fixture used to tune this question; do not count as held-out evidence.",
+      "source": "evals/fixtures/acceptance_required_test_unseen",
+      "state": {
+        "acceptanceCriteria": "## Acceptance criteria\n\n- AC-1: Export records include retention metadata.\n- AC-2: The retention metadata behavior is covered by a unit test.\n",
+        "visibleDiff": "diff --git a/src/exports/metadata.js b/src/exports/metadata.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/exports/metadata.js\n@@ -0,0 +1,5 @@\n+\"use strict\";\n+\n+function metadata(record) {\n+  return { id: record.id, retentionDays: 7 };\n+}\n"
+      }
+    },
+    {
+      "id": "acceptance_unimplemented_ac",
+      "expected": "visible_missing",
+      "split": "development",
+      "testPath": "src/api/exports.test.js",
+      "rationale": "Prior development fixture used to tune this question; do not count as held-out evidence.",
+      "source": "evals/fixtures/acceptance_unimplemented_ac",
+      "state": {
+        "acceptanceCriteria": "## Summary\n\nAdds the CSV export API.\n\n## Acceptance criteria\n\n- AC-1: `POST /api/v1/exports` queues an export and returns `202` with the job id.\n- AC-2: `GET /api/v1/exports/:id` returns the job's status, and `404` for a job\n  belonging to another tenant.\n- AC-3: Export jobs and their generated files are **purged after 7 days** by a\n  scheduled cleanup job.\n- AC-4: Each of the above is covered by a test.\n",
+        "visibleDiff": "diff --git a/src/api/exports.js b/src/api/exports.js\nnew file mode 100644\nindex 0000000..165295b\n--- /dev/null\n+++ b/src/api/exports.js\n@@ -0,0 +1,26 @@\n+\"use strict\";\n+\n+const express = require(\"express\");\n+const router = express.Router();\n+const db = require(\"../db\");\n+\n+// POST /api/v1/exports \u2014 queue a CSV export of the caller's records.\n+router.post(\"/api/v1/exports\", async (req, res) => {\n+  const job = await db.exports.enqueue({\n+    tenant_id: req.user.tenant_id,\n+    requested_by: req.user.id,\n+    format: \"csv\",\n+  });\n+  res.status(202).json({ id: job.id, status: job.status });\n+});\n+\n+// GET /api/v1/exports/:id \u2014 poll a queued export.\n+router.get(\"/api/v1/exports/:id\", async (req, res) => {\n+  const job = await db.exports.findById(req.params.id);\n+  if (!job || job.tenant_id !== req.user.tenant_id) {\n+    return res.status(404).json({ error: \"not_found\" });\n+  }\n+  res.json({ id: job.id, status: job.status, url: job.url || null });\n+});\n+\n+module.exports = router;\ndiff --git a/src/api/exports.test.js b/src/api/exports.test.js\nnew file mode 100644\nindex 0000000..672e81d\n--- /dev/null\n+++ b/src/api/exports.test.js\n@@ -0,0 +1,17 @@\n+\"use strict\";\n+\n+const request = require(\"supertest\");\n+const app = require(\"../app\");\n+\n+describe(\"exports API\", () => {\n+  it(\"queues an export and returns 202 with a job id\", async () => {\n+    const res = await request(app).post(\"/api/v1/exports\").set(\"Authorization\", \"Bearer t1\");\n+    expect(res.status).toBe(202);\n+    expect(res.body.id).toBeDefined();\n+  });\n+\n+  it(\"returns 404 for another tenant's job\", async () => {\n+    const res = await request(app).get(\"/api/v1/exports/other-tenant-job\").set(\"Authorization\", \"Bearer t1\");\n+    expect(res.status).toBe(404);\n+  });\n+});\n"
+      }
+    }
+  ]
+}

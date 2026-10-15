@@ -1,0 +1,8 @@
+{
+  "class": "must-not-block",
+  "smoke": false,
+  "pr_title": "feat(exports): add retention metadata",
+  "guards": "The PR body requires a retention metadata test, but no test file or test hunk is in the complete diff. The correct evidence decision is unverifiable: absence from an unseen test suite is not proof the required test is missing.",
+  "jev_required_test": "unverifiable",
+  "lenses": { "acceptance": { "block": false } }
+}

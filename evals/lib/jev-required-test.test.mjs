@@ -48,3 +48,12 @@ test('state never includes eval expectations or guards', () => {
  const state=buildState({prBody:'AC-1: test status',diff:'diff text',expected:'visible_missing',guards:'secret eval description'});
  assert.deepEqual(state,{acceptanceCriteria:'AC-1: test status',visibleDiff:'diff text'});
 });
+test('a boundary probability lands in exactly one calibration bin',()=>{
+ const p={visible_missing:0.6,visible_present:0.4,unverifiable:0};
+ const bins=scoreDecisions([{id:'a',expected:'visible_missing',actual:'visible_missing',probabilities:p}]).calibrationBins;
+ assert.deepEqual(bins.map(b=>[b.low,b.high,b.count]),[[0,0.2,0],[0.2,0.4,0],[0.4,0.6,0],[0.6,0.8,1],[0.8,1,0]]);
+});
+test('stability ignores failed reps and has no denominator when every rep failed',()=>{
+ assert.equal(scoreDecisions([{id:'a',expected:'unverifiable',actual:'unverifiable'},{id:'a',expected:'unverifiable',error:'OpenRouter HTTP 429'}]).stableCaseRate,1);
+ assert.equal(scoreDecisions([{id:'a',expected:'unverifiable',error:'timeout'}]).stableCaseRate,null);
+});

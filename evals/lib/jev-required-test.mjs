@@ -26,7 +26,7 @@ export function scoreDecisions(rows) {
   const unknown = valid.filter(r=>r.expected === 'unverifiable');
   const calibrated = valid.filter(r=>r.probabilities);
   const groups = new Map();
-  for(const r of rows) {
+  for(const r of valid) {
     if(!r.id) continue;
     if(!groups.has(r.id)) groups.set(r.id,[]);
     groups.get(r.id).push(r);
@@ -39,10 +39,11 @@ export function scoreDecisions(rows) {
     falseMissingRate:ratio(unsafe.length,valid.length-missing.length),
     unverifiableRecall:ratio(unknown.filter(r=>r.actual==='unverifiable').length,unknown.length),
     brierScore:ratio(calibrated.reduce((sum,r)=>sum+LABELS.reduce((s,k)=>s+(r.probabilities[k]-(k===r.expected?1:0))**2,0),0),calibrated.length),
-    stableCaseRate:ratio([...groups.values()].filter(rs=>rs.length>0 && rs.every(r=>!r.error && r.actual===rs[0].actual)).length,groups.size),
-    calibrationBins:[0,0.2,0.4,0.6,0.8].map(low=>{
-      const bin=calibrated.filter(r=>r.probabilities[r.actual]>=low && (low===0.8 || r.probabilities[r.actual]<low+0.2));
-      return {low,high:low+0.2,count:bin.length,meanProbability:ratio(bin.reduce((s,r)=>s+r.probabilities[r.actual],0),bin.length),accuracy:ratio(bin.filter(r=>r.actual===r.expected).length,bin.length)};
+    stableCaseRate:ratio([...groups.values()].filter(rs=>rs.every(r=>r.actual===rs[0].actual)).length,groups.size),
+    calibrationBins:[0,1,2,3,4].map(i=>{
+      const low=i/5,high=(i+1)/5;
+      const bin=calibrated.filter(r=>Math.min(4,Math.floor(r.probabilities[r.actual]*5))===i);
+      return {low,high,count:bin.length,meanProbability:ratio(bin.reduce((s,r)=>s+r.probabilities[r.actual],0),bin.length),accuracy:ratio(bin.filter(r=>r.actual===r.expected).length,bin.length)};
     })};
 }
 export function validateManifest(cases) {

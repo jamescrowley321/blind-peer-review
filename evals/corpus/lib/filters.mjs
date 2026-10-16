@@ -33,7 +33,7 @@ const ACCEPTANCE = /acceptance criteria|^\s*(?:[-*]\s*)?(?:\[[ xX]\]\s*)?\**AC[-
 
 // What a policy finding says when its only complaint is the unticked
 // human-accountability or AI-provenance box rather than anything in the code.
-const ACCOUNTABILITY = /accountab|human (?:has )?review|attest|check ?box|provenance disclosure|AI[- ]assist/i;
+const ACCOUNTABILITY = /accountab|human[- ](?:has )?review|attest|check ?box|provenance disclosure|discloses the harness|AI[- ]assist/i;
 const POLICY_LENS = /polic|compliance/i;
 
 /** Per-file added/removed line counts from a unified diff. */
@@ -63,6 +63,12 @@ export function isPolicyOnlyBlock(outputs) {
   const blocking = outputs.filter((o) => o.verdict === "BLOCK" || o.severity === "MUST FIX");
   if (!blocking.length) return false;
   return blocking.every((o) => {
+    // A summary table: every BLOCK row must be a policy lens whose row (or the
+    // comment) shows the complaint is the accountability box.
+    if (o.lensVerdicts?.length) {
+      const rows = o.lensVerdicts.filter((r) => r.verdict === "BLOCK");
+      return rows.length > 0 && rows.every((r) => POLICY_LENS.test(r.lens)) && rows.every((r) => ACCOUNTABILITY.test(r.text) || ACCOUNTABILITY.test(o.body));
+    }
     if (!POLICY_LENS.test(o.lens ?? "")) return false;
     const texts = mustFixTexts(o);
     return texts.length > 0 && texts.every((t) => ACCOUNTABILITY.test(t));

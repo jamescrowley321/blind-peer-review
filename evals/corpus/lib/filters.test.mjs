@@ -71,7 +71,7 @@ test("the CLI stage skips harvest metadata files and refuses to overwrite its ou
   writeFileSync(join(inDir, "harvest-summary.json"), JSON.stringify({ source: "x" }));
   writeFileSync(join(inDir, "id-map.json"), JSON.stringify({}));
   const out = join(dir, "out");
-  assert.deepEqual(filterDirectory(inDir, out), { snapshots: 1, rounds: 1, accepted: 1, rejectedBy: {}, notes: {}, acceptedFlags: {} });
+  assert.deepEqual(filterDirectory(inDir, out), { snapshots: 1, skipped: 0, rounds: 1, accepted: 1, rejectedBy: {}, notes: {}, acceptedFlags: {} });
   assert.equal(readFileSync(join(out, "decisions.jsonl"), "utf8").trim().split("\n").length, 1);
   assert.throws(() => filterDirectory(inDir, out), /Refusing to overwrite/);
 });
@@ -82,4 +82,21 @@ test("a summary table blocked only by the policy row on the accountability box i
   assert.equal(isPolicyOnlyBlock([table(" 1 | AI-assisted PR discloses the harness but not the model and omits the human-review box")]), true);
   assert.equal(isPolicyOnlyBlock([table(" 1 | committed .env with a live key")]), false);
   assert.equal(isPolicyOnlyBlock([table(" 1 | omits the accountability box", [{ lens: "Red Team", verdict: "BLOCK", text: "" }])]), false);
+});
+
+test("review findings fixed: terse policy rows need every MUST FIX item to be the box; real policy findings never count", () => {
+  const row = { lens: "Policy & Provenance", verdict: "BLOCK", text: " 2 | 0 |" };
+  const mixed = lensOut({ pipeline: "bpr-summary-comment", lens: null, verdict: "BLOCK", lensVerdicts: [row],
+    body: "### MUST FIX\n- committed .env with live key\n- human accountability box unchecked\n### SHOULD FIX" });
+  const boxOnly = { ...mixed, body: "### MUST FIX\n**Policy & Provenance** — `- [ ] A human has reviewed this change and is accountable for it`\n> the accountability box remains unchecked\n### NITPICK" };
+  assert.equal(isPolicyOnlyBlock([mixed]), false);
+  assert.equal(isPolicyOnlyBlock([boxOnly]), true);
+  const slsa = lensOut({ pipeline: "pi-lens-json-comment", lens: "Compliance Auditor", verdict: "BLOCK", findings: [{ severity: "MUST FIX", detail: "Build provenance attestation is no longer generated" }] });
+  const checkbox = lensOut({ lens: "Policy & Provenance", verdict: "BLOCK", body: "- [MUST FIX] `ui/Form.tsx:3` — the consent check box is pre-ticked" });
+  assert.equal(isPolicyOnlyBlock([slsa]), false);
+  assert.equal(isPolicyOnlyBlock([checkbox]), false);
+});
+
+test("hand-written build/ and dist/ sources are not generated output", () => {
+  assert.deepEqual(decide(round({ diff: "diff --git a/build/ci/Dockerfile b/build/ci/Dockerfile\n+x\n" })).reasons, []);
 });

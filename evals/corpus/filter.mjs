@@ -15,14 +15,17 @@ export function filterDirectory(inDir, outDir) {
   if (existsSync(outDir)) throw new Error(`Refusing to overwrite ${outDir}; use a new directory`);
   const files = readdirSync(inDir).filter((f) => f.endsWith(".json") && !["id-map.json", "harvest-summary.json"].includes(f)).sort();
   const decisions = [];
+  let snapshots = 0;
+  let skipped = 0;
   for (const file of files) {
     const snapshot = JSON.parse(readFileSync(join(inDir, file), "utf8"));
-    if (!Array.isArray(snapshot.rounds) || !snapshot.id) continue;
+    if (!Array.isArray(snapshot.rounds) || !snapshot.id) { skipped++; continue; }
+    snapshots++;
     decisions.push(...filterSnapshot(snapshot));
   }
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, "decisions.jsonl"), decisions.map((d) => JSON.stringify(d)).join("\n") + (decisions.length ? "\n" : ""));
-  const summary = { snapshots: files.length, ...summarize(decisions) };
+  const summary = { snapshots, skipped, ...summarize(decisions) };
   writeFileSync(join(outDir, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
   return summary;
 }

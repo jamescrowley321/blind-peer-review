@@ -16,7 +16,7 @@ test("each catalogued format is detected with role, lens and verdict", () => {
     [o("comment", "github-actions", '```json\n{ "lens": "Sentinel", "summary": "s", "findings": [] }\n```' + FOOTER), ["pi-lens-json-comment", "review", "Sentinel", "PASS"]],
     [o("comment", "github-actions", 'I\'ll fetch the diff.{"lens":"Viper","findings":[{"severity":"MUST FIX"}]}' + FOOTER), ["pi-lens-json-comment", "review", "Viper", "BLOCK"]],
     [o("comment", "github-actions", "✅ Agent session completed" + FOOTER), ["pi-agent-session-comment", "telemetry", null, null]],
-    [o("comment", "claude", "**Claude finished @x's task in 4m 44s** —— [View job](https://github.com/o/r/actions/runs/1)\n**Verdict: no blocking defects found.**"), ["claude-action-job", "review", null, "no blocking defects found."]],
+    [o("comment", "claude", "**Claude finished @x's task in 4m 44s** —— [View job](https://github.com/o/r/actions/runs/1)\n**Verdict: no blocking defects found.**"), ["claude-action-job", "review", null, null]],
     [o("comment", "jamescrowley321", "## Blind peer review — Cold Read (#752, round 2)\nReviewer: codex, head `c38d87e`.\n**Verdict:** PASS: 0 finding(s)"), ["bpr-local-per-lens", "review", "Cold Read", "PASS"]],
     [o("comment", "jamescrowley321", "## Blind peer review: Policy & Provenance\n..."), ["bpr-local-per-lens", "review", "Policy & Provenance", null]],
     [o("comment", "jamescrowley321", "# cold_read\nprose"), ["bpr-local-per-lens", "review", "cold_read", null]],
@@ -82,4 +82,20 @@ test("fallback verdicts come from lens tables, MUST FIX sections and verdict wor
   assert.equal(sum("## Adversarial Code Review — PR #1\n### MUST FIX\n- None\n### SHOULD FIX\n- y").verdict, "PASS");
   assert.equal(sum("## Independent review evidence\n**Verdict: approve — no BLOCKER.**").verdict, "PASS");
   assert.equal(sum("## Code Review: REJECT").verdict, "BLOCK");
+});
+
+test("review findings fixed: no false PASS from AC tables or headed findings, empty markers, verdict phrases, base-before-head", () => {
+  const c = (body, author = "jamescrowley321") => classifyReviewOutput(o("comment", author, body));
+  assert.equal(c("## Review: Blind Hunter\n| AC-1 | PASS | ok |\n### MUST FIX\n- token accepted unsigned").verdict, "BLOCK");
+  assert.deepEqual(c("## Review: Blind Hunter\n| AC-1 | PASS | ok |").lensVerdicts, []);
+  assert.equal(c("## Adversarial Code Review\n### MUST FIX\n#### 1. Missing signature check\nThe JWT...\n### SHOULD FIX").verdict, "BLOCK");
+  assert.equal(c("## Adversarial Code Review\n### MUST FIX\n**F1 — Missing signature check**\n### SHOULD FIX").verdict, "BLOCK");
+  for (const empty of ["- _None._", "- **None**", "- N/A", "- No MUST FIX findings", "- Nothing blocking"]) {
+    assert.equal(c(`## Adversarial Code Review\n### MUST FIX\n${empty}\n### SHOULD FIX\n- x`).verdict, "PASS", empty);
+  }
+  assert.equal(c("**Claude finished @x's task**\n**Verdict: BLOCK — 2 MUST FIX**", "claude").verdict, "BLOCK");
+  assert.equal(c("**Claude finished @x's task**\n**Verdict: Changes requested**", "claude").verdict, "BLOCK");
+  assert.equal(c("**Claude finished @x's task**\n**Verdict: no blocking defects found.**", "claude").verdict, null);
+  assert.equal(c("## Blind peer review — Cold Read\nBase: origin/main @1a2b3c4 · Head: feat/x @5d6e7f8").headSha, "5d6e7f8");
+  assert.equal(c("## Blind peer review — Cold Read\nhead 2026101").headSha, null);
 });

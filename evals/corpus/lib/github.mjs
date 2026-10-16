@@ -12,6 +12,26 @@ export async function ghRunner(args) {
   return stdout;
 }
 
+/**
+ * Retry a runner on rate limiting (GitHub's secondary limits trip well before
+ * the hourly quota on a bulk harvest). Backs off 60s, 120s, 240s, … then gives
+ * up so the repo is marked incomplete rather than hanging forever.
+ */
+export function withRateLimitRetry(run, { attempts = 5, baseMs = 60_000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), log = () => {} } = {}) {
+  return async (args) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await run(args);
+      } catch (error) {
+        if (errorCategory(error) !== "rate_limited" || attempt >= attempts) throw error;
+        const wait = baseMs * 2 ** (attempt - 1);
+        log(`rate limited; retry ${attempt}/${attempts - 1} in ${Math.round(wait / 1000)}s`);
+        await sleep(wait);
+      }
+    }
+  };
+}
+
 // Comments/reviews are capped per PR; `truncated` flags record when a cap was
 // hit so a case with missing review outputs is never mistaken for a clean one.
 const PR_FIELDS = `

@@ -17,6 +17,11 @@ const LENS_ID = "cold_read|edge_case|acceptance|security|red_team|policy|owasp_w
 const PI_FOOTER = /\[View action run\]\(([^)]*)\)\s*\|\s*Model:/;
 const RUN_LINK = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+/;
 const TEXT_SHA = /(?<![0-9A-Za-z])(?=[0-9a-f]*[a-f])(?=[0-9a-f]*[0-9])[0-9a-f]{7,40}(?![0-9A-Za-z])/;
+// Local-run comments were hand-written per session, so markers vary:
+// "**Verdict:** PASS", "**Verdict: PASS**", "Verdict: **PASS**"; the head as
+// "head `sha`", "Head: branch @sha", "diff `base...sha`" or "... @ sha".
+const LOCAL_VERDICT = /\bVerdict\b[*:\s]{0,6}(PASS|BLOCK)\b/;
+const LOCAL_HEAD = /(?:\bhead\b(?:[^`\n@]{0,40}[`@]\s*|:?\s+)|\.\.\.|\B@\s?)([0-9a-f]{7,40})\b/i;
 const SEVERITY = /\[(MUST FIX|SHOULD FIX|NITPICK)\]/;
 
 const bot = (login) => (login ?? "").replace(/\[bot\]$/, "");
@@ -97,8 +102,8 @@ const DETECTORS = [
       || new RegExp(`^# (?:${LENS_ID})\\s*$`).test(o.body.split("\n")[0])),
     lens: (o) => first(new RegExp(`^#{1,3} Blind peer review(?:: | — )(${LENS_V2}|${LENS_OW}|${LENS_ID})\\b`, "m"), o.body)
       ?? first(new RegExp(`^# (${LENS_ID})\\s*$`), o.body.split("\n")[0]),
-    verdict: (o) => first(/\*\*Verdict:?\*\*:?\s*(PASS|BLOCK)/, o.body) ?? jsonVerdict(extractLensJson(o.body)),
-    headSha: (o) => first(/head `([0-9a-f]{7,40})`/, o.body),
+    verdict: (o) => first(LOCAL_VERDICT, o.body) ?? jsonVerdict(extractLensJson(o.body)),
+    headSha: (o) => first(LOCAL_HEAD, o.body),
   },
   {
     pipeline: "bpr-summary-comment", role: "review",

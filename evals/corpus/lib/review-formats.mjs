@@ -21,7 +21,13 @@ const TEXT_SHA = /(?<![0-9A-Za-z])(?=[0-9a-f]*[a-f])(?=[0-9a-f]*[0-9])[0-9a-f]{7
 // "**Verdict:** PASS", "**Verdict: PASS**", "Verdict: **PASS**"; the head as
 // "head `sha`", "Head: branch @sha", "diff `base...sha`" or "... @ sha".
 const LOCAL_VERDICT = /\bVerdict\b[*:\s]{0,6}(PASS|BLOCK)\b/;
-const LOCAL_HEAD = /(?:\bhead\b(?:[^`\n@]{0,40}[`@]\s*|:?\s+)|\.\.\.|\B@\s?)([0-9a-f]{7,40})\b/i;
+const HEX = "((?=[0-9a-f]*[a-f])[0-9a-f]{7,40})\\b";
+const LOCAL_HEADS = [
+  new RegExp(`\\bhead\\b(?:[^\`\\n@]{0,40}[\`@]\\s*|:?\\s+)${HEX}`, "i"),
+  new RegExp(`\\.\\.\\.${HEX}`),
+  new RegExp(`\\B@\\s?${HEX}`),
+];
+const localHead = (body) => LOCAL_HEADS.map((re) => first(re, body)).find(Boolean) ?? null;
 const SEVERITY = /\[(MUST FIX|SHOULD FIX|NITPICK)\]/;
 
 const bot = (login) => (login ?? "").replace(/\[bot\]$/, "");
@@ -103,7 +109,7 @@ const DETECTORS = [
     lens: (o) => first(new RegExp(`^#{1,3} Blind peer review(?:: | — )(${LENS_V2}|${LENS_OW}|${LENS_ID})\\b`, "m"), o.body)
       ?? first(new RegExp(`^# (${LENS_ID})\\s*$`), o.body.split("\n")[0]),
     verdict: (o) => first(LOCAL_VERDICT, o.body) ?? jsonVerdict(extractLensJson(o.body)),
-    headSha: (o) => first(LOCAL_HEAD, o.body),
+    headSha: (o) => localHead(o.body),
   },
   {
     pipeline: "bpr-summary-comment", role: "review",
@@ -156,38 +162,73 @@ const DETECTORS = [
 ];
 
 // Fallback verdict readers for formats whose verdict is not in a fixed marker.
-const NORMAL = { PASS: "PASS", APPROVE: "PASS", APPROVED: "PASS", BLOCK: "BLOCK", REJECT: "BLOCK", FAIL: "BLOCK", REQUEST_CHANGES: "BLOCK" };
-const normalize = (v) => (v ? NORMAL[v.toUpperCase()] ?? v : null);
+// Normalise on the leading keyword; anything unrecognised is null so the
+// fallback readers still run instead of a raw phrase standing in for a verdict.
+const VERDICT_WORD = /^\W*(PASS|BLOCK|APPROVE\w*|REJECT\w*|FAIL\w*|REQUEST(?:ED)?[_ ]CHANGES|CHANGES[_ ]REQUESTED)\b/i;
+export function normalize(v) {
+  const word = typeof v === "string" ? v.match(VERDICT_WORD)?.[1]?.toUpperCase() : null;
+  if (!word) return null;
+  if (word === "PASS" || word.startsWith("APPROVE")) return "PASS";
+  return "BLOCK";
+}
 
-/** Rows of a per-lens result table: | Lens | (**)PASS|BLOCK(**) | ... */
+const KNOWN_LENS = new RegExp(`^(?:${LENS_V1}|${LENS_V2}|${LENS_OW}|${LENS_ID}|Compliance|Policy)\\b`, "i");
+
+/** Rows of a per-lens result table whose first cell names a known lens. */
 export function lensTable(body) {
   const rows = [];
   for (const line of body.split("\n")) {
     const m = line.match(/^\|\s*([^|]+?)\s*\|\s*\**\s*(PASS|BLOCK)\b[^|]*\|(.*)$/);
-    if (m && !/^lens$/i.test(m[1])) rows.push({ lens: m[1].replace(/\*/g, "").trim(), verdict: m[2], text: m[3] });
+    const lens = m?.[1].replace(/\*/g, "").trim();
+    if (m && KNOWN_LENS.test(lens)) rows.push({ lens, verdict: m[2], text: m[3] });
   }
   return rows;
 }
 
-/** BLOCK when a MUST FIX heading has items under it; PASS when every one is empty. */
-export function mustFixSectionVerdict(body) {
+const EMPTY_ITEM = /^(none|n\/a|nothing( blocking)?|no (must fix |blocking )?(findings|issues)|-)\b/i;
+const plain = (line) => line.replace(/^\s*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+|>\s*)/, "").replace(/[*_`]/g, "").trim();
+
+/**
+ * Items under every MUST FIX heading. A section runs until the next heading at
+ * the same or a higher level, so findings written as sub-headings or bold
+ * paragraphs count; "none"-style placeholders do not. Returns null when there
+ * is no MUST FIX heading at all.
+ */
+export function mustFixItems(body) {
   const lines = body.split("\n");
-  let seen = false;
+  let items = null;
   for (let i = 0; i < lines.length; i++) {
-    if (!/^#{2,5}\s*MUST FIX\b/i.test(lines[i])) continue;
-    seen = true;
-    for (let j = i + 1; j < lines.length && !/^#{1,5}\s/.test(lines[j]); j++) {
-      const item = lines[j].trim();
-      if (/^([-*]|\d+\.)\s+/.test(item) && !/^([-*]|\d+\.)\s+\(?(none|no findings)/i.test(item)) return "BLOCK";
+    const h = lines[i].match(/^(#{1,6})\s*(?:\*\*)?MUST FIX\b/i);
+    if (!h) continue;
+    items ??= [];
+    let current = null;
+    for (let j = i + 1; j < lines.length; j++) {
+      const sub = lines[j].match(/^(#{1,6})\s/);
+      if (sub && sub[1].length <= h[1].length) break;
+      const text = plain(lines[j]);
+      if (!text) continue;
+      const starts = sub || /^\s*([-*]|\d+[.)])\s+|^\s*\*\*/.test(lines[j]);
+      if (starts || !current) {
+        if (EMPTY_ITEM.test(text)) { current = null; continue; }
+        current = { text };
+        items.push(current);
+      } else current.text += ` ${text}`;
     }
   }
-  return seen ? "PASS" : null;
+  return items;
+}
+
+export function mustFixSectionVerdict(body) {
+  const items = mustFixItems(body);
+  return items === null ? null : items.length ? "BLOCK" : "PASS";
 }
 
 function fallbackVerdict(body) {
+  const section = mustFixSectionVerdict(body);
+  if (section === "BLOCK") return "BLOCK";
   const table = lensTable(body);
   if (table.length) return table.some((r) => r.verdict === "BLOCK") ? "BLOCK" : "PASS";
-  return mustFixSectionVerdict(body) ?? normalize(first(/\bVerdict\b[*:\s]{0,6}(approve|reject|pass|block)\b/i, body));
+  return section ?? normalize(first(/\bVerdict\b[*:\s]{0,6}(approve\w*|reject\w*|pass|block)\b/i, body));
 }
 
 const EXCLUDED = [

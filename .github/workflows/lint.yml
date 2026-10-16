@@ -271,6 +271,11 @@ jobs:
       - name: Unit-test the local codex eval provider
         run: node --test evals/lib/codex-provider.test.mjs
 
+      # Shadow-only Jev evaluator: label parsing, scoring, transport and the
+      # paid-run CLI guards. The call phase is exercised against a stubbed fetch.
+      - name: Unit-test the Jev required-test evidence evaluator
+        run: node --test evals/lib/jev-required-test.test.mjs evals/lib/jev-required-test-client.test.mjs evals/jev-evidence.test.mjs
+
       - name: Syntax-check the codex dispatcher
         run: node --check scripts/dispatch-codex.mjs
 

@@ -22,8 +22,8 @@ test("each catalogued format is detected with role, lens and verdict", () => {
     [o("comment", "jamescrowley321", "# cold_read\nprose"), ["bpr-local-per-lens", "review", "cold_read", null]],
     [o("comment", "jamescrowley321", "## Blind peer review — local run (8 lenses)\ndiff `912bdd6...7b51a39`\n### Verdict: **BLOCK**"), ["bpr-summary-comment", "review", null, "BLOCK"]],
     [o("comment", "jamescrowley321", '{ "lens": "Acceptance Criteria", "summary": "s", "findings": [] }'), ["raw-lens-json-paste", "review", "Acceptance Criteria", "PASS"]],
-    [o("comment", "jamescrowley321", "## Review: Blind Hunter\n\n### MUST FIX\nNo findings."), ["ralph-bmad-lens-paste", "review", "Blind Hunter", null]],
-    [o("comment", "jamescrowley321", "## Code Review: REJECT\n### Layer 1"), ["adversarial-multilayer-summary", "review", null, "REJECT"]],
+    [o("comment", "jamescrowley321", "## Review: Blind Hunter\n\n### MUST FIX\nNo findings."), ["ralph-bmad-lens-paste", "review", "Blind Hunter", "PASS"]],
+    [o("comment", "jamescrowley321", "## Code Review: REJECT\n### Layer 1"), ["adversarial-multilayer-summary", "review", null, "BLOCK"]],
     [o("review", "chatgpt-codex-connector", "### 💡 Codex Review\n**Reviewed commit:** `abc1234`"), ["codex-connector-review", "review", null, null]],
     [o("inline", "chatgpt-codex-connector", "![P1 Badge] **Bug**"), ["codex-connector-inline", "review", null, "BLOCK"]],
     [o("comment", "sonarqubecloud", "**Quality Gate passed**"), ["sonarqube-cloud", "static", null, "PASS"]],
@@ -70,4 +70,16 @@ test("local-run verdict and head markers are read in every hand-written variant"
     ["Base: origin/docs/x, head ea7e969", null, "ea7e969"],
     ["regression from commit `deadbee1`", null, null],
   ]) assert.deepEqual([lc(body).verdict, lc(body).headSha], [verdict, head], body);
+});
+
+test("fallback verdicts come from lens tables, MUST FIX sections and verdict words", () => {
+  const sum = (body, author = "jamescrowley321") => classifyReviewOutput(o("comment", author, body));
+  const table = "## Blind peer review — 8 lenses\n| Lens | Result | MUST FIX |\n| Cold Read | PASS | 0 |\n| Policy & Provenance | **BLOCK** | 1 |";
+  assert.equal(sum(table).verdict, "BLOCK");
+  assert.deepEqual(sum(table).lensVerdicts.map((r) => [r.lens, r.verdict]), [["Cold Read", "PASS"], ["Policy & Provenance", "BLOCK"]]);
+  assert.equal(sum("**Claude finished @x's task** \n### Lens results\n| Lens | Verdict | MUST FIX |\n| Cold Read | PASS | 0 |", "claude").verdict, "PASS");
+  assert.equal(sum("## Adversarial Code Review — PR #1\n### Layer 1\n#### MUST FIX\n1. **Missing tests** — x\n#### SHOULD FIX").verdict, "BLOCK");
+  assert.equal(sum("## Adversarial Code Review — PR #1\n### MUST FIX\n- None\n### SHOULD FIX\n- y").verdict, "PASS");
+  assert.equal(sum("## Independent review evidence\n**Verdict: approve — no BLOCKER.**").verdict, "PASS");
+  assert.equal(sum("## Code Review: REJECT").verdict, "BLOCK");
 });

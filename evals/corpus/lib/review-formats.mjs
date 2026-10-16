@@ -155,6 +155,41 @@ const DETECTORS = [
   { pipeline: "github-code-quality", role: "static", test: (o) => bot(o.author) === "github-code-quality" },
 ];
 
+// Fallback verdict readers for formats whose verdict is not in a fixed marker.
+const NORMAL = { PASS: "PASS", APPROVE: "PASS", APPROVED: "PASS", BLOCK: "BLOCK", REJECT: "BLOCK", FAIL: "BLOCK", REQUEST_CHANGES: "BLOCK" };
+const normalize = (v) => (v ? NORMAL[v.toUpperCase()] ?? v : null);
+
+/** Rows of a per-lens result table: | Lens | (**)PASS|BLOCK(**) | ... */
+export function lensTable(body) {
+  const rows = [];
+  for (const line of body.split("\n")) {
+    const m = line.match(/^\|\s*([^|]+?)\s*\|\s*\**\s*(PASS|BLOCK)\b[^|]*\|(.*)$/);
+    if (m && !/^lens$/i.test(m[1])) rows.push({ lens: m[1].replace(/\*/g, "").trim(), verdict: m[2], text: m[3] });
+  }
+  return rows;
+}
+
+/** BLOCK when a MUST FIX heading has items under it; PASS when every one is empty. */
+export function mustFixSectionVerdict(body) {
+  const lines = body.split("\n");
+  let seen = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^#{2,5}\s*MUST FIX\b/i.test(lines[i])) continue;
+    seen = true;
+    for (let j = i + 1; j < lines.length && !/^#{1,5}\s/.test(lines[j]); j++) {
+      const item = lines[j].trim();
+      if (/^([-*]|\d+\.)\s+/.test(item) && !/^([-*]|\d+\.)\s+\(?(none|no findings)/i.test(item)) return "BLOCK";
+    }
+  }
+  return seen ? "PASS" : null;
+}
+
+function fallbackVerdict(body) {
+  const table = lensTable(body);
+  if (table.length) return table.some((r) => r.verdict === "BLOCK") ? "BLOCK" : "PASS";
+  return mustFixSectionVerdict(body) ?? normalize(first(/\bVerdict\b[*:\s]{0,6}(approve|reject|pass|block)\b/i, body));
+}
+
 const EXCLUDED = [
   /^## 🚀 Pre-release Published/,
   /^🤖 Created releases:/,
@@ -177,7 +212,8 @@ export function classifyReviewOutput(output) {
     pipeline: hit.pipeline,
     role: hit.role,
     lens: hit.lens?.(output) ?? json?.lens ?? null,
-    verdict: hit.verdict?.(output) ?? (hit.json ? jsonVerdict(json) : null),
+    verdict: normalize(hit.verdict?.(output) ?? (hit.json ? jsonVerdict(json) : null)) ?? (hit.role === "review" ? fallbackVerdict(body) : null),
+    lensVerdicts: lensTable(body),
     severity: first(SEVERITY, body),
     findings: json?.findings ?? null,
     headSha: hit.headSha?.(output) ?? null,

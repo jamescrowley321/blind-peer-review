@@ -122,6 +122,7 @@ export function buildSnapshot(pr, { classify, runHeads = {} }) {
       verdict: detection.verdict ?? null,
       severity: detection.severity ?? null,
       findings: detection.findings ?? null,
+      lensVerdicts: detection.lensVerdicts?.length ? detection.lensVerdicts : null,
       runUrl: detection.runUrl ?? null,
     });
   }

@@ -75,3 +75,11 @@ test("the CLI stage skips harvest metadata files and refuses to overwrite its ou
   assert.equal(readFileSync(join(out, "decisions.jsonl"), "utf8").trim().split("\n").length, 1);
   assert.throws(() => filterDirectory(inDir, out), /Refusing to overwrite/);
 });
+
+test("a summary table blocked only by the policy row on the accountability box is policy_only_block", () => {
+  const table = (policyText, extra = []) => lensOut({ pipeline: "bpr-summary-comment", lens: null, verdict: "BLOCK", body: "table",
+    lensVerdicts: [{ lens: "Cold Read", verdict: "PASS", text: "" }, { lens: "Policy & Provenance", verdict: "BLOCK", text: policyText }, ...extra] });
+  assert.equal(isPolicyOnlyBlock([table(" 1 | AI-assisted PR discloses the harness but not the model and omits the human-review box")]), true);
+  assert.equal(isPolicyOnlyBlock([table(" 1 | committed .env with a live key")]), false);
+  assert.equal(isPolicyOnlyBlock([table(" 1 | omits the accountability box", [{ lens: "Red Team", verdict: "BLOCK", text: "" }])]), false);
+});

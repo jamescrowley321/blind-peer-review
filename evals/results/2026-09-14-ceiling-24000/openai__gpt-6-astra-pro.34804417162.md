@@ -100,7 +100,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_non_implementation_pr` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#52, #56) — the Auditor failed four ACs because the PR 'does not contain the workflow files'. The deliverable is the instruction text; the CI work is a separate tracked issue. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor failed four ACs because the PR 'does not contain the workflow files'. The deliverable is the instruction text; the CI work is a separate tracked issue. Ported from #29.
 
 - 2/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
@@ -119,7 +119,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_requirement_invented` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
@@ -419,7 +419,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `truncation_tail_cut_must_not_block` · `acceptance`
 
-> Guards: The truncation coverage hole. #36 named diff_max_lines/diff_max_bytes in the prompt so a lens could recognise a cut-off diff, but nothing proved a lens then behaves — the harness fed every diff inline and complete. Here get_pr_diff's own truncation is reproduced at a 53-line cap, so AC-3's implementation (src/workers/digest.ts) sits entirely below the cut, behind the tool's own '... (truncated at N lines, M more)' marker. Absence of code in a truncated diff is not evidence the code is missing: the lens may say its evidence ran out, but it must not fail AC-3 and block. This is the suspected trigger for the worst production incident on healthcloud-console-web — a 5,855-insertion PR reviewed against a 2,000-line cap and reported as entirely unimplemented. CONFOUND REMOVED (scorecard 34067878814): the fixture originally called db.one() and then defaulted with `row ?? {...}` — db.one throws on zero rows, so the default branch was unreachable and AC-1 was genuinely unimplemented ABOVE the cut. All three reps blocked on that real defect, correctly, and never touched AC-3. The lens was right; the fixture could not measure truncation while it contained an unrelated blocking bug. Changed to db.oneOrNone. This removes an unintended defect, it does not tune an expectation.
+> Guards: The truncation coverage hole. #36 named diff_max_lines/diff_max_bytes in the prompt so a lens could recognise a cut-off diff, but nothing proved a lens then behaves — the harness fed every diff inline and complete. Here get_pr_diff's own truncation is reproduced at a 53-line cap, so AC-3's implementation (src/workers/digest.ts) sits entirely below the cut, behind the tool's own '... (truncated at N lines, M more)' marker. Absence of code in a truncated diff is not evidence the code is missing: the lens may say its evidence ran out, but it must not fail AC-3 and block. This is the suspected trigger for a production incident in a private downstream repository — a 5,855-insertion PR reviewed against a 2,000-line cap and reported as entirely unimplemented. CONFOUND REMOVED (scorecard 34067878814): the fixture originally called db.one() and then defaulted with `row ?? {...}` — db.one throws on zero rows, so the default branch was unreachable and AC-1 was genuinely unimplemented ABOVE the cut. All three reps blocked on that real defect, correctly, and never touched AC-3. The lens was right; the fixture could not measure truncation while it contained an unrelated blocking bug. Changed to db.oneOrNone. This removes an unintended defect, it does not tune an expectation.
 
 - 3/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}

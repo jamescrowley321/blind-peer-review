@@ -5,7 +5,7 @@ index 1111111..2222222 100644
 @@ -0,0 +50,9 @@ Take the first pending row whose dependencies are done.
 +## FIRST TASK — the CI baseline
 +
-+Start with "Fix the console-web build, lint and test baseline". Every story after
++Start with "Fix the frontend build, lint and test baseline". Every story after
 +it lands on top of main; if main is red you cannot tell your own breakage from
 +what was already broken.
 +

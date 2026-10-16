@@ -44,22 +44,28 @@ function alternation(values) {
  * Build a redactor from everything known to identify a private source.
  * `identifiers` = { owners, repos, users, branches, terms } (arrays of strings).
  */
-export function makeRedactor({ owners = [], repos = [], users = [], branches = [], terms = [] }) {
+export function makeRedactor({ owners = [], repos = [], users = [], branches = [], terms = [] }, { code = false } = {}) {
   if (!owners.length) throw new Error("redactor needs at least one owner");
-  const word = (alt) => new RegExp(`(?<![\\w.-])(?:${alt})(?![\\w-])`, "gi");
+  // Substring, not word, matching: private names routinely sit inside code
+  // identifiers (AcmeCareClient, ACMECARE_URL, acme_billing_test.py). Over-
+  // redacting prose is the accepted cost of never under-redacting.
+  const anywhere = (alt) => new RegExp(`(?:${alt})`, "gi");
   const rules = [
     [/\b(?:https?|ssh|git):\/\/\S+|\bgit@[\w.-]+:\S+|\bwww\.\S+/gi, TOKENS.url],
     [/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, TOKENS.email],
     [new RegExp(`(?<![\\w.-])(?:${alternation(owners)})/[\\w.-]+#\\d+`, "gi"), TOKENS.pr],
     [new RegExp(`(?<![\\w.-])(?:${alternation(owners)})/[\\w.-]+`, "gi"), `${TOKENS.org}/${TOKENS.repo}`],
-    [/(?<![\w&])#\d+\b/g, TOKENS.pr],
-    [/(?<![\w.])@[A-Za-z0-9][\w-]*(?:\[bot\])?/g, TOKENS.user],
   ];
-  if (branches.length) rules.push([word(alternation(branches)), TOKENS.branch]);
-  if (repos.length) rules.push([word(alternation(repos)), TOKENS.repo]);
-  if (users.length) rules.push([word(alternation(users)), TOKENS.user]);
-  rules.push([word(alternation(owners)), TOKENS.org]);
-  if (terms.length) rules.push([word(alternation(terms)), TOKENS.term]);
+  // In code, `#333` is a colour and `@Override` a decorator, not a PR or a
+  // person; only prose gets the generic reference and handle rules.
+  if (!code) {
+    rules.push([/(?<![\w&])#\d+\b/g, TOKENS.pr], [/(?<![\w.])@[A-Za-z0-9][\w-]*(?:\[bot\])?/g, TOKENS.user]);
+  }
+  if (branches.length) rules.push([anywhere(alternation(branches)), TOKENS.branch]);
+  if (repos.length) rules.push([anywhere(alternation(repos)), TOKENS.repo]);
+  if (users.length) rules.push([anywhere(alternation(users)), TOKENS.user]);
+  rules.push([anywhere(alternation(owners)), TOKENS.org]);
+  if (terms.length) rules.push([anywhere(alternation(terms)), TOKENS.term]);
 
   return function redact(text) {
     if (typeof text !== "string") return text;
@@ -67,10 +73,9 @@ export function makeRedactor({ owners = [], repos = [], users = [], branches = [
   };
 }
 
-/** Every configured identifier still present in `text` (case-insensitive). */
+/** Every configured identifier still present anywhere in `text` (case-insensitive substring). */
 export function leakedIdentifiers(text, { owners = [], repos = [], users = [], branches = [], terms = [] }) {
   const lower = text.toLowerCase();
   return [...owners, ...repos, ...users, ...branches, ...terms]
-    .filter((v) => v && v.length >= 3)
-    .filter((v) => new RegExp(`(?<![\\w-])${escape(v.toLowerCase())}(?![\\w-])`).test(lower));
+    .filter((v) => v && v.length >= 3 && lower.includes(v.toLowerCase()));
 }

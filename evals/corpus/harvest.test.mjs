@@ -14,19 +14,19 @@ const PR = {
   baseRefName: "main", headRefName: "feat/acme-export", author: { login: "jdoe" }, mergeCommit: null,
   userContentEdits: conn([]),
   comments: conn([
-    { databaseId: 1, author: { login: "jdoe" }, body: "## Blind peer review — local run — verdict: **BLOCK**\nMUST FIX: @jdoe see https://github.com/acme-health/acme-billing/blob/x", createdAt: "2026-10-02T00:00:00Z" },
+    { databaseId: 1, author: { login: "jdoe" }, body: "## Blind peer review — local run — verdict: **BLOCK**\nMUST FIX: @jdoe see https://github.com/acme-health/acme-billing/blob/x in AcmeCareClient and ACMECARE_URL", createdAt: "2026-10-02T00:00:00Z" },
     { databaseId: 2, author: { login: "jdoe" }, body: "thanks", createdAt: "2026-10-03T00:00:00Z" },
   ]),
   reviews: conn([]),
   commits: conn([{ commit: { oid: "aaa111", committedDate: "2026-10-01T01:00:00Z", parents: { nodes: [{ oid: "base000" }] } } }]),
 };
 
-function stubGh({ prs = [PR], repos = ["acme-billing", "acme-portal"] } = {}) {
+function stubGh({ prs = [PR], repos = ["acme-billing", "acme-portal"], isPrivate = false } = {}) {
   const calls = [];
   const run = async (args) => {
     calls.push(args);
     if (args[0] === "repo") return repos.join("\n") + "\n";
-    if (args[1] === "graphql") return JSON.stringify({ data: { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes: prs } } } });
+    if (args[1] === "graphql") return JSON.stringify({ data: { repository: { isPrivate, pullRequests: { pageInfo: { hasNextPage: false }, nodes: prs } } } });
     if (args.at(-1).includes("/compare/")) return "diff --git a/src/acme-billing.js b/src/acme-billing.js\n+// owner jdoe@acme.example\n";
     throw new Error(`unexpected gh call ${args.join(" ")}`);
   };
@@ -40,7 +40,7 @@ test("public harvest keeps attribution and the reviewed diff", async () => {
   assert.deepEqual(summary.repos["acme-billing"], { prs: 1, withReviews: 1, written: 1, skippedExisting: 0 });
   const record = JSON.parse(readFileSync(join(out, "acme-billing-12.json"), "utf8"));
   assert.equal(record.source.url, "https://github.com/octo/acme-billing/pull/12");
-  assert.deepEqual(record.rounds.map((r) => [r.headSha, r.outputs.map((o) => [o.pipeline, o.verdict])]), [["aaa111", [["bpr-local", "BLOCK"]]]]);
+  assert.deepEqual(record.rounds.map((r) => [r.headSha, r.outputs.map((o) => [o.pipeline, o.verdict])]), [["aaa111", [["bpr-summary-comment", "BLOCK"]]]]);
   assert.match(record.rounds[0].diff, /^diff --git/);
 });
 
@@ -57,7 +57,11 @@ test("private harvest writes only pseudonymous, redacted records plus a local id
   for (const secret of ["acme-health", "acme-billing", "acme-portal", "jdoe", "AcmeCare", "acme-export", "acme.example", "github.com"]) {
     assert.equal(text.toLowerCase().includes(secret.toLowerCase()), false, `${secret} leaked`);
   }
-  assert.equal(JSON.parse(text).source, undefined);
+  const record = JSON.parse(text);
+  assert.equal(record.source, undefined);
+  assert.equal(record.number, undefined);
+  assert.deepEqual(record.rounds[0].outputs.map((o) => o.id), [0]);
+  assert.equal(record.rounds[0].flags.includes("redacted_diff"), true);
   const map = JSON.parse(readFileSync(join(out, "id-map.json"), "utf8"));
   assert.deepEqual(Object.values(map), [{ owner: "acme-health", repo: "acme-billing", number: 12 }]);
   assert.equal(readFileSync(join(out, "harvest-summary.json"), "utf8").includes("acme"), false);
@@ -73,9 +77,13 @@ test("re-running skips cases already written instead of overwriting them", async
 
 test("a GitHub failure marks the repo incomplete without naming a private repo", async () => {
   const out = mkdtempSync(join(tmpdir(), "corpus-fail-"));
-  const run = async (args) => { if (args[0] === "repo") return "acme-billing\n"; throw new Error("HTTP 502"); };
+  const run = async (args) => {
+    if (args[0] === "repo") return "acme-billing\n";
+    throw Object.assign(new Error(`Command failed: gh ${args.join(" ")}\nHTTP 502 for acme-health/acme-billing`), { stderr: "HTTP 502" });
+  };
   const summary = await harvestSource({ name: "p", visibility: "private", owner: "acme-health", repos: ["acme-billing"], out, key: KEY }, { run, log: () => {} });
-  assert.deepEqual(summary.incomplete, [{ repo: "(private)", error: "HTTP 502" }]);
+  assert.deepEqual(summary.incomplete, [{ repo: "(private)", error: "server_error" }]);
+  assert.equal(readFileSync(join(out, "harvest-summary.json"), "utf8").includes("acme"), false);
 });
 
 test("config rejects private sources without a real key and malformed repo lists", () => {
@@ -86,4 +94,24 @@ test("config rejects private sources without a real key and malformed repo lists
   assert.throws(() => loadConfig(write({ sources: [{ ...base, visibility: "public", repos: "all" }] })), /repos must be/);
   assert.throws(() => loadConfig(write({ sources: [{ ...base, visibility: "secret" }] })), /visibility/);
   assert.equal(loadConfig(write({ sources: [{ ...base, visibility: "public" }] })).sources.length, 1);
+});
+
+test("a public source refuses a repository GitHub reports as private, and lists only public repos", async () => {
+  const out = mkdtempSync(join(tmpdir(), "corpus-vis-"));
+  const { run, calls } = stubGh({ isPrivate: true });
+  const summary = await harvestSource({ name: "pub", visibility: "public", owner: "octo", repos: "*", out }, { run, log: () => {} });
+  assert.deepEqual(calls.find((a) => a[0] === "repo").slice(-2), ["--visibility", "public"]);
+  assert.deepEqual(summary.incomplete.map((i) => i.error), ["not_public", "not_public"]);
+  assert.deepEqual(readdirSync(out), ["harvest-summary.json"]);
+});
+
+test("comment-delivered reviews are pinned to the head_sha of the run that posted them", async () => {
+  const out = mkdtempSync(join(tmpdir(), "corpus-run-"));
+  const runUrl = "https://github.com/octo/acme-billing/actions/runs/99";
+  const pr = { ...PR, comments: conn([{ databaseId: 5, author: { login: "github-actions" }, body: `{"lens":"Cold Read","findings":[]}\n[View action run](${runUrl}) | Model: m`, createdAt: "2026-10-02T00:00:00Z" }]) };
+  const base = stubGh({ prs: [pr] });
+  const run = async (args) => (args[1] === "repos/octo/acme-billing/actions/runs/99" ? "a".repeat(40) + "\n" : base.run(args));
+  await harvestSource({ name: "pub", visibility: "public", owner: "octo", repos: ["acme-billing"], out }, { run, log: () => {} });
+  const record = JSON.parse(readFileSync(join(out, "acme-billing-12.json"), "utf8"));
+  assert.deepEqual(record.rounds.map((r) => [r.headSha, r.flags.includes("sha_inferred")]), [["a".repeat(40), false]]);
 });

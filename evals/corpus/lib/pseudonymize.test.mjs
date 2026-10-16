@@ -51,3 +51,14 @@ test("leak detection reports any configured identifier that survives", () => {
 test("a redactor without an owner is refused", () => {
   assert.throws(() => makeRedactor({ repos: ["x"] }), /at least one owner/);
 });
+
+test("names inside code identifiers are redacted and leak-checked as substrings", () => {
+  const out = makeRedactor(IDS)("class AcmeCareClient {} ACMECARE_URL=x acme_billing_test api.acme-health.io .acme-billing.yml");
+  assert.deepEqual(leakedIdentifiers(out, IDS), []);
+  assert.deepEqual(leakedIdentifiers("class AcmeCareClient", IDS), ["AcmeCare"]);
+});
+
+test("code mode keeps decorators and colours but still removes identifiers", () => {
+  const code = makeRedactor(IDS, { code: true })("@Override\ncolor: #333; // see acme-health/acme-billing#4 by jdoe");
+  assert.equal(code, `@Override\ncolor: #333; // see ${TOKENS.pr} by ${TOKENS.user}`);
+});

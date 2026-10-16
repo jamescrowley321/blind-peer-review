@@ -10,8 +10,8 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { compareDiff, ghRunner, pullRequests, repositories } from "./lib/github.mjs";
-import { buildSnapshot } from "./lib/snapshot.mjs";
+import { compareDiff, errorCategory, ghRunner, pullRequests, repositories, runHeadSha } from "./lib/github.mjs";
+import { buildSnapshot, FLAGS, runUrlsToResolve } from "./lib/snapshot.mjs";
 import { classifyReviewOutput } from "./lib/review-formats.mjs";
 import { leakedIdentifiers, makeRedactor, privateCaseId } from "./lib/pseudonymize.mjs";
 
@@ -36,9 +36,10 @@ function logins(snapshot) {
 }
 
 /** Apply redaction to every free-text field of a private snapshot. */
-export function redactSnapshot(snapshot, redact) {
+export function redactSnapshot(snapshot, redact, redactCode = redact) {
   return {
     ...snapshot,
+    number: undefined,
     title: redact(snapshot.title),
     author: null,
     baseRef: redact(snapshot.baseRef),
@@ -47,8 +48,9 @@ export function redactSnapshot(snapshot, redact) {
     rounds: snapshot.rounds.map((r) => ({
       ...r,
       body: redact(r.body),
-      diff: r.diff == null ? r.diff : redact(r.diff),
-      outputs: r.outputs.map((o) => ({ ...o, author: null, body: redact(o.body), path: o.path == null ? o.path : redact(o.path) })),
+      diff: r.diff == null ? r.diff : redactCode(r.diff),
+      flags: r.diff == null ? r.flags : [...new Set([...r.flags, FLAGS.redactedDiff])],
+      outputs: r.outputs.map((o, i) => ({ ...o, id: i, reviewId: undefined, author: null, body: redact(o.body), path: o.path == null ? o.path : redact(o.path), runUrl: undefined })),
     })),
   };
 }
@@ -56,7 +58,7 @@ export function redactSnapshot(snapshot, redact) {
 export async function harvestSource(source, { since, run = ghRunner, log = console.log } = {}) {
   const out = resolve(source.out);
   mkdirSync(out, { recursive: true });
-  const repos = source.repos === "*" ? await repositories(source.owner, { run }) : source.repos;
+  const repos = source.repos === "*" ? await repositories(source.owner, { visibility: source.visibility, run }) : source.repos;
   const allRepos = source.visibility === "private" ? await repositories(source.owner, { run }) : [];
   const mapPath = join(out, "id-map.json");
   const idMap = existsSync(mapPath) ? JSON.parse(readFileSync(mapPath, "utf8")) : {};
@@ -66,9 +68,13 @@ export async function harvestSource(source, { since, run = ghRunner, log = conso
     const counts = { prs: 0, withReviews: 0, written: 0, skippedExisting: 0 };
     summary.repos[source.visibility === "private" ? `repo-${Object.keys(summary.repos).length + 1}` : repo] = counts;
     try {
-      for await (const pr of pullRequests(source.owner, repo, { since, run })) {
+      for await (const pr of pullRequests(source.owner, repo, { since, visibility: source.visibility === "public" ? "public" : null, run })) {
         counts.prs++;
-        const snapshot = buildSnapshot(pr, { classify: classifyReviewOutput });
+        const runHeads = {};
+        for (const url of runUrlsToResolve(pr, { classify: classifyReviewOutput })) {
+          runHeads[url] = await runHeadSha(url, { run });
+        }
+        const snapshot = buildSnapshot(pr, { classify: classifyReviewOutput, runHeads });
         if (!snapshot.rounds.length) continue;
         counts.withReviews++;
         const id = source.visibility === "private"
@@ -95,17 +101,28 @@ export async function harvestSource(source, { since, run = ghRunner, log = conso
             branches: [snapshot.baseRef, snapshot.headRef].filter((b) => b && !["main", "master", "develop"].includes(b)),
             terms: source.terms ?? [],
           };
-          record = redactSnapshot(record, makeRedactor(identifiers));
-          const leaks = leakedIdentifiers(JSON.stringify(record), identifiers);
-          if (leaks.length) throw new Error(`redaction left ${leaks.length} identifier(s) in ${id}; refusing to write`);
+          record = redactSnapshot(record, makeRedactor(identifiers), makeRedactor(identifiers, { code: true }));
+          if (leakedIdentifiers(JSON.stringify(record), identifiers).length) {
+            // One unredactable PR must not abort the repo; it is skipped and counted.
+            counts.refusedLeak = (counts.refusedLeak ?? 0) + 1;
+            continue;
+          }
           idMap[id] = { owner: source.owner, repo, number: pr.number };
         }
         writeFileSync(file, JSON.stringify(record, null, 2) + "\n");
         counts.written++;
       }
     } catch (error) {
-      summary.incomplete.push({ repo: source.visibility === "private" ? "(private)" : repo, error: String(error.message ?? error).slice(0, 200) });
-      log(`incomplete: ${source.visibility === "private" ? "a private repo" : repo}: ${error.message}`);
+      // Never persist or print raw error text for a private source: gh embeds
+      // the command line, and with it the owner and repository names.
+      const category = errorCategory(error);
+      if (source.visibility === "private") {
+        summary.incomplete.push({ repo: "(private)", error: category });
+        log(`incomplete: a private repo: ${category}`);
+      } else {
+        summary.incomplete.push({ repo, error: category, detail: String(error.message ?? error).slice(0, 200) });
+        log(`incomplete: ${repo}: ${error.message}`);
+      }
     }
     if (source.visibility === "private") writeFileSync(mapPath, JSON.stringify(idMap, null, 2) + "\n");
   }

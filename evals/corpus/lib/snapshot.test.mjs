@@ -17,7 +17,7 @@ function pr(overrides = {}) {
     ...overrides,
   };
 }
-const review = (body) => (o) => (o.body.startsWith(body) ? { pipeline: "bpr-local" } : null);
+const review = (body) => (o) => (o.body.startsWith(body) ? { pipeline: "bpr-local", role: "review" } : null);
 
 test("body at review time comes from the newest edit at or before the review", () => {
   const edits = conn([{ editedAt: "2026-10-03T00:00:00Z", diff: "v2" }, { editedAt: "2026-10-01T00:00:00Z", diff: "v1" }]);
@@ -53,7 +53,7 @@ test("reviews group into rounds per head; a force-pushed-away head is diff_appro
   assert.equal(snap.baseSha, "base000");
   const byHead = Object.fromEntries(snap.rounds.map((r) => [r.headSha, r]));
   assert.deepEqual(Object.keys(byHead).sort(), ["aaa111", "dead999"]);
-  assert.deepEqual(byHead.aaa111.flags, [FLAGS.shaInferred]);
+  assert.deepEqual(byHead.aaa111.flags, [FLAGS.shaInferred, FLAGS.diffApproximate]);
   assert.deepEqual(byHead.aaa111.outputs.map((o) => o.id), [1]);
   assert.deepEqual(byHead.dead999.flags, [FLAGS.diffApproximate]);
   assert.equal(byHead.dead999.body, "current body");
@@ -66,5 +66,37 @@ test("capped comment or commit pages flag every round", () => {
   });
   const snap = buildSnapshot(p, { classify: review("## Blind peer review") });
   assert.deepEqual(snap.flags.sort(), [FLAGS.commitsTruncated, FLAGS.outputsTruncated].sort());
-  assert.deepEqual(snap.rounds[0].flags.sort(), [FLAGS.shaInferred, FLAGS.commitsTruncated, FLAGS.outputsTruncated].sort());
+  assert.deepEqual(snap.rounds[0].flags.sort(), [FLAGS.shaInferred, FLAGS.diffApproximate, FLAGS.commitsTruncated, FLAGS.outputsTruncated].sort());
+});
+
+test("pending reviews are skipped instead of crashing the sort", () => {
+  const p = pr({ reviews: conn([{ databaseId: 9, author: { login: "me" }, body: "## Blind peer review — draft", state: "PENDING", submittedAt: null, commit: { oid: "aaa111" }, comments: conn([]) }]) });
+  assert.deepEqual(buildSnapshot(p, { classify: review("## Blind peer review") }).rounds, []);
+});
+
+test("a review before a base retarget is flagged base_changed and diff_approximate", () => {
+  const p = pr({
+    timelineItems: { nodes: [{ createdAt: "2026-10-05T00:00:00Z" }] },
+    reviews: conn([
+      { databaseId: 1, author: { login: "bot" }, body: "## Blind peer review — a", state: "COMMENTED", submittedAt: "2026-10-02T12:00:00Z", commit: { oid: "bbb222" }, comments: conn([]) },
+      { databaseId: 2, author: { login: "bot" }, body: "## Blind peer review — b", state: "COMMENTED", submittedAt: "2026-10-06T12:00:00Z", commit: { oid: "aaa111" }, comments: conn([]) },
+    ]),
+  });
+  const byHead = Object.fromEntries(buildSnapshot(p, { classify: review("## Blind peer review") }).rounds.map((r) => [r.headSha, r.flags]));
+  assert.deepEqual(byHead.bbb222.sort(), [FLAGS.baseChanged, FLAGS.diffApproximate].sort());
+  assert.deepEqual(byHead.aaa111, []);
+});
+
+test("telemetry outputs are counted, not made into rounds; inline comments inherit lens and verdict", () => {
+  const classify = (o) => (o.body === "status" ? { pipeline: "pi-agent-session-comment", role: "telemetry" }
+    : o.kind === "review" ? { pipeline: "bpr-action-lens-review", role: "review", lens: "Red Team", verdict: "BLOCK" }
+    : o.kind === "inline" ? { pipeline: "bpr-action-inline", role: "review", lens: null, verdict: null } : null);
+  const p = pr({
+    comments: conn([{ databaseId: 1, author: { login: "github-actions" }, body: "status", createdAt: "2026-10-02T00:00:00Z" }]),
+    reviews: conn([{ databaseId: 2, author: { login: "github-actions" }, body: "## Red Team", state: "CHANGES_REQUESTED", submittedAt: "2026-10-02T12:00:00Z", commit: { oid: "bbb222" },
+      comments: conn([{ databaseId: 3, path: "a.js", line: 1, body: "[MUST FIX] x", createdAt: "2026-10-02T12:00:00Z" }]) }]),
+  });
+  const snap = buildSnapshot(p, { classify });
+  assert.deepEqual(snap.nonReviewOutputs, { "pi-agent-session-comment": 1 });
+  assert.deepEqual(snap.rounds[0].outputs.map((o) => [o.kind, o.lens, o.verdict]), [["review", "Red Team", "BLOCK"], ["inline", "Red Team", "BLOCK"]]);
 });

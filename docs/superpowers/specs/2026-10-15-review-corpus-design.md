@@ -41,11 +41,11 @@ For every PR with at least one review output:
 
 ### 3. Deterministic filters (code, no model)
 
-A case is rejected or flagged, with a recorded reason, when: no parseable review output exists; the review ran on a superseded head and a later review exists (the latest review per head is kept); the diff is truncated or paths were withheld; the diff is lockfile/generated-only; the PR body has no acceptance-criteria section; or the producing pipeline's lens set is unknown. Every reason is a stable enum, not a string.
+A case is rejected or flagged, with a recorded reason, when: no parseable review output exists; the review ran on a superseded head and a later review exists (the latest review per head is kept); the diff is truncated or paths were withheld; the diff is lockfile/generated-only; the PR body has no acceptance-criteria section; the only blocking finding is the unchecked human-accountability box (a policy BLOCK says nothing about the code); or the producing pipeline's lens set is unknown. Every reason is a stable enum, not a string.
 
 ### 4. Jev screening
 
-Frozen questions, hashed at compose like #146. Each is a yes/no with a probability:
+Frozen questions, hashed at compose like #146, sent as Jev `bool` questions (one probability each). State must fit Jev's 32k state budget, so screening sends the PR body, the review text and a diffstat (paths with added/removed counts), never the full diff. A probability outside [0, 1] or a malformed answer fails that call; it is never coerced.
 
 - `has_explicit_acs`: Does the PR body state explicit acceptance criteria?
 - `acs_testable`: Is each criterion a concrete, testable behavior?
@@ -65,7 +65,7 @@ Per-question thresholds split cases into accept / reject / human-review. Thresho
 ### 6. Slices
 
 - **General corpus.** Accepted public cases are converted to the existing fixture format under `evals/fixtures/` with provenance fields. Accepted private cases are converted to the same format in the private directory only.
-- **Required-test slice.** For accepted cases with an explicit test AC, a human labels the evidence class blind, with no Jev output visible. Splits are made by PR family. Development cases are excluded from held-out claims. `body_approximate` / `diff_approximate` cases are never held-out. Jev, Gemini Flash and the path-only baseline are then compared on identical frozen inputs with the #146 scorer.
+- **Required-test slice.** For accepted cases with an explicit test AC, a human labels the evidence class blind, with no Jev output visible. Splits are made by PR family. Development cases are excluded from held-out claims. `body_approximate` / `diff_approximate` cases are never held-out. Jev, `openai/gpt-6-luna-decisions` (a second decision model), Gemini Flash and the path-only baseline are then compared on identical frozen inputs with the #146 scorer. Any comparison involving BPR lenses pins the action ref and uses enough repetitions to see past known flaky fixtures (`acceptance_unimplemented_ac` has flipped in both arms of past A/B runs).
 
 ## Error handling
 
@@ -76,6 +76,8 @@ Provider failures are recorded per call, and missing usage is recorded as unknow
 Pure functions (format detectors, SHA resolution, redaction, HMAC ids, filters, threshold application) get unit tests on recorded public fixtures. The harvester is tested against a stubbed `gh` transport. A test asserts that redaction leaves none of the configured private identifiers in any screening input. A test asserts that the committed tree contains no private source names, using a pattern list read from local config when present.
 
 ## Relationship to existing work
+
+- Past A/B runs of Jev advising lens prompts (no effect either way) and of a per-turn Jev advisor (accurate but changed no behavior) are why Jev is not placed in the review path here.
 
 - #146 keeps its evaluator, transport and scorer. Its synthetic corpus becomes development-only, and its label issues are resolved under the required-test slice.
 - #143 is superseded by this design's stages 5–6.

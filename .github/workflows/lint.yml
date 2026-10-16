@@ -279,6 +279,11 @@ jobs:
       - name: Unit-test the local codex eval provider
         run: node --test evals/lib/codex-provider.test.mjs
 
+      # Review-corpus harvester: review-time evidence recovery, format detection
+      # and private-source redaction. GitHub is stubbed; nothing is fetched.
+      - name: Unit-test the review corpus harvester
+        run: node --test evals/corpus/harvest.test.mjs evals/corpus/lib/pseudonymize.test.mjs evals/corpus/lib/review-formats.test.mjs evals/corpus/lib/snapshot.test.mjs
+
       - name: Syntax-check the codex dispatcher
         run: node --check scripts/dispatch-codex.mjs
 

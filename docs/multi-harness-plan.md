@@ -162,7 +162,7 @@ when both paths emitted markdown. The trust-boundary and severity halves of the 
 only the envelope diverges.
 
 **Live evidence, 2026-09-07:** A PR in a private downstream repository had its Red Team lens return invalid
-JSON and block the Merge Gate, while the same lens passed on `healthcheck-hl7-pdex` #15 in the same
+JSON and block the Merge Gate, while the same lens passed on another private repository in the same
 sweep. Malformed lens output is still occurring on the CI path — the failure class PR #39 was
 closed against. Worth a measurement before deciding whether that closure still holds.
 

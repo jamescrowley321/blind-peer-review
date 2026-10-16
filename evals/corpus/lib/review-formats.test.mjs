@@ -57,3 +57,17 @@ test("lens JSON is found after narration and inside braces in strings", () => {
   assert.deepEqual(extractLensJson('narration {not json} then {"lens":"X","summary":"a } b","findings":[]} tail'), { lens: "X", summary: "a } b", findings: [] });
   assert.equal(extractLensJson("no json here"), null);
 });
+
+test("local-run verdict and head markers are read in every hand-written variant", () => {
+  const lc = (body) => classifyReviewOutput(o("comment", "jamescrowley321", `## Blind peer review — Cold Read\n${body}`));
+  for (const [body, verdict, head] of [
+    ["**Verdict:** PASS — 0 finding(s)", "PASS", null],
+    ["**Verdict: BLOCK** — 1 MUST FIX", "BLOCK", null],
+    ["Verdict: **PASS** — 0 finding(s)", "PASS", null],
+    ["diff `origin/fix/x...fix/y` @ 0d1ed68. **Verdict: PASS**", "PASS", "0d1ed68"],
+    ["diff `origin/fix/854-bcl-require-exp...e12f7fb`.", null, "e12f7fb"],
+    ["Head: refactor/753-clients-take-config @6a301ab (round 2).", null, "6a301ab"],
+    ["Base: origin/docs/x, head ea7e969", null, "ea7e969"],
+    ["regression from commit `deadbee1`", null, null],
+  ]) assert.deepEqual([lc(body).verdict, lc(body).headSha], [verdict, head], body);
+});

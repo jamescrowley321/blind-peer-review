@@ -10,7 +10,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { compareDiff, errorCategory, ghRunner, pullRequests, repositories, runHeadSha } from "./lib/github.mjs";
+import { compareDiff, errorCategory, ghRunner, pullRequests, repositories, runHeadSha, withRateLimitRetry } from "./lib/github.mjs";
 import { buildSnapshot, FLAGS, runUrlsToResolve } from "./lib/snapshot.mjs";
 import { classifyReviewOutput } from "./lib/review-formats.mjs";
 import { leakedIdentifiers, makeRedactor, privateCaseId } from "./lib/pseudonymize.mjs";
@@ -55,7 +55,7 @@ export function redactSnapshot(snapshot, redact, redactCode = redact) {
   };
 }
 
-export async function harvestSource(source, { since, run = ghRunner, log = console.log } = {}) {
+export async function harvestSource(source, { since, run = withRateLimitRetry(ghRunner, { log: console.log }), log = console.log } = {}) {
   const out = resolve(source.out);
   mkdirSync(out, { recursive: true });
   const repos = source.repos === "*" ? await repositories(source.owner, { visibility: source.visibility, run }) : source.repos;

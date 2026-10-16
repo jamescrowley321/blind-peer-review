@@ -6,6 +6,8 @@
 // properties that only rule a case out of one slice are recorded as notes, so
 // the decision stays with the slice that cares.
 
+import { mustFixItems } from "./review-formats.mjs";
+
 export const REJECT = Object.freeze({
   noDiff: "no_diff",
   diffTooLarge: "diff_too_large",
@@ -24,7 +26,7 @@ export const NOTE = Object.freeze({
 // nothing about whether a reviewer judged code well.
 const GENERATED = [
   /(^|\/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|uv\.lock|poetry\.lock|Pipfile\.lock|Cargo\.lock|go\.sum|composer\.lock|Gemfile\.lock|\.terraform\.lock\.hcl)$/,
-  /(^|\/)(vendor|node_modules|dist|build)\//,
+  /(^|\/)(vendor|node_modules)\//,
   /\.(min\.js|min\.css|map|snap)$/,
   /(^|\/)CHANGELOG\.md$/,
 ];
@@ -33,7 +35,9 @@ const ACCEPTANCE = /acceptance criteria|^\s*(?:[-*]\s*)?(?:\[[ xX]\]\s*)?\**AC[-
 
 // What a policy finding says when its only complaint is the unticked
 // human-accountability or AI-provenance box rather than anything in the code.
-const ACCOUNTABILITY = /accountab|human[- ](?:has )?review|attest|check ?box|provenance disclosure|discloses the harness|AI[- ]assist/i;
+// Anchored to the box and the disclosure themselves, so a real policy finding
+// (a removed SLSA attestation, a UI checkbox bug) never reads as box-only.
+const ACCOUNTABILITY = /accountab\w*\s+(?:box|checkbox|attestation|line)|human[- ]accountab|has reviewed this change|human[- ]review\w*\s+(?:box|checkbox)|(?:AI[- ])?provenance (?:disclosure|block)|discloses the harness|Baseline (?:policy )?rule [12]\b/i;
 const POLICY_LENS = /polic|compliance/i;
 
 /** Per-file added/removed line counts from a unified diff. */
@@ -55,7 +59,8 @@ export const isGenerated = (path) => GENERATED.some((re) => re.test(path));
 
 function mustFixTexts(output) {
   if (Array.isArray(output.findings)) return output.findings.filter((f) => f.severity === "MUST FIX").map((f) => `${f.detail ?? ""} ${f.recommendation ?? ""}`);
-  return output.body.split("\n").filter((l) => /MUST FIX/.test(l));
+  const tagged = output.body.split("\n").filter((l) => /\[MUST FIX\]/.test(l));
+  return tagged.length ? tagged : (mustFixItems(output.body) ?? []).map((it) => it.text);
 }
 
 /** True when every blocking output is a policy lens objecting only to the accountability box. */
@@ -67,7 +72,11 @@ export function isPolicyOnlyBlock(outputs) {
     // comment) shows the complaint is the accountability box.
     if (o.lensVerdicts?.length) {
       const rows = o.lensVerdicts.filter((r) => r.verdict === "BLOCK");
-      return rows.length > 0 && rows.every((r) => POLICY_LENS.test(r.lens)) && rows.every((r) => ACCOUNTABILITY.test(r.text) || ACCOUNTABILITY.test(o.body));
+      if (!rows.length || !rows.every((r) => POLICY_LENS.test(r.lens))) return false;
+      if (rows.every((r) => ACCOUNTABILITY.test(r.text))) return true;
+      // Row text too terse: every MUST FIX item in the comment must be the box.
+      const items = mustFixItems(o.body) ?? [];
+      return items.length > 0 && items.every((it) => ACCOUNTABILITY.test(it.text));
     }
     if (!POLICY_LENS.test(o.lens ?? "")) return false;
     const texts = mustFixTexts(o);

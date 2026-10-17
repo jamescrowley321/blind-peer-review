@@ -236,8 +236,8 @@ what makes that trade visible.
 
 ## Fixtures ported from production incidents
 
-Five fixtures come from real Acceptance Criteria failures on `healthcloud-console-web`
-(#52, #56, #58) rather than being synthesised here:
+Five fixtures come from real Acceptance Criteria failures in a private downstream
+repository rather than being synthesised here:
 
 | Fixture | What it reproduces |
 |---|---|

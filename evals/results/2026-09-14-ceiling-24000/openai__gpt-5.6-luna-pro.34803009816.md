@@ -87,7 +87,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_absent_claim_buried_in_noise` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) as it actually was: 5,855 insertions, almost all lockfile churn, with the real change near the end. The Auditor reported the implementation 'missing'. Diff volume is the suspected trigger, so this keeps the real change and buries it the way production did. Non-smoke: it is large. Ported from #29.
+> Guards: Incident (a private downstream repository) as it actually was: 5,855 insertions, almost all lockfile churn, with the real change near the end. The Auditor reported the implementation 'missing'. Diff volume is the suspected trigger, so this keeps the real change and buries it the way production did. Non-smoke: it is large. Ported from #29.
 
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
@@ -95,7 +95,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_absent_claim_is_false` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) — the Auditor claimed the search-result navigation implementation was missing and emitted MUST FIX, while the diff plainly contains the change. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor claimed the search-result navigation implementation was missing and emitted MUST FIX, while the diff plainly contains the change. Ported from #29.
 
 - 2/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {}
@@ -158,12 +158,12 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_non_implementation_pr` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#52, #56) — the Auditor failed four ACs because the PR 'does not contain the workflow files'. The deliverable is the instruction text; the CI work is a separate tracked issue. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor failed four ACs because the PR 'does not contain the workflow files'. The deliverable is the instruction text; the CI work is a separate tracked issue. Ported from #29.
 
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":1,"MUST FIX":1}
 - rep 1: ERROR — OpenRouter error: openai/gpt-5.6-luna-pro is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations
-- rep 2: [MUST FIX] `PROMPT-storybook.md:50` — AC-1 [PARTIAL]: The loop is instructed to start with “Fix the console-web build, lint and test baseline,” but the baseline task does not explicitly require all four specified outcomes: adding a Test job, fixing the TS2307 @playwright/test error, de-duplicating the workflows, and settling the install path. These are only described as known state, so the loop could treat the task as complete without
+- rep 2: [MUST FIX] `PROMPT-storybook.md:50` — AC-1 [PARTIAL]: The loop is instructed to start with “Fix the frontend build, lint and test baseline,” but the baseline task does not explicitly require all four specified outcomes: adding a Test job, fixing the TS2307 @playwright/test error, de-duplicating the workflows, and settling the install path. These are only described as known state, so the loop could treat the task as complete without
 
 ### `acceptance_partial` · `acceptance`
 
@@ -181,7 +181,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_requirement_invented` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
 
 - 2/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":2}

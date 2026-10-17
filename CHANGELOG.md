@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.6.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.6...v3.6.0) (2026-10-17)
+
+
+### Features
+
+* **evals:** persist arm-labelled provider usage telemetry ([#145](https://github.com/jamescrowley321/blind-peer-review/issues/145)) ([daceee1](https://github.com/jamescrowley321/blind-peer-review/commit/daceee174a95eff3a200491559016d8def6c6b5d))
+
 ## [3.5.6](https://github.com/jamescrowley321/blind-peer-review/compare/v3.5.5...v3.5.6) (2026-10-17)
 
 

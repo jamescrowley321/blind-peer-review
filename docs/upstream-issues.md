@@ -4,11 +4,33 @@ Defects found in the agent action this project pins, each with the workaround
 that is live in this repo. **Nothing here has been filed upstream.** These are
 written up so a human can send them; do not auto-file them.
 
-Pinned engine: `shaftoe/pi-coding-agent-action@853a9af5ac64e79c79fa6bb3958314aa1acf7e92` (v2.28.1).
+Pinned engine: `shaftoe/pi-coding-agent-action@f7496a9aea9798c5d52d39096d98d5c5b16559b3` (v2.30.0).
 Re-check all three when that pin moves — a fixed upstream defect means a
 workaround here can be retired, and a workaround nobody retires becomes folklore.
 
 ## Re-check log
+
+**2026-10-16 — v2.28.1 → v2.30.0. All three defects still present; every
+workaround still required.**
+
+`pr-diff.ts` is byte-identical (SHA-256 `2f5263ad…7b0634f`).
+`get-pr-diff.ts` grew from 10707 B to 11334 B
+(`e30f1c70ae88eaa34d0d5627a01dabcafed2f0ae9d76e43d3e18883d44e4d50a`), but only
+by adding tool metadata: a namespace, read-only annotations, an output schema
+and `structuredContent` carrying the same truncated text. The hunk split, byte
+budget and triple-backtick text wrapper are unchanged, so the diff port needs
+only its provenance header updated.
+
+The lockfile now resolves the pi SDK to **1.0.4**. `pi/agent.ts` still supplies
+no output-token override, and `pi-ai`'s `api/simple-options.ts` keeps the same
+budget rule (`model.maxTokens`, clamped by a 4096-token context safety margin).
+`scripts/pi-openrouter-limits.json` was regenerated from that package: 398
+models (55 added, 23 removed, 39 output limits changed). The removed
+`anthropic/claude-3-haiku` was only a test example of a small model.
+
+Sources: [engine comparison](https://github.com/shaftoe/pi-coding-agent-action/compare/853a9af5ac64e79c79fa6bb3958314aa1acf7e92...f7496a9aea9798c5d52d39096d98d5c5b16559b3),
+[`pi-ai@1.0.4`](https://www.npmjs.com/package/@earendil-works/pi-ai/v/1.0.4).
+No paid provider calls were used for validation.
 
 **2026-10-01 — v2.28.0 → v2.28.1. All three defects still present; every
 workaround still required.**

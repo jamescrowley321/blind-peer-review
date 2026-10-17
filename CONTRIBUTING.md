@@ -17,7 +17,7 @@ together.
 | `action.yml` | The composite action (`mode: config` / `mode: preflight` / `mode: lens` / `mode: gate`) |
 | `lenses/manifest.json`, `lenses/*.md` | The eight review personas, registry, and CI instructions |
 | `contracts/shared_review_contract.md` | Shared JSON findings contract |
-| `scripts/run-local.mjs`, `scripts/dispatch-codex.mjs` | Local pi and Codex runners (Node) |
+| `scripts/run-local.mjs`, `scripts/dispatch.mjs` | Local pi runner; out-of-host lens dispatch (codex, pi, any agent CLI) |
 | `.claude-plugin/`, `skills/check/`, `agents/`, `adapters/` | Plugin and local harness adapters |
 | `examples/caller-workflow.yml` | Drop-in consumer workflow |
 | `.github/blind-peer-review/policy.md` | This repo's own Policy & Provenance rules |

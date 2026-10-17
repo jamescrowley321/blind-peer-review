@@ -284,13 +284,14 @@ jobs:
       - name: Unit-test the review corpus harvester, filters and screening
         run: node --test evals/corpus/harvest.test.mjs evals/corpus/lib/pseudonymize.test.mjs evals/corpus/lib/review-formats.test.mjs evals/corpus/lib/snapshot.test.mjs evals/corpus/lib/filters.test.mjs evals/corpus/lib/github.test.mjs evals/corpus/lib/screening.test.mjs
 
-      - name: Syntax-check the codex dispatcher
-        run: node --check scripts/dispatch-codex.mjs
+      - name: Syntax-check the lens dispatcher
+        run: node --check scripts/dispatch.mjs
 
-      # Lens selection, persona override precedence and the fail-closed verdict.
-      # Includes executable CLI coverage with a stub codex; no model calls.
-      - name: Unit-test out-of-host dispatch (lens set, override, verdict)
-        run: node --test scripts/dispatch-codex.test.mjs
+      # Reviewer resolution, lens selection, persona override precedence and the
+      # fail-closed verdict. Executable CLI coverage with stub codex/pi/command
+      # reviewers; no model calls.
+      - name: Unit-test out-of-host dispatch (reviewer, lens set, override, verdict)
+        run: node --test scripts/dispatch.test.mjs
 
       - name: Unit-test combined findings reports (local and gate)
         run: node --test scripts/findings-report.test.mjs

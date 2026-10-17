@@ -46,7 +46,7 @@ The second row is the honest cost. The pi gate reviews with a **different model
 family** from the one that wrote the diff; here, if you author with Claude, Claude
 reviews Claude and shares the author's blind spots. One job per lens buys
 independence, not a different family. If cross-family review is what you need,
-use the pi gate or dispatch locally to codex (`scripts/dispatch-codex.mjs`).
+use the pi gate or dispatch locally to another reviewer (`scripts/dispatch.mjs`).
 
 The fourth row matters too: this adapter asks for a severity-prefixed comment
 rather than validating a JSON object against a schema, so the "unparseable output

@@ -24,7 +24,7 @@ import outputTools from "./safe-output.cjs";
 const { writeOutput } = outputTools;
 
 import reportTools from "./findings-report.cjs";
-import { chooseLenses, reviewError } from "./dispatch-codex.mjs";
+import { chooseLenses, reviewError } from "./dispatch.mjs";
 const { writeLocalReport } = reportTools;
 
 import { scopeDiff } from "./scope-diff.mjs";

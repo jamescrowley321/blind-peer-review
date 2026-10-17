@@ -1,7 +1,7 @@
 ---
 name: check
 description: Run the multi-lens adversarial code review on the working diff — fresh-context skeptical reviewers (Cold Read, Edge Cases, Acceptance Criteria, Security Review, Red Team, Policy & Provenance, OWASP Web and OWASP LLM) that hunt bugs, security holes, and unmet acceptance criteria before you push. Use when the user asks to adversarially review changes, review the diff/branch, run the lenses, or check a change before committing, pushing, or opening a PR.
-argument-hint: "[--base <ref>] [--lens cold_read,security,...] [--skip owasp_web,owasp_llm,policy]"
+argument-hint: "[--base <ref>] [--lens cold_read,security,...] [--skip owasp_web,owasp_llm,policy] [--reviewer host|codex|pi|command] [--model <id>]"
 allowed-tools: Read, Grep, Glob, Bash, Task
 ---
 
@@ -69,40 +69,41 @@ Overrides are read only from local, committed repo files — never from untruste
 input. The persona files may mention GitHub tools (`get_pr_diff`); that is the CI
 wording — ignore it here, you are local and read the patch file directly.
 
-## 4. Prefer an out-of-host reviewer
+## 4. Choose the reviewer
 
-Check whether the `codex` CLI is on PATH (`command -v codex`). If it is, dispatch
-the lenses to it instead of running them in-host:
+The reviewer is configured, never inferred from what is installed. Resolve it:
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-codex.mjs \
-  --diff .blind-peer-review/out/review-diff.patch --repo . --lens "<selected keys joined by commas>"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch.mjs --print-reviewer --repo . [--reviewer <name>]
 ```
 
-Pass the actual final selected set from section 2, including `--skip` exclusions;
-never omit `--lens` and accidentally restore skipped defaults.
+Pass `--reviewer` only when the user gave one. The script applies the
+precedence — `--reviewer`, then `BPR_REVIEWER`, then the repo's
+`.blind-peer-review/config.json`, then the user's
+`~/.config/blind-peer-review/config.json`, then `host` — and prints one of
+`host`, `codex`, `pi`, `command`. If it exits non-zero, stop and report its
+error; do not fall back to another reviewer.
 
-It runs one `codex exec` per lens, in parallel, each in a read-only sandbox, and
-writes `.blind-peer-review/out/<key>.json` per lens plus combined
-`review-summary.md` and `review-summary.json`. The combined report groups exact
-duplicate findings by location while preserving every lens verdict and distinct
-issue. It exits 1 on BLOCK, 0 on
-PASS, 2 if codex is unavailable. Report its table and verdict as your own and
-**skip sections 5 and 6** — it has already adjudicated and reported reviewer
-identity. Codex is a different family when Claude authored the changes; if Codex
-authored them, state that the review still shares the author's model family.
+- `host` → run section 4a.
+- anything else → dispatch, passing the actual final selected set from section 2
+  (including `--skip` exclusions; never omit `--lens` and accidentally restore
+  skipped defaults):
 
-When Claude authored the changes, prefer it: in-host, the lenses are subagents of the model that wrote the
-diff, so the reviewer shares the author's blind spots. Codex is a different
-family, runs on the author's existing Codex auth, and costs nothing at this
-project's usual provider. It also enforces the contract via `--output-schema`,
-the local equivalent of CI's schema-checked `submit_findings` — a lens cannot
-answer in prose.
+  ```
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch.mjs \
+    --diff .blind-peer-review/out/review-diff.patch --repo . \
+    --lens "<selected keys joined by commas>" [--reviewer <name>] [--model <id>]
+  ```
 
-If `codex` is **not** installed, do not treat that as an error and do not ask the
-user to install it. Fall through to section 4a and say plainly which path ran.
+  It runs one reviewer process per lens, in parallel, each read-only, and writes
+  `.blind-peer-review/out/<key>.json` per lens plus combined `review-summary.md`
+  and `review-summary.json`. It exits 1 on BLOCK, 0 on PASS, 2 if the reviewer is
+  unavailable or misconfigured — a 2 is an error to report, not a cue to run
+  in-host instead. Report its table and verdict as your own and **skip sections 5
+  and 6** — it has already adjudicated and printed which reviewer ran. If that
+  reviewer is the same model family that authored the change, say so.
 
-## 4a. Otherwise, run the lenses as fresh, parallel subagents
+## 4a. Host: run the lenses as fresh, parallel subagents
 
 For each chosen lens, spawn a **separate** `Task` subagent (so each starts with a
 clean context) with this prompt:
@@ -142,8 +143,8 @@ Do not soften or re-adjudicate a lens's MUST FIX — surface it as written.
 
 ## 6. State who reviewed it
 
-Only when section 4a ran — the in-host path. If the lenses were dispatched to
-codex, report that identity and whether the author used the same model family.
+Only when section 4a ran — the in-host path. If the lenses were dispatched, the
+script has already reported the reviewer and its family caveat.
 
 End the summary with this line, verbatim:
 
@@ -155,7 +156,8 @@ This is a real limitation of the local path, not boilerplate. The lenses here ar
 `Task` subagents of the host, so when you author in Claude Code, Claude is
 reviewing Claude: a bug that came from a habit of this model family is one the
 reviewer is least likely to see. The CI gate does not have this problem — it
-dispatches to a different family entirely.
+dispatches to a different family entirely. Locally, configuring a reviewer
+(`docs/local-review.md`) does the same.
 
 Print the line whether the verdict is PASS or BLOCK. A clean PASS is exactly when
 the caveat matters most, because that is when it is easiest to read the result as

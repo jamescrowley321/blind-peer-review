@@ -25,9 +25,9 @@ push, rather than after a bot has commented on your PR.
 
 **One caveat, stated up front.** Run in Claude Code, the lenses are subagents of
 the model that wrote the diff — Claude reviewing Claude, sharing the author's
-blind spots. If you have the `codex` CLI, the skill dispatches to it instead
-(one process per lens, a different model family, still free). See
-[`docs/local-review.md`](docs/local-review.md).
+blind spots. Pass `--reviewer codex`, `--reviewer pi` or any agent CLI — or set
+it once in a config file — and the skill dispatches to that reviewer instead, one
+process per lens. See [`docs/local-review.md`](docs/local-review.md).
 
 ## The other harnesses
 

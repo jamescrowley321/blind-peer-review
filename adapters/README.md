@@ -37,9 +37,10 @@ same bug — a constructor that parses and validates an environment variable bef
 the CLI flag meant to override it is applied, so a bad env value makes the
 override unusable. Confirmed in the source.
 
-`scripts/dispatch-codex.mjs` enforces this rather than asking for it: one process
-per lens, read-only sandbox, and the contract shape enforced through codex's
-`--output-schema` — the local equivalent of CI's schema-checked `submit_findings`.
+`scripts/dispatch.mjs` enforces this rather than asking for it: one process per
+lens, whichever reviewer is configured (codex, pi, or any agent CLI), read-only,
+and every result validated against the contract — for codex through
+`--output-schema`, the local equivalent of CI's schema-checked `submit_findings`.
 
 ## The one override convention (all harnesses honor it)
 

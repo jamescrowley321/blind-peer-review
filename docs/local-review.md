@@ -6,8 +6,10 @@ between them.
 
 | | runs on | costs | reviewer family |
 |---|---|---|---|
-| **Claude Code plugin** | your Claude subscription | nothing extra | **same as the author**, if you write with Claude |
-| **codex dispatch** | your Codex subscription | nothing extra | **different** from Claude |
+| **Claude Code plugin** (`host`) | your Claude subscription | nothing extra | **same as the author**, if you write with Claude |
+| **dispatch to `codex`** | your Codex subscription | nothing extra | **different** from Claude |
+| **dispatch to `pi`** | whatever pi is signed in to | depends on the provider | whatever model you pick |
+| **dispatch to a `command`** | any agent CLI you name | depends on the agent | depends on the agent |
 | **pi runner** | a model provider, via `OPENROUTER_API_KEY` | per-token | whatever model you pick |
 
 ## 1. The plugin — start here
@@ -56,24 +58,51 @@ with Claude, Claude is reviewing Claude, and a bug that came from this model
 family's habits is the one a same-family reviewer is least likely to see. The
 skill says so in its verdict, every run, pass or fail. Section 2 is the fix.
 
-## 2. codex dispatch — a different family, still free
+## 2. Dispatch — pick who reviews
 
-If the `codex` CLI is on your PATH, `/blind-peer-review:check` uses it
-automatically. To run it directly:
+`/blind-peer-review:check` runs in-host unless you name another reviewer. It
+never picks one because it happens to be installed.
+
+| reviewer | runs | notes |
+|---|---|---|
+| `host` (default) | Claude Code subagents | same family as the author if you write with Claude |
+| `codex` | `codex exec`, read-only sandbox | contract enforced by `--output-schema` |
+| `pi` | `pi -p` with only `read,grep,find,ls` | no context files, skills, extensions or MCP; any model pi can reach |
+| `command` | any agent CLI | gets the prompt on stdin, must print the contract JSON on stdout |
+
+Choose per run, per shell, per repo, or for yourself. The first one set wins:
+
+1. `/blind-peer-review:check --reviewer pi --model z-ai/glm-5.2`
+2. `BPR_REVIEWER=pi` (and `BPR_MODEL`)
+3. `.blind-peer-review/config.json` in the repo — `{"reviewer": "codex"}`
+4. `~/.config/blind-peer-review/config.json` (`$XDG_CONFIG_HOME` respected)
+
+A config's `model` applies only when that same file chose the reviewer, so a
+repo's codex model is never handed to a pi you picked on the command line.
+
+To use another agent, name its argv in your **user** config:
+
+```json
+{ "reviewer": "command", "command": ["my-agent", "--print", "--read-only"] }
+```
+
+or as `BPR_REVIEWER_CMD='["my-agent","--print"]'`. A repo config cannot set
+`command`: reviewing someone else's branch must not run a program that branch
+chose. Whatever the agent prints is validated against the contract and fails
+closed, exactly like the others; it is your job to run it read-only.
+
+A reviewer that is configured but not installed is an error (exit 2), not a
+silent fall back to in-host. To run the dispatcher directly:
 
 ```
 node scripts/scope-diff.mjs [--base <ref>]
-node scripts/dispatch-codex.mjs --diff .blind-peer-review/out/review-diff.patch --repo .
-node scripts/dispatch-codex.mjs --diff my.patch --repo . --lens security,cold_read
+node scripts/dispatch.mjs --reviewer codex --diff .blind-peer-review/out/review-diff.patch --repo .
+node scripts/dispatch.mjs --reviewer pi --model z-ai/glm-5.2 --diff my.patch --repo . --lens security,cold_read
+node scripts/dispatch.mjs --print-reviewer --repo .     # which reviewer would run
 ```
 
-One `codex exec` **per lens**, in parallel, each in a read-only sandbox. Exit 1 on
-BLOCK, 0 on PASS, 2 if `codex` is not installed — which the skill treats as "run
-in-host", never as an error.
-
-The contract is enforced through codex's `--output-schema`, the local equivalent
-of the CI path's schema-checked `submit_findings`: the provider validates the
-response, so a lens cannot answer in prose.
+One reviewer process **per lens**, in parallel. Exit 1 on BLOCK, 0 on PASS, 2 on
+misuse, an unavailable reviewer, or a resolved reviewer of `host`.
 
 ### Why one process per lens, and not one session running five
 
@@ -123,8 +152,8 @@ GitHub reviews retain the complete findings.
 
 ## Tuning a lens for your repo
 
-Commit `.blind-peer-review/lenses/<key>.md` and it replaces that persona for all
-three local paths. Keys are in
+Commit `.blind-peer-review/lenses/<key>.md` and it replaces that persona for
+every local path. Keys are in
 [`lenses/manifest.json`](../lenses/manifest.json).
 
 CI deliberately does **not** read those overrides on an untrusted PR: a pull

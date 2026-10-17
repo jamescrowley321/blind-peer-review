@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { chooseLenses, personaPath, adjudicate } from "./dispatch-codex.mjs";
+import { chooseLenses, personaPath, adjudicate, resolveReviewer, readConfig, reviewerArgv, unfence, failure, onPath } from "./dispatch.mjs";
 
 const manifest = JSON.parse(
   readFileSync(new URL("../lenses/manifest.json", import.meta.url), "utf8"),
@@ -143,8 +143,9 @@ test("an empty result set cannot pass", () => {
   assert.throws(() => adjudicate([]), /no lenses/);
 });
 
-const cliPath = fileURLToPath(new URL("./dispatch-codex.mjs", import.meta.url));
-function cli(t, result, args = [], { fail = false, missing = false, raw = false, override = false, symlinkResult = false, symlinkDir = false } = {}) {
+const cliPath = fileURLToPath(new URL("./dispatch.mjs", import.meta.url));
+function cli(t, result, args = [], { fail = false, missing = false, raw = false, override = false, symlinkResult = false, symlinkDir = false,
+  reviewer = "codex", env = {}, repoConfig = null, userConfig = null } = {}) {
   const repo = mkdtempSync(join(tmpdir(), "bpr-dispatch-"));
   t.after(() => rmSync(repo, { recursive: true, force: true }));
   mkdirSync(join(repo, "bin"));
@@ -164,6 +165,29 @@ process.stdin.on("end", () => {
   if (!${missing}) fs.writeFileSync(path, ${JSON.stringify(payload)});
 });
 `, { mode: 0o755 });
+  // pi and an arbitrary agent CLI print the review on stdout and record argv.
+  for (const bin of ["pi", "my-agent"]) {
+    writeFileSync(join(repo, "bin", bin), `#!/usr/bin/env node
+const fs = require("node:fs");
+let prompt = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (data) => prompt += data);
+process.stdin.on("end", () => {
+  fs.writeFileSync(${JSON.stringify(capture)}, prompt);
+  fs.writeFileSync(${JSON.stringify(join(repo, "argv.json"))}, JSON.stringify(process.argv.slice(2)));
+  if (${fail}) process.exit(7);
+  process.stdout.write(${JSON.stringify(payload)});
+});
+`, { mode: 0o755 });
+  }
+  if (repoConfig) {
+    mkdirSync(join(repo, ".blind-peer-review"), { recursive: true });
+    writeFileSync(join(repo, ".blind-peer-review/config.json"), JSON.stringify(repoConfig));
+  }
+  if (userConfig) {
+    mkdirSync(join(repo, "xdg/blind-peer-review"), { recursive: true });
+    writeFileSync(join(repo, "xdg/blind-peer-review/config.json"), JSON.stringify(userConfig));
+  }
   if (override) {
     mkdirSync(join(repo, ".blind-peer-review/lenses"), { recursive: true });
     writeFileSync(join(repo, ".blind-peer-review/lenses/security.md"), "UNIQUE LOCAL OVERRIDE");
@@ -176,8 +200,13 @@ process.stdin.on("end", () => {
       symlinkSync(join(repo, "untouched.txt"), join(repo, ".blind-peer-review/out/security.json"));
     }
   }
-  const run = spawnSync(process.execPath, [cliPath, "--repo", repo, "--diff", "diff.patch", "--lens", "security", ...args], {
-    encoding: "utf8", env: { ...process.env, PATH: `${join(repo, "bin")}:${process.env.PATH}` }, timeout: 10_000,
+  const base = { ...process.env };
+  for (const k of ["BPR_REVIEWER", "BPR_MODEL", "BPR_REVIEWER_CMD"]) delete base[k];
+  const run = spawnSync(process.execPath, [cliPath, "--repo", repo, "--diff", "diff.patch", "--lens", "security",
+    ...(reviewer ? ["--reviewer", reviewer] : []), ...args], {
+    encoding: "utf8",
+    env: { ...base, XDG_CONFIG_HOME: join(repo, "xdg"), PATH: `${join(repo, "bin")}:${process.env.PATH}`, ...env },
+    timeout: 10_000,
   });
   return { ...run, repo, capture };
 }
@@ -259,4 +288,148 @@ test("executable codex dispatcher rejects generated artifact symlinks and leaves
     assert.ok((run.stderr + run.stdout).includes("refusing symlink"));
     assert.equal(existsSync(run.capture), false, "no reviewer launched for unsafe artifact paths");
   }
+});
+
+// ── who reviews ──
+
+test("with nothing configured, the reviewer is host — never whatever is installed", () => {
+  assert.deepEqual(resolveReviewer({}), { reviewer: "host", source: "default", model: null });
+});
+
+test("precedence: flag, then BPR_REVIEWER, then repo config, then user config", () => {
+  const repoConfig = { reviewer: "pi" };
+  const userConfig = { reviewer: "codex" };
+  const env = { BPR_REVIEWER: "command", BPR_REVIEWER_CMD: '["x"]' };
+  assert.equal(resolveReviewer({ flag: "host", env, repoConfig, userConfig }).source, "--reviewer");
+  assert.equal(resolveReviewer({ env, repoConfig, userConfig }).source, "BPR_REVIEWER");
+  assert.equal(resolveReviewer({ repoConfig, userConfig }).reviewer, "pi");
+  assert.equal(resolveReviewer({ userConfig }).reviewer, "codex");
+});
+
+test("the model follows the layer that chose the reviewer unless set explicitly", () => {
+  const repoConfig = { reviewer: "codex", model: "gpt-x" };
+  assert.equal(resolveReviewer({ repoConfig }).model, "gpt-x");
+  // A codex model from the repo must not be handed to pi chosen by the flag.
+  assert.equal(resolveReviewer({ flag: "pi", repoConfig }).model, null);
+  assert.equal(resolveReviewer({ flag: "pi", model: "glm", repoConfig }).model, "glm");
+  assert.equal(resolveReviewer({ flag: "pi", env: { BPR_MODEL: "kimi" } }).model, "kimi");
+});
+
+test("an unknown reviewer is refused, naming where it came from", () => {
+  assert.throws(() => resolveReviewer({ repoConfig: { reviewer: "gemini" } }), /unknown reviewer "gemini" \(from repo config\)/);
+});
+
+test("the repo config can never supply a command", () => {
+  // Reviewing someone else's branch must not run a program that branch chose.
+  assert.throws(() => resolveReviewer({ repoConfig: { command: ["sh", "-c", "evil"] } }), /repo config may not set "command"/);
+});
+
+test("the command reviewer takes its argv from BPR_REVIEWER_CMD or the user config", () => {
+  assert.deepEqual(resolveReviewer({ flag: "command", userConfig: { command: ["agent", "-p"] } }).command, ["agent", "-p"]);
+  assert.deepEqual(resolveReviewer({ flag: "command", env: { BPR_REVIEWER_CMD: '["a"]' }, userConfig: { command: ["b"] } }).command, ["a"]);
+  assert.throws(() => resolveReviewer({ flag: "command" }), /needs a command/);
+  assert.throws(() => resolveReviewer({ flag: "command", env: { BPR_REVIEWER_CMD: "agent -p" } }), /JSON array/);
+  assert.throws(() => resolveReviewer({ flag: "command", userConfig: { command: [] } }), /nonempty array/);
+});
+
+test("a malformed config file is an error, not silently ignored", () => {
+  const read = (body) => () => body;
+  assert.equal(readConfig("/x", () => false), null);
+  assert.throws(() => readConfig("/x", () => true, read("{")), /not valid JSON/);
+  assert.throws(() => readConfig("/x", () => true, read("[]")), /JSON object/);
+  assert.throws(() => readConfig("/x", () => true, read('{"reviewr":"pi"}')), /unknown key\(s\): reviewr/);
+});
+
+test("pi runs with read-only tools and none of the repo's agent setup", () => {
+  const [bin, args] = reviewerArgv({ reviewer: "pi", model: "glm" }, {});
+  assert.equal(bin, "pi");
+  assert.equal(args[args.indexOf("--tools") + 1], "read,grep,find,ls");
+  for (const flag of ["-p", "--no-session", "--no-context-files", "--no-skills", "--no-extensions", "--no-mcp", "--no-approve"]) {
+    assert.ok(args.includes(flag), `missing ${flag}`);
+  }
+  assert.equal(args[args.indexOf("--model") + 1], "glm");
+});
+
+test("codex keeps its read-only sandbox and schema, and takes a model", () => {
+  const [, args] = reviewerArgv({ reviewer: "codex", model: "m" }, { schemaPath: "/s.json", lastMsg: "/l" });
+  assert.equal(args[args.indexOf("--sandbox") + 1], "read-only");
+  assert.equal(args[args.indexOf("--output-schema") + 1], "/s.json");
+  assert.equal(args[args.indexOf("--model") + 1], "m");
+  assert.equal(args.at(-1), "-");
+});
+
+test("executable CLI with no reviewer configured does not dispatch, even with codex installed", (t) => {
+  const run = cli(t, clean, [], { reviewer: null });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /reviewer is host \(from default\)/);
+  assert.equal(existsSync(run.capture), false);
+});
+
+test("executable CLI --print-reviewer reports the resolved reviewer", (t) => {
+  assert.equal(cli(t, clean, ["--print-reviewer"], { reviewer: null }).stdout.trim(), "host");
+  assert.equal(cli(t, clean, ["--print-reviewer"], { reviewer: null, repoConfig: { reviewer: "pi" } }).stdout.trim(), "pi");
+  assert.equal(cli(t, clean, ["--print-reviewer"], { reviewer: null, env: { BPR_REVIEWER: "codex" }, repoConfig: { reviewer: "pi" } }).stdout.trim(), "codex");
+});
+
+test("executable CLI dispatches to pi from the repo config and passes the model", (t) => {
+  const run = cli(t, clean, [], { reviewer: null, repoConfig: { reviewer: "pi", model: "z-ai/glm-5.2" } });
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /Verdict: PASS/);
+  assert.match(run.stdout, /Reviewed out-of-host by pi \(z-ai\/glm-5.2\) \(reviewer from repo config\)/);
+  const argv = JSON.parse(readFileSync(join(run.repo, "argv.json"), "utf8"));
+  assert.equal(argv[argv.indexOf("--model") + 1], "z-ai/glm-5.2");
+  assert.match(readFileSync(run.capture, "utf8"), /YOUR PERSONA/);
+});
+
+test("executable CLI dispatches to a user-configured command and fails closed on its output", (t) => {
+  const userConfig = { reviewer: "command", command: ["my-agent", "--print"] };
+  const pass = cli(t, clean, [], { reviewer: null, userConfig });
+  assert.equal(pass.status, 0, pass.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(join(pass.repo, "argv.json"), "utf8")), ["--print"]);
+  const prose = cli(t, "Looks good to me!", [], { reviewer: null, userConfig, raw: true });
+  assert.equal(prose.status, 1);
+  assert.match(prose.stdout, /FAILED/);
+  const crashed = cli(t, clean, [], { reviewer: null, userConfig, fail: true });
+  assert.equal(crashed.status, 1);
+  assert.match(crashed.stdout, /command failed/);
+});
+
+test("executable CLI refuses a command from the repo config before running anything", (t) => {
+  const run = cli(t, clean, [], { reviewer: null, repoConfig: { reviewer: "command", command: ["my-agent"] } });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /repo config may not set "command"/);
+  assert.equal(existsSync(run.capture), false);
+});
+
+test("executable CLI fails loudly when the chosen reviewer is not installed", (t) => {
+  const run = cli(t, clean, [], { reviewer: "command", env: { BPR_REVIEWER_CMD: '["no-such-agent-xyz"]' } });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /`no-such-agent-xyz` is not on PATH/);
+});
+
+test("a fence wrapping the whole output is stripped; prose around one is not", () => {
+  assert.equal(unfence('```json\n{"a":1}\n```'), '{"a":1}');
+  assert.equal(unfence('\n```\n{"a":1}\n```\n'), '{"a":1}');
+  assert.equal(unfence('Here you go:\n```json\n{"a":1}\n```'), 'Here you go:\n```json\n{"a":1}\n```');
+  assert.equal(unfence('```json\n{}\n```\nand\n```json\n{}\n```'), '```json\n{}\n```\nand\n```json\n{}\n```');
+});
+
+test("a failed reviewer reports how it failed and its last stderr line", () => {
+  assert.equal(failure({ code: 1, stderr: "warn\nNo API key for provider\n" }), "exit 1: No API key for provider");
+  assert.equal(failure({ killed: true, signal: "SIGTERM", stderr: "" }), "killed (SIGTERM)");
+});
+
+test("executable CLI accepts a fenced object from a stdout reviewer", (t) => {
+  const run = cli(t, "```json\n" + JSON.stringify(clean) + "\n```", [], { reviewer: "pi", raw: true });
+  assert.equal(run.status, 0, run.stdout);
+});
+
+test("a relative reviewer path resolves from the repo the reviewer runs in", (t) => {
+  const repo = mkdtempSync(join(tmpdir(), "bpr-onpath-"));
+  t.after(() => rmSync(repo, { recursive: true, force: true }));
+  mkdirSync(join(repo, "tools"));
+  writeFileSync(join(repo, "tools", "agent"), "#!/bin/sh\n", { mode: 0o755 });
+  assert.equal(onPath("./tools/agent", repo, ""), true);
+  assert.equal(onPath("agent", repo, "tools"), true);
+  assert.equal(onPath("./tools/agent", tmpdir(), ""), false);
 });

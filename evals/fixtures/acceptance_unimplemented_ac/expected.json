@@ -2,7 +2,7 @@
   "class": "must-block",
   "smoke": true,
   "pr_title": "feat(api): CSV export endpoints",
-  "guards": "Counterweight to the acceptance must-not-block set. AC-3 (7-day purge) is implemented nowhere in the diff and has no test, so AC-4 fails with it. If suppressing the false-absence failures ever costs the lens a genuinely absent AC, it shows up here.",
+  "guards": "Counterweight to the acceptance must-not-block set: AC-4 explicitly requires tests for each API behavior, but the fully visible new exports.test.js suite tests only queueing and the tenant 404 branch, not successful GET status retrieval. That visible required-test gap must block. AC-3's worker is not in the diff and must remain UNVERIFIED; this fixture cannot prove cleanup is absent. Corrected description after the 2026-10 Jev A/B exposed severity drift; diff and gate expectation unchanged.",
   "lenses": {
     "acceptance": { "block": true, "location_matches": "^src/api/exports\\.(js|test\\.js):" }
   }

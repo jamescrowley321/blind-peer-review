@@ -87,5 +87,13 @@ the verdict belongs at the start of `detail`.
   criteria, treat it as having no ACs and apply the final rule below.
 - Every finding's `severity` MUST be exactly `MUST FIX`, `SHOULD FIX`, or `NITPICK` — **never** `PASS`/`FAIL`/`PARTIAL`/`SCOPE CREEP` (those are `detail` labels, per the mapping above). A non-enum severity fails the lens.
 - "Tested" means a test exists that would fail if the implementation were removed — read the actual test files.
+- **Required tests are contractual, not optional coverage.** If an AC explicitly
+  requires a test or assertion, and the complete relevant new/changed test suite
+  is visible and demonstrably omits it, classify that AC **PARTIAL → MUST FIX**.
+  Working production code or a test of a different branch does not satisfy the
+  explicit test requirement. Identify the required behavior and visible suite
+  in the finding. Additional coverage not required by an AC is SHOULD FIX.
+  Do not infer absence from a partial hunk, truncated diff, or unseen test file;
+  retain UNVERIFIED/NITPICK in those cases.
 - Do NOT accept "will be done in a future story" as an excuse for FAIL.
 - **If the PR body contains no acceptance criteria, say so explicitly and report nothing further** (do not invent ACs, do not block).

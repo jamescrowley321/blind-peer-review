@@ -1,0 +1,17 @@
+DIFFGIT a/src/exports/status.js b/src/exports/status.js
+new file mode 100644
+--- /dev/null
++++ b/src/exports/status.js
+@@ -0,0 +1,1 @@
++exports.status = job => ({ id: job.id, status: job.status });
+DIFFGIT a/src/exports/status.test.js b/src/exports/status.test.js
+new file mode 100644
+--- /dev/null
++++ b/src/exports/status.test.js
+@@ -0,0 +1,6 @@
++const { status } = require("./status");
++describe("export status", () => {
++  it("returns the id", () => {
++    expect(status({ id: "j1", status: "queued" }).id).toBe("j1");
++  });
++});

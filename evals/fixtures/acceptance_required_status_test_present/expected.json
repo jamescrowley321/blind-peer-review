@@ -1,0 +1,11 @@
+{
+  "class": "must-not-block",
+  "smoke": false,
+  "pr_title": "feat(exports): acceptance required status test present",
+  "guards": "Counterexample: the fully visible new test suite asserts both explicitly required returned fields. Strict required-test severity must not block satisfied coverage.",
+  "lenses": {
+    "acceptance": {
+      "block": false
+    }
+  }
+}

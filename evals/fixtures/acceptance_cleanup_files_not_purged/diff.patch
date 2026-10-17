@@ -1,0 +1,15 @@
+DIFFGIT a/src/workers/cleanup.js b/src/workers/cleanup.js
+new file mode 100644
+--- /dev/null
++++ b/src/workers/cleanup.js
+@@ -0,0 +1,10 @@
++const { jobs, files, scheduler } = require("../services");
++async function cleanup(now) {
++  const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
++  const expired = await jobs.findBefore(cutoff);
++  for (const job of expired) {
++    await jobs.remove(job.id);
++  }
++}
++scheduler.daily(() => cleanup(new Date()));
++module.exports = cleanup;

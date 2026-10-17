@@ -1,0 +1,12 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "feat(exports): acceptance required status test missing",
+  "guards": "An explicit test requirement for both returned fields is violated in a fully visible new test suite: only id is asserted. Missing required status assertion must block, not be downgraded to optional coverage.",
+  "lenses": {
+    "acceptance": {
+      "block": true,
+      "location_matches": "^src/exports/status\\.test\\.js:"
+    }
+  }
+}

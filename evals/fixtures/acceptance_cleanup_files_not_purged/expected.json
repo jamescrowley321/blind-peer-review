@@ -1,0 +1,12 @@
+{
+  "class": "must-block",
+  "smoke": false,
+  "pr_title": "feat(exports): acceptance cleanup files not purged",
+  "guards": "Positive implementation evidence: the complete new scheduled cleanup module removes expired job records but never removes generated files. This is a visible PARTIAL explicit retention requirement, not absence inferred from an unseen worker.",
+  "lenses": {
+    "acceptance": {
+      "block": true,
+      "location_matches": "^src/workers/cleanup\\.js:"
+    }
+  }
+}

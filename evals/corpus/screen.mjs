@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+// Stage 3 of the review corpus: Jev screening of filter-accepted rounds.
+//
+// Usage:
+//   node evals/corpus/screen.mjs --phase compose --harvest <dir> --decisions <decisions.jsonl> --work <new-dir> [--limit N]
+//   OPENROUTER_API_KEY=… node evals/corpus/screen.mjs --phase call --work <dir>
+//   node evals/corpus/screen.mjs --phase score --work <dir> [--thresholds <file.json>]
+//
+// compose freezes the question set (hashed) and every case's state; call spends
+// credits and refuses to run twice; score is free and re-runnable. Screening
+// never touches the required-test label and never changes a review verdict.
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { QUESTIONS, buildState, decide, distributions, questionSha256 } from "./lib/screening.mjs";
+import { FATAL, MODEL, screenCase } from "./lib/jev.mjs";
+
+const safe = (caseId) => caseId.replace(/[^\w.@-]/g, "_");
+
+export function compose({ harvest, decisions, work, limit = null }) {
+  const planPath = join(work, "plan.json");
+  if (existsSync(planPath)) throw new Error("Refusing to overwrite an existing plan; use a new --work directory");
+  const accepted = readFileSync(decisions, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((d) => d.accepted);
+  const cases = [];
+  for (const d of accepted.slice(0, limit ?? accepted.length)) {
+    const snapshot = JSON.parse(readFileSync(join(harvest, `${d.snapshotId}.json`), "utf8"));
+    const round = snapshot.rounds.find((r) => r.headSha === d.headSha);
+    if (!round) throw new Error(`round for ${d.caseId} not found in harvest`);
+    const { state, truncated } = buildState(round, d);
+    cases.push({ caseId: d.caseId, flags: d.flags, notes: d.notes, truncated, state });
+  }
+  const plan = { schemaVersion: 1, model: MODEL, questionSha256: questionSha256(), questions: QUESTIONS, cases };
+  mkdirSync(work, { recursive: true });
+  writeFileSync(planPath, JSON.stringify(plan, null, 2) + "\n");
+  return plan;
+}
+
+export function readPlan(work) {
+  const plan = JSON.parse(readFileSync(join(work, "plan.json"), "utf8"));
+  if (plan.questionSha256 !== questionSha256() || plan.questionSha256 !== questionSha256(plan.questions)) {
+    throw new Error("Questions changed since compose; compose a new run");
+  }
+  return plan;
+}
+
+export async function call(work, { key = process.env.OPENROUTER_API_KEY, log = console.log, ...transport } = {}) {
+  const plan = readPlan(work);
+  if (!key) throw new Error("OPENROUTER_API_KEY required for the call phase");
+  const started = join(work, ".started");
+  if (existsSync(started)) throw new Error("Refusing to repeat a paid run; compose a new --work directory");
+  writeFileSync(started, "");
+  for (const c of plan.cases) {
+    const record = await screenCase(c.state, plan.questions, { key, ...transport });
+    writeFileSync(join(work, `${safe(c.caseId)}.result.json`), JSON.stringify(record, null, 2) + "\n");
+    log(`${c.caseId}: ${record.error ?? "ok"}`);
+    if (FATAL.has(record.status)) throw new Error(`Fatal provider response ${record.status}; run abandoned`);
+  }
+}
+
+export function score(work, { thresholds = null } = {}) {
+  const plan = readPlan(work);
+  const rows = plan.cases.map((c) => {
+    let result;
+    try { result = JSON.parse(readFileSync(join(work, `${safe(c.caseId)}.result.json`), "utf8")); }
+    catch { result = { error: "missing_result", usage: null }; }
+    const probabilities = result.error ? null : result.probabilities;
+    return { caseId: c.caseId, flags: c.flags, notes: c.notes, truncated: c.truncated, probabilities, error: result.error ?? null, usage: result.usage ?? null, decision: decide(probabilities, thresholds) };
+  });
+  const costs = rows.map((r) => r.usage?.cost).filter((x) => typeof x === "number" && Number.isFinite(x) && x >= 0);
+  const tally = (slice) => rows.reduce((acc, r) => ({ ...acc, [r.decision[slice]]: (acc[r.decision[slice]] ?? 0) + 1 }), {});
+  const summary = {
+    model: plan.model,
+    questionSha256: plan.questionSha256,
+    thresholds: thresholds ?? "none (pre-calibration: every case goes to human review)",
+    cases: rows.length,
+    failedCalls: rows.filter((r) => r.error).length,
+    truncatedStates: rows.filter((r) => r.truncated).length,
+    decisions: { general: tally("general"), requiredTest: tally("requiredTest") },
+    distributions: distributions(rows),
+    usage: { reportedCostUsd: costs.reduce((a, b) => a + b, 0), missingUsageCalls: rows.length - costs.length, costUsd: costs.length === rows.length ? costs.reduce((a, b) => a + b, 0) : null },
+  };
+  writeFileSync(join(work, "screen.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
+  writeFileSync(join(work, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
+  return summary;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
+  const phase = flag("--phase");
+  const work = flag("--work") && resolve(flag("--work"));
+  if (!work) throw new Error("Use --work <dir>");
+  if (phase === "compose") {
+    if (!flag("--harvest") || !flag("--decisions")) throw new Error("compose needs --harvest and --decisions");
+    const limit = flag("--limit") ? Number(flag("--limit")) : null;
+    if (limit !== null && !(Number.isSafeInteger(limit) && limit > 0)) throw new Error("--limit must be a positive integer");
+    const plan = compose({ harvest: resolve(flag("--harvest")), decisions: resolve(flag("--decisions")), work, limit });
+    console.log(`Composed ${plan.cases.length} cases (${plan.cases.filter((c) => c.truncated).length} truncated); no credits spent.`);
+  } else if (phase === "call") {
+    await call(work);
+  } else if (phase === "score") {
+    const thresholds = flag("--thresholds") ? JSON.parse(readFileSync(resolve(flag("--thresholds")), "utf8")) : null;
+    console.log(JSON.stringify(score(work, { thresholds }), null, 2));
+  } else {
+    throw new Error("--phase must be compose, call or score");
+  }
+}

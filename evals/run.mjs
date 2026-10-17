@@ -40,6 +40,7 @@ import { execFileSync } from "node:child_process";
 import { ROOT, runParseStep, filesFromDiff, parseReviewBody } from "./lib/harness.mjs";
 import { listFixtureIds, loadFixture, selectRuns, composePrompt } from "./lib/fixtures.mjs";
 import { chat, mapLimit, ModelError } from "./lib/openrouter.mjs";
+import { requestTitle, writeTelemetry } from "./lib/telemetry.mjs";
 import { bailoutSample, shouldBailOut, bailoutMessage } from "./lib/bailout.mjs";
 import { codexChat } from "./lib/codex-provider.mjs";
 import { foldReps, score, violations, renderScorecard, buildBaseline, THRESHOLDS } from "./lib/scorecard.mjs";
@@ -96,6 +97,7 @@ function parseArgs(argv) {
   const a = {
     full: false, reps: 3, lens: null, fixture: null, model: process.env.EVAL_MODEL || defaultModelFromAction(),
     provider: process.env.EVAL_PROVIDER || "openrouter",
+    arm: process.env.EVAL_ARM || "baseline",
     dryRun: false, writeBaseline: false, out: null,
     concurrency: positiveInt(process.env.EVAL_CONCURRENCY || "4", "EVAL_CONCURRENCY"),
     maxTokens: positiveInt(process.env.EVAL_MAX_TOKENS || String(DEFAULT_MAX_TOKENS), "EVAL_MAX_TOKENS"),
@@ -106,7 +108,7 @@ function parseArgs(argv) {
     // the value alone cannot say whether anyone chose it — and a later phase
     // must be able to tell "you asked for this" from "nobody said".
     explicit: new Set(
-      [["model", process.env.EVAL_MODEL], ["maxTokens", process.env.EVAL_MAX_TOKENS]]
+      [["model", process.env.EVAL_MODEL], ["maxTokens", process.env.EVAL_MAX_TOKENS], ["arm", process.env.EVAL_ARM]]
         .filter(([, v]) => (v ?? "").trim() !== "").map(([k]) => k),
     ),
   };
@@ -114,6 +116,7 @@ function parseArgs(argv) {
     const k = argv[i];
     if (k === "--full") a.full = true;
     else if (k === "--dry-run") a.dryRun = true;
+    else if (k === "--arm") { a.arm = value(argv, ++i, k); a.explicit.add("arm"); }
     else if (k === "--write-baseline") a.writeBaseline = true;
     else if (k === "--reps") a.reps = positiveInt(value(argv, ++i, k), k);
     else if (k === "--concurrency") a.concurrency = positiveInt(value(argv, ++i, k), k);
@@ -135,6 +138,7 @@ function parseArgs(argv) {
   }
   if (!PHASES.includes(a.phase)) die(`--phase must be one of ${PHASES.join(" | ")} (got ${JSON.stringify(a.phase)})`);
   if (a.model.trim() === "") die("--model cannot be empty");
+  requestTitle(a.arm);
   return a;
 }
 
@@ -170,7 +174,7 @@ async function compose() {
     }
   }
 
-  const plan = { meta: { model: args.model, provider: args.provider, reps: args.reps, maxTokens: args.maxTokens, ref, set: args.full || args.fixture ? "full" : "smoke", fixtureCount: new Set(runs.map((r) => r.id)).size }, runs: [] };
+  const plan = { meta: { model: args.model, provider: args.provider, arm: args.arm, reps: args.reps, maxTokens: args.maxTokens, ref, set: args.full || args.fixture ? "full" : "smoke", fixtureCount: new Set(runs.map((r) => r.id)).size }, runs: [] };
   for (const r of runs) {
     const prompt = await composePrompt(r.lensKey, r.fx);
     writeFileSync(join(args.work, `${slug(r)}.prompt.txt`), prompt);
@@ -211,6 +215,7 @@ function readPlan() {
 // Refuse instead. Recomposing is offline and free; a re-measurement is neither.
 const PLAN_FROZEN = {
   model: { label: "--model / EVAL_MODEL", get: (p) => p.meta.model },
+  arm: { label: "--arm / EVAL_ARM", get: (p) => p.meta.arm ?? "baseline" },
   maxTokens: { label: "--max-tokens / EVAL_MAX_TOKENS", get: (p) => p.meta.maxTokens },
 };
 
@@ -261,8 +266,10 @@ async function call(plan) {
       // evals/lib/codex-provider.mjs — so the plan records which one ran.
       const res = plan.meta.provider === "codex"
         ? await codexChat({ prompt })
-        : await chat({ model: plan.meta.model, prompt, temperature: rep === 0 ? 0 : 0.4, maxTokens: plan.meta.maxTokens });
-      writeFileSync(out, JSON.stringify({ text: res.text, finishReason: res.finishReason, resolvedModel: res.resolvedModel, ms: res.ms }, null, 2));
+        : await chat({ model: plan.meta.model, prompt, temperature: rep === 0 ? 0 : 0.4, maxTokens: plan.meta.maxTokens, arm: plan.meta.arm ?? "baseline" });
+      writeFileSync(out, JSON.stringify({ text: res.text, finishReason: res.finishReason, resolvedModel: res.resolvedModel, ms: res.ms,
+        usage: res.usage ?? null, servedBy: res.servedBy ?? null, generationId: res.generationId ?? null,
+        attempts: res.attempts ?? null }, null, 2));
     } catch (err) {
       failed++;
       if (err instanceof ModelError && err.retryable === false) {
@@ -272,7 +279,7 @@ async function call(plan) {
       // Recording the failure must not itself become a failure — a full disk
       // here would otherwise lose every other fixture's result too.
       try {
-        writeFileSync(out, JSON.stringify({ error: String(err.message || err) }, null, 2));
+        writeFileSync(out, JSON.stringify({ error: String(err.message || err), attempts: err.attempts ?? null, ms: err.ms ?? null }, null, 2));
       } catch (writeErr) {
         console.error(`could not record the error for ${r.id} × ${r.lensKey}: ${writeErr.message}`);
       }
@@ -291,13 +298,16 @@ async function call(plan) {
       }
     }
   });
+  writeTelemetry(args.work, plan);
   console.log(`Collected ${items.length} response(s) into ${args.work}`);
+  console.log(`Usage telemetry: ${join(args.work, "experiment.json")}`);
 }
 
 // ───────────────────────────────── score ─────────────────────────────────
 // Executes action.yml's own findings parser. No provider key needed.
 
 async function scorePhase(plan) {
+  const telemetry = writeTelemetry(args.work, plan);
   let resolvedModel = null;
   const results = [];
   for (const r of plan.runs) {
@@ -343,7 +353,11 @@ async function scorePhase(plan) {
   const meta = { ...plan.meta, resolvedModel, thresholds: THRESHOLDS };
   const vs = violations(byLens, THRESHOLDS);
 
-  const md = renderScorecard({ byLens, results, meta, violations: vs });
+  const md = renderScorecard({ byLens, results, meta, violations: vs }) +
+    `\n\n## Usage telemetry\n\nArm: \`${telemetry.arm}\`. Reported chat cost subtotal: $${telemetry.chat.reportedCostUsd.toFixed(6)}. ` +
+    `Missing-cost attempts: ${telemetry.chat.missingCostAttempts}. ` +
+    `Combined reported chat + advisor cost: ${telemetry.combinedCostUsd == null ? "unknown" : `$${telemetry.combinedCostUsd.toFixed(6)}`}.\n` +
+    `Details: \`${join(args.work, "experiment.json")}\`. Costs are not a billing reconciliation.\n`;
   const outDir = join(ROOT, "evals", "baseline");
   mkdirSync(outDir, { recursive: true });
   const mdPath = args.out || join(outDir, "scorecard.md");

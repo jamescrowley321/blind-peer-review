@@ -5,6 +5,8 @@
 // already been bitten once by an OpenRouter slug being retired underneath it
 // (the undated anthropic/claude-sonnet-5 alias, v1.7.1).
 
+import { requestTitle } from "./telemetry.mjs";
+
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 export class ModelError extends Error {
@@ -22,12 +24,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // budget, so a tight cap returns an empty or half-written JSON object — which
 // then reads as "the lens emitted invalid JSON" when it is really the harness
 // cutting the model off. Truncation is reported separately for that reason.
-export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, attempts = 3, timeoutMs = 180_000 }) {
+export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, attempts = 3, timeoutMs = 180_000, arm = "baseline" }) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new ModelError("OPENROUTER_API_KEY is not set — the live eval layer cannot run.");
 
+  const title = requestTitle(arm);
+  const attemptRecords = [];
+  const callStarted = Date.now();
   let last;
   for (let i = 0; i < attempts; i++) {
+    const record = { usage: null, generationId: null, status: null };
+    attemptRecords.push(record);
     const started = Date.now();
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs);
@@ -39,7 +46,7 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://github.com/jamescrowley321/blind-peer-review",
-          "X-Title": "blind-peer-review evals",
+          "X-Title": title,
         },
         body: JSON.stringify({
           model,
@@ -48,6 +55,7 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
           messages: [{ role: "user", content: prompt }],
         }),
       });
+      record.status = res.status;
       const text = await res.text();
       if (!res.ok) {
         // A retired/unknown slug 404s with an HTML or JSON error body. Surface it
@@ -69,6 +77,8 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
       }
       let body;
       try { body = JSON.parse(text); } catch { throw new ModelError(`non-JSON response: ${text.slice(0, 200)}`, { retryable: true }); }
+      record.usage = body.usage || null;
+      record.generationId = body.id || null;
       if (body.error) throw new ModelError(`OpenRouter error: ${body.error.message || JSON.stringify(body.error)}`, { retryable: true });
       const choice = body.choices?.[0] ?? {};
       const content = choice.message?.content ?? "";
@@ -91,7 +101,9 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
         usage: body.usage || null,
         servedBy: body.provider || null,
         resolvedModel: body.model || model,
-        ms: Date.now() - started,
+        generationId: body.id || null,
+        attempts: attemptRecords,
+        ms: Date.now() - callStarted,
       };
     } catch (err) {
       last = err;
@@ -99,9 +111,12 @@ export async function chat({ model, prompt, temperature = 0, maxTokens = 8000, a
       if (!retryable || i === attempts - 1) break;
       await sleep(1500 * (i + 1));
     } finally {
+      record.ms = Date.now() - started;
       clearTimeout(timer);
     }
   }
+  last.attempts = attemptRecords;
+  last.ms = Date.now() - callStarted;
   throw last;
 }
 

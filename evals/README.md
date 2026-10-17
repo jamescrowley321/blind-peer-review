@@ -64,6 +64,52 @@ the report: a lens score is meaningless without it, and this repo has already
 been bitten once by an OpenRouter slug being retired underneath it (the undated
 `anthropic/claude-sonnet-5` alias, v1.7.1).
 
+## Usage telemetry
+
+Set an explicit arm at **compose** time (it is frozen like the model and ceiling):
+
+```bash
+node evals/run.mjs --phase compose --arm control --work /tmp/bpr-control
+# Set OPENROUTER_API_KEY only for the call phase, using your secret manager.
+node evals/run.mjs --phase call --work /tmp/bpr-control
+# Unset credentials before scoring.
+node evals/run.mjs --phase score --work /tmp/bpr-control
+```
+
+`--arm` / `EVAL_ARM` defaults to `baseline`; use `jev-advisory` for the assisted
+arm. The label changes reporting and the OpenRouter `X-Title` header to
+`blind-peer-review-eval/<arm>`; **it does not enable an advisor or alter prompts**.
+Arms are lowercase identifiers (letters, digits, `_`, `-`, at most 64 chars).
+Separate work directories prevent paid results being overwritten.
+
+The call phase preserves usage, serving provider, generation ID and retry attempt
+records in each response file. `experiment.json` is written after calls and
+rebuilt during scoring. It reports chat and advisor tokens, reported USD cost,
+median latency, failures, and missing data. Costs include recorded retries whose
+usage was returned, including an empty reply that triggered a retry. No API keys,
+prompt text, generated reviews or raw provider error bodies enter this summary.
+
+For an explicit advisor runner, pass the same arm to `chat()`, record one
+`<fixture>__<lens>.advisory.json` per pair with `usage` and `ms`, and describe the
+advisor in `plan.meta.advisor` (e.g. `{ "mode": "jev" }`). Classifier usage uses
+Pi's `input`, `output`, `totalTokens`, `cost.total` shape. This counts one advisor
+call per pair, not one per rep; a different frequency requires a different recorder.
+Rebuild a summary without spending credits:
+
+```bash
+node evals/telemetry.mjs --work /tmp/bpr-control
+```
+
+**Unknown is not zero.** A missing usage/cost field leaves `costUsd` and the
+combined cost `null`, with a known `reportedCostUsd` subtotal and missing counts.
+Older response files cannot reconstruct discarded usage. Token sums are partial
+when their missing counts are nonzero; cached input and reasoning are subsets,
+not tokens to add again. Latency sums are not elapsed wall time with concurrency.
+This is reported API usage, **not billing reconciliation**: failures before a
+usage-bearing response can still incur provider charges. Use OpenRouter activity
+and generation IDs to reconcile billing. Do not publish raw response files or
+billing-sensitive telemetry without review.
+
 ## What is asserted — and what deliberately is not
 
 The **gate verdict** is the only exact assertion, because it is the only thing

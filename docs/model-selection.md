@@ -218,7 +218,7 @@ default's cost and the only clean scorecard in four rounds.**
 
 ## 5. Results
 
-Four rounds. **Round three is the first that ran at the ceiling it was dispatched
+Six rounds. **Round three is the first that ran at the ceiling it was dispatched
 at** — rounds one and two silently ran every call at 8000 (#72). Round four
 widened the field. Round five is void and is reported here because how it failed
 is worth more than what it "measured".
@@ -319,6 +319,42 @@ without reasons would have put this straight into the table above as fact.
 > (gemini-3.8-flash) and `34804056266` (gpt-6-astra), plus six availability
 > rejections. All at ref `760dae8`, `max_tokens: 24000`. Round five
 > (`348044*`) is void — cited so it is not re-run in the belief it is missing.
+
+### Round six: after the citation and lens changes
+
+The first round on the current prompts (citations, OWASP 2025/2026 editions,
+persona fixes, the mechanical PARTIAL rule) and the first at the 32000 ceiling.
+Full set, 3 reps, 44 fixture×lens rows.
+
+| Model | Violations | must-not-block FP | JSON validity | stability | upstream |
+|---|---|---|---|---|---|
+| **`google/gemini-3.8-flash`** | **0** | **0% every lens** | 100% | 100% | 0/44 |
+| **`google/gemini-4-argon`** | **0** | **0% every lens** | 100% | 100% | 0/44 |
+| `openai/gpt-6.1-sol` | 2 | 11% acceptance | 100% | 100% | 0/44 |
+| `z-ai/glm-5.2` | 4 | 0% every lens | 86–100% | 50–100% | 0/44 |
+| `openai/gpt-6-luna-pro` | 5 | 22% acceptance | 86–100% | 67–100% | 0/44 |
+| `z-ai/glm-5.3` | 5 | 33% acceptance | 95–100% | 50–100% | 1/44 |
+| `anthropic/claude-haiku-5.5` | 9 | 11% acceptance, 50% cold_read | 78–100% | 86–100% | 0/44 |
+| `mistralai/mistral-large-4-0` | 9 | 22% acceptance | 83–100% | 69–100% | 3/44 |
+
+`gemini-3.8-flash` stays the default: it ties `gemini-4-argon` on every column
+at roughly a third of the price ($0.75/$3.75 vs $2/$10 per M).
+
+**Not measured:**
+
+- `anthropic/claude-sonnet-5.5` parsed **0 of every** delivered rep, every lens,
+  with `finish_reason=stop`. That is an output-format incompatibility with the
+  harness, not a quality score; its 16 "violations" are not comparable.
+- `x-ai/grok-4.7`, `deepseek/deepseek-v4.1-flash`, `qwen/qwen3.8-flash`:
+  rejected by this account's provider and guardrail restrictions (404) before
+  any call — see *Availability is an account setting*.
+
+> Runs `38512405769` (gemini-3.8-flash), `38512407750` (glm-5.2), `38512409634`
+> (claude-sonnet-5.5), `38512411731` (claude-haiku-5.5), `38512413400`
+> (gpt-6.1-sol), `38512415364` (gpt-6-luna-pro), `38512417282` (gemini-4-argon),
+> `38512420924` (mistral-large-4-0), `38512422826` (glm-5.3). All at ref
+> `f53b80c`, `max_tokens: 32000`. Scorecards in
+> `evals/results/2026-10-14-ceiling-32000/`.
 
 ## 6. What these numbers can and cannot tell you
 

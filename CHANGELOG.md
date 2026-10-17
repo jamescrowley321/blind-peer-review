@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.9.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.8.0...v3.9.0) (2026-10-17)
+
+
+### Features
+
+* **plugin:** configurable reviewer instead of auto-dispatching to codex ([3c56238](https://github.com/jamescrowley321/blind-peer-review/commit/3c56238474b650acae9ab17cbc37edcd8e14edd2))
+
 ## [3.8.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.7.0...v3.8.0) (2026-10-17)
 
 

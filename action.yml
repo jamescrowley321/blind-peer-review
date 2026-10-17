@@ -323,7 +323,7 @@ runs:
     - name: Run adversarial lens
       id: pi
       if: inputs.mode == 'lens'
-      uses: shaftoe/pi-coding-agent-action@853a9af5ac64e79c79fa6bb3958314aa1acf7e92 # v2.28.1
+      uses: shaftoe/pi-coding-agent-action@f7496a9aea9798c5d52d39096d98d5c5b16559b3 # v2.30.0
       with:
         github_token: ${{ inputs.github_token }}
         provider: ${{ inputs.provider }}
@@ -378,7 +378,7 @@ runs:
 
     - name: Upload review session
       if: always() && inputs.mode == 'lens' && steps.pi.outputs.session_html_path
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: pi-review-session-${{ inputs.lens }}
         path: ${{ steps.pi.outputs.session_html_path }}

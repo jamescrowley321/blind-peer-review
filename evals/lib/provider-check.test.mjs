@@ -18,12 +18,12 @@ test("SDK snapshot is tied to the engine pin and names the exact package source"
   const snapshot = JSON.parse(readFileSync(new URL("../../scripts/pi-openrouter-limits.json", import.meta.url)));
   const action = readFileSync(new URL("../../action.yml", import.meta.url), "utf8");
   assert.equal(snapshot.engineSha, action.match(/shaftoe\/pi-coding-agent-action@([0-9a-f]{40})/)[1], "re-check SDK output budgets whenever the engine pin moves");
-  assert.equal(snapshot.piAiVersion, "0.85.1");
+  assert.equal(snapshot.piAiVersion, "1.0.4");
   assert.equal(snapshot.source, `@earendil-works/pi-ai@${snapshot.piAiVersion}/dist/providers/data/openrouter.json`);
   assert.ok(Object.values(snapshot.maxTokens).every((n) => Number.isSafeInteger(n) && n > 0));
   assert.equal(requestBudget(MODEL), 65536);
   assert.equal(requestBudget("z-ai/glm-5.2"), 131072, "the reported incident budget is not a universal ceiling");
-  assert.equal(requestBudget("anthropic/claude-3-haiku"), 4096, "do not impose 65536 on a smaller model");
+  assert.equal(requestBudget("openai/gpt-3.5-turbo"), 4096, "do not impose 65536 on a smaller model");
 });
 
 test("a key affordable for one token but not a full lens is rejected", async () => {

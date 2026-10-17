@@ -20,7 +20,7 @@ import { readFileSync } from "node:fs";
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const limits = JSON.parse(readFileSync(new URL("./pi-openrouter-limits.json", import.meta.url), "utf8"));
 
-// The pinned engine does not override maxTokens. pi-ai 0.85.1's
+// The pinned engine does not override maxTokens. pi-ai 1.0.4's
 // api/simple-options.ts uses model.maxTokens, clamped down for prompt context.
 // Reserve the ceiling after the SDK's 4096-token context safety margin:
 // conservative for large prompts, and

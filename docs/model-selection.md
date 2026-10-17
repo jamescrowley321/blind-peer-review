@@ -111,7 +111,7 @@ disqualified regardless of how good it is.
 ```bash
 # Locally, with your own key — no repo secret involved
 export OPENROUTER_API_KEY=...
-node evals/run.mjs --full --model anthropic/claude-sonnet-5 --reps 3
+node evals/run.mjs --full --model google/gemini-4-argon --reps 3
 
 # Or in CI, on main only (the live layer refuses other refs by design)
 gh workflow run evals.yml --ref main \
@@ -143,7 +143,7 @@ output, so the second column assumes 10k out.
 
 | | | $/M in / out | $/push | $/push (10k out) |
 |---|---|---|---|---|
-| **Current default** | `google/gemini-2.5-pro` | 1.25 / 10.00 | **$0.53** | $1.13 |
+| **Current default** | `google/gemini-4-argon` | 2.00 / 10.00 | **$0.73** | $1.33 |
 
 **Frontier judgment**
 
@@ -188,16 +188,10 @@ All of the above support tool calling. `mistralai/devstral-2512` is the only
 entry with **no reasoning support** — relevant for the judgment lenses, less so
 for mechanical ones.
 
-Note that **the current default is not cheap for what it is**:
-`gemini-2.5-pro`'s $10/M output is priced like a frontier model while its
-per-token input is not, so at $0.53/push it sits above every model in the Strong
-value tier while scoring below the best of them (§5).
-
-Every model in the Frontier judgment table costs *more* per push than the default
-— $0.58 to $3.64 against $0.53 — so moving up-tier is a real spend increase, and
-on this project's evidence it has not bought anything. **The measured winner,
-`google/gemini-3.8-flash`, is in the Strong value tier at $0.27/push: half the
-default's cost and the only clean scorecard in four rounds.**
+Moving up-tier is a real spend increase, and on this project's evidence price
+has not bought quality. **`google/gemini-3.8-flash`, in the Strong value tier at
+$0.27/push, ties the default `gemini-4-argon` ($0.73/push) on every round-six
+column** and is the measured lower-cost choice.
 
 > [!WARNING]
 > **Set `max_tokens` before comparing reasoning models.** Reasoning tokens bill
@@ -337,8 +331,12 @@ Full set, 3 reps, 44 fixture×lens rows.
 | `anthropic/claude-haiku-5.5` | 9 | 11% acceptance, 50% cold_read | 78–100% | 86–100% | 0/44 |
 | `mistralai/mistral-large-4-0` | 9 | 22% acceptance | 83–100% | 69–100% | 3/44 |
 
-`gemini-3.8-flash` stays the default: it ties `gemini-4-argon` on every column
-at roughly a third of the price ($0.75/$3.75 vs $2/$10 per M).
+`gemini-3.8-flash` ties `gemini-4-argon` on every column at roughly a third of
+the price ($0.75/$3.75 vs $2/$10 per M). **`gemini-4-argon` is now the default**
+(2026-10-16): the project runs the latest model generation, because older
+generations age structurally — the 2.5-pro training-cutoff failure in round
+one — and that risk does not show up in a single round's scorecard.
+`gemini-3.8-flash` is the measured lower-cost alternative.
 
 **Not measured:**
 

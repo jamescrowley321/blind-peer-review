@@ -52,7 +52,7 @@ function defaultModelFromAction() {
   // describes the configuration consumers actually run.
   const yml = readFileSync(join(ROOT, "action.yml"), "utf8");
   const m = yml.match(/\n {2}model:\n(?:[^\n]*\n)*? {4}default: '([^']+)'/);
-  return m ? m[1] : "google/gemini-3.8-flash";
+  return m ? m[1] : "google/gemini-4-argon";
 }
 
 const die = (msg) => { console.error(`Error: ${msg}`); process.exit(2); };
@@ -386,7 +386,7 @@ async function scorePhase(plan) {
 // dispatched model is how a wrong-model run reads as a right one.
 function banner({ model, maxTokens }) {
   // On the codex path the model slug is NOT what answered. Saying "Model:
-  // google/gemini-3.8-flash" there would be the same misattribution that once
+  // google/gemini-4-argon" there would be the same misattribution that once
   // produced a full set of plausible-looking scorecards for calls nobody made.
   if (args.provider === "codex") {
     console.log(`Model:   codex (local) — NOT ${model}; this run measures the harness, not that model`);

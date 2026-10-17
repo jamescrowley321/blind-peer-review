@@ -66,10 +66,10 @@ jobs:
           # Score models on YOUR fixtures before trusting a tier — the split below
           # is a cost illustration, not a quality claim. See docs/model-selection.md.
           lens_models: |
-            cold_read = anthropic/claude-sonnet-5
-            red_team  = anthropic/claude-sonnet-5
-            security  = anthropic/claude-sonnet-5
-          default_model: google/gemini-3.8-flash
+            cold_read = openai/gpt-6.1-sol
+            red_team  = openai/gpt-6.1-sol
+            security  = openai/gpt-6.1-sol
+          default_model: google/gemini-4-argon
 
   # Deterministic gate: the paid lenses (review) `needs:` this, so they never run
   # unless the cheap checks pass first. The fork/bot gate lives here and cascades.
@@ -140,10 +140,10 @@ jobs:
               "providers": {
                 "openrouter": {
                   "modelOverrides": {
-                    "google/gemini-3.8-flash": {
+                    "google/gemini-4-argon": {
                       "compat": { "openRouterRouting": { "zdr": true, "data_collection": "deny" } }
                     },
-                    "anthropic/claude-sonnet-5": {
+                    "openai/gpt-6.1-sol": {
                       "compat": { "openRouterRouting": { "zdr": true, "data_collection": "deny" } }
                     }
                   }

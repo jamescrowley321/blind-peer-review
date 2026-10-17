@@ -30,14 +30,45 @@ export function privateCaseId(key, owner, repo, number) {
   return `priv-${digest.slice(0, 16)}`;
 }
 
-const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// Identifiers are matched literally, never compiled into a RegExp: config
+// values stay data. Longest first so `org/repo-extra` is not half-replaced by
+// `org/repo`.
+const needles = (values) => [...new Set(values.filter(Boolean).map((v) => v.toLowerCase()))]
+  .sort((a, b) => b.length - a.length);
+const REF_CHAR = /[\w.-]/;
+const DIGIT = /\d/;
+const at = (text, i, needle) => text.slice(i, i + needle.length).toLowerCase() === needle;
 
-// Longest first so `org/repo-extra` is not half-replaced by `org/repo`.
-function alternation(values) {
-  return [...new Set(values.filter(Boolean))]
-    .sort((a, b) => b.length - a.length)
-    .map(escape)
-    .join("|");
+/** Case-insensitive substring replacement of any of `values`. */
+function replaceLiterals(values, token) {
+  const list = needles(values);
+  return (text) => {
+    let out = "";
+    for (let i = 0; i < text.length;) {
+      const hit = list.find((n) => at(text, i, n));
+      if (hit) { out += token; i += hit.length; } else { out += text[i++]; }
+    }
+    return out;
+  };
+}
+
+/** `owner/repo#123` → <pr>, `owner/repo` → <org>/<repo>, for any configured owner. */
+function replaceOwnerRefs(owners) {
+  const list = needles(owners);
+  return (text) => {
+    let out = "";
+    for (let i = 0; i < text.length;) {
+      const hit = (i === 0 || !REF_CHAR.test(text[i - 1]))
+        && list.find((n) => at(text, i, n) && text[i + n.length] === "/" && REF_CHAR.test(text[i + n.length + 1] ?? ""));
+      if (!hit) { out += text[i++]; continue; }
+      let j = i + hit.length + 1;
+      while (j < text.length && REF_CHAR.test(text[j])) j++;
+      let k = j + 1;
+      while (text[j] === "#" && k < text.length && DIGIT.test(text[k])) k++;
+      if (k > j + 1) { out += TOKENS.pr; i = k; } else { out += `${TOKENS.org}/${TOKENS.repo}`; i = j; }
+    }
+    return out;
+  };
 }
 
 /**
@@ -49,27 +80,26 @@ export function makeRedactor({ owners = [], repos = [], users = [], branches = [
   // Substring, not word, matching: private names routinely sit inside code
   // identifiers (AcmeCareClient, ACMECARE_URL, acme_billing_test.py). Over-
   // redacting prose is the accepted cost of never under-redacting.
-  const anywhere = (alt) => new RegExp(`(?:${alt})`, "gi");
+  const regex = (pattern, token) => (text) => text.replace(pattern, token);
   const rules = [
-    [/\b(?:https?|ssh|git):\/\/\S+|\bgit@[\w.-]+:\S+|\bwww\.\S+/gi, TOKENS.url],
-    [/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, TOKENS.email],
-    [new RegExp(`(?<![\\w.-])(?:${alternation(owners)})/[\\w.-]+#\\d+`, "gi"), TOKENS.pr],
-    [new RegExp(`(?<![\\w.-])(?:${alternation(owners)})/[\\w.-]+`, "gi"), `${TOKENS.org}/${TOKENS.repo}`],
+    regex(/\b(?:https?|ssh|git):\/\/\S+|\bgit@[\w.-]+:\S+|\bwww\.\S+/gi, TOKENS.url),
+    regex(/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, TOKENS.email),
+    replaceOwnerRefs(owners),
   ];
   // In code, `#333` is a colour and `@Override` a decorator, not a PR or a
   // person; only prose gets the generic reference and handle rules.
   if (!code) {
-    rules.push([/(?<![\w&])#\d+\b/g, TOKENS.pr], [/(?<![\w.])@[A-Za-z0-9][\w-]*(?:\[bot\])?/g, TOKENS.user]);
+    rules.push(regex(/(?<![\w&])#\d+\b/g, TOKENS.pr), regex(/(?<![\w.])@[A-Za-z0-9][\w-]*(?:\[bot\])?/g, TOKENS.user));
   }
-  if (branches.length) rules.push([anywhere(alternation(branches)), TOKENS.branch]);
-  if (repos.length) rules.push([anywhere(alternation(repos)), TOKENS.repo]);
-  if (users.length) rules.push([anywhere(alternation(users)), TOKENS.user]);
-  rules.push([anywhere(alternation(owners)), TOKENS.org]);
-  if (terms.length) rules.push([anywhere(alternation(terms)), TOKENS.term]);
+  if (branches.length) rules.push(replaceLiterals(branches, TOKENS.branch));
+  if (repos.length) rules.push(replaceLiterals(repos, TOKENS.repo));
+  if (users.length) rules.push(replaceLiterals(users, TOKENS.user));
+  rules.push(replaceLiterals(owners, TOKENS.org));
+  if (terms.length) rules.push(replaceLiterals(terms, TOKENS.term));
 
   return function redact(text) {
     if (typeof text !== "string") return text;
-    return rules.reduce((out, [pattern, token]) => out.replace(pattern, token), text);
+    return rules.reduce((out, rule) => rule(out), text);
   };
 }
 

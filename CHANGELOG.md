@@ -11,6 +11,21 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.8.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.7.0...v3.8.0) (2026-10-17)
+
+
+### Features
+
+* **corpus:** deterministic review-round filters with typed reasons ([c527252](https://github.com/jamescrowley321/blind-peer-review/commit/c52725297220487300a572d8e8cb26ae1e043e85))
+* **corpus:** Jev screening of filter-accepted rounds ([#157](https://github.com/jamescrowley321/blind-peer-review/issues/157)) ([5fea0cf](https://github.com/jamescrowley321/blind-peer-review/commit/5fea0cf3b79a45e38b38d0a61a7340721fa9abdc))
+* **corpus:** read verdicts from lens tables, MUST FIX sections and verdict words ([78a37e3](https://github.com/jamescrowley321/blind-peer-review/commit/78a37e379fc6718467d32f209f56d70a5f4fe705))
+
+
+### Bug Fixes
+
+* **corpus:** close false PASS and false policy_only_block paths; back off on rate limits ([e7981d7](https://github.com/jamescrowley321/blind-peer-review/commit/e7981d713d3d34e3cebfc8e7c221bd70218be596))
+* **corpus:** read every hand-written local-run verdict and head marker ([2cdb91f](https://github.com/jamescrowley321/blind-peer-review/commit/2cdb91f2bfdafca2f789277593f671f94fa08df8))
+
 ## [3.7.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.6.0...v3.7.0) (2026-10-17)
 
 

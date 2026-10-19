@@ -80,12 +80,15 @@ export function lensSummary(body) {
   return (body ?? "").match(/^>\s*(.+)$/m)?.[1] ?? null;
 }
 
+const serious = (f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX";
+
+// Structured fields decide when present; text matching is only the fallback
+// for outputs that carry none (a summary can say "no [MUST FIX] findings").
 function hasFinding(output) {
   if (output.verdict === "BLOCK") return true;
-  if (output.severity === "MUST FIX" || output.severity === "SHOULD FIX") return true;
-  if ((output.findings ?? []).some((f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX")) return true;
-  const json = extractLensJson(output.body ?? "");
-  if ((json?.findings ?? []).some((f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX")) return true;
+  if (serious(output)) return true;
+  const findings = Array.isArray(output.findings) ? output.findings : extractLensJson(output.body ?? "")?.findings;
+  if (Array.isArray(findings)) return findings.some(serious);
   return FINDING_TAG.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
 }
 

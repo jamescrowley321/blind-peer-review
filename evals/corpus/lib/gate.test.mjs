@@ -30,6 +30,7 @@ test("labels: findings come from verdict, severity fields, contract JSON or tags
   assert.equal(one(inline("Red Team", "MUST FIX", "[MUST FIX] token replay")), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Chain found.", [{ severity: "SHOULD FIX" }])), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Minor only.", [{ severity: "NITPICK" }])), LABELS.NO_FINDINGS);
+  assert.equal(one(piJson("Red Team", "No [MUST FIX] or [SHOULD FIX] findings.")), LABELS.NO_FINDINGS);
   assert.equal(one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body: "## Review\n- [SHOULD FIX] x" }), LABELS.WITH_FINDINGS);
   const pasted = (body) => one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body });
   assert.equal(pasted("## Review: Red Team\n### SHOULD FIX\n- `auth.py:12` token reused across tenants"), LABELS.WITH_FINDINGS);
@@ -177,9 +178,10 @@ test("compose → call → score: rounds with no gated lens are dropped; reruns 
   assert.throws(() => score(work), /Questions changed/);
 });
 
-test("score: a missing or malformed result counts as a failed call, with usage unknown", async () => {
+test("score: a null result file counts as a failed call, with usage unknown", async () => {
   const { harvest, decisions, work } = fixtureCorpus();
   compose({ harvest, decisions, work });
+  writeFileSync(join(work, "r-1@a1.result.json"), "null");
   const summary = score(work);
   assert.equal(summary.failedCalls, 1);
   assert.equal(summary.usage.costUsd, null);

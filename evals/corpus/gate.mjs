@@ -95,6 +95,7 @@ export function score(work, { adjudications = null } = {}) {
     let result;
     try { result = JSON.parse(readFileSync(join(work, `${safe(c.caseId)}.result.json`), "utf8")); }
     catch { result = { error: "missing_result", usage: null }; }
+    if (!result || typeof result !== "object") result = { error: "malformed_result", usage: null };
     return { caseId: c.caseId, flags: c.flags, labels: c.labels, baseline: c.baseline, lensCosts: c.lensCosts, truncated: c.truncated, probabilities: result.error ? null : result.probabilities, error: result.error ?? null, usage: result.usage ?? null };
   });
   const costs = rows.map((r) => r.usage?.cost).filter((x) => typeof x === "number" && Number.isFinite(x) && x >= 0);

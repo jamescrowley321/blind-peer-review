@@ -59,11 +59,14 @@ export function buildGateState(round, decision) {
   const prBody = body.length > LIMITS.prBody ? `${body.slice(0, LIMITS.prBody)}\n[truncated]` : body;
   const files = decision.diffstat ?? [];
   const shown = files.slice(0, LIMITS.diffstatFiles).map((f) => `${f.path} +${f.added} -${f.removed}`);
-  if (files.length > shown.length) shown.push(`[${files.length - shown.length} more files]`);
-  return { state: { prBody, diffstat: shown.join("\n") }, truncated: prBody !== body || files.length > shown.length };
+  const omitted = files.length - shown.length;
+  if (omitted > 0) shown.push(`[${omitted} more files]`);
+  return { state: { prBody, diffstat: shown.join("\n") }, truncated: prBody !== body || omitted > 0 };
 }
 
-const SKIP = /\bskip(?:ped|s)?\b/i;
+// A self-skip summary leads with it ("Skipped — no web/HTTP surface", "Viper
+// skipped — …"); a finding that merely mentions skipping does not.
+const SKIP = /^\W*(?:[\w&-]+\s+){0,3}skipped\b|\bself-skip/i;
 const FINDING_TAG = /\[(?:MUST FIX|SHOULD FIX)\]/;
 const PLACEHOLDER = /^\s*See the review summary\.?\s*$/i;
 const COST = /\|\s*Cost:\s*\$([0-9]+(?:\.[0-9]+)?)/;
@@ -160,6 +163,8 @@ export function scoreGate(rows) {
       medianLensCostUsd: costs.length ? costs.sort((a, b) => a - b)[Math.floor(costs.length / 2)] : null,
       baseline: tallyGate(scored, lens, (r) => !r.baseline[lens]),
       jevCases: withJev.length,
+      // Same rows Jev answered, so a failed Jev call cannot flatter either arm.
+      baselineOnJevCases: tallyGate(withJev, lens, (r) => !r.baseline[lens]),
       jev,
       jevBestZeroMissInSample: zeroMiss && { threshold: zeroMiss.threshold, gatedOut: zeroMiss.gatedOut },
     };

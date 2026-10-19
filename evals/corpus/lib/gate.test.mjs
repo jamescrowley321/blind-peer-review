@@ -33,6 +33,13 @@ test("labels: findings come from verdict, severity fields, contract JSON or tags
   assert.equal(one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body: "## Review\n- [SHOULD FIX] x" }), LABELS.WITH_FINDINGS);
 });
 
+test("labels: only a leading skip in the summary is a self-skip, not a finding that mentions skipping", () => {
+  const one = (summary) => labelRound({ outputs: [lensReview("Red Team", summary)] }).red_team;
+  assert.equal(one("Skipped — no auth surface."), LABELS.SKIPPED);
+  assert.equal(one("Red Team skipped — no auth surface."), LABELS.SKIPPED);
+  assert.equal(one("Attackers can skip token validation on this path."), LABELS.NO_FINDINGS);
+});
+
 test("labels: a skip and a finding for the same lens in one round is a conflict", () => {
   const round = { outputs: [piJson("OWASP Web Top 10", "Skipped — no web/HTTP surface."), inline("OWASP Web Top 10", "SHOULD FIX", "[SHOULD FIX] x")] };
   assert.equal(labelRound(round).owasp_web, LABELS.CONFLICT);
@@ -55,6 +62,9 @@ test("Jev state holds only the PR body and diffstat, never review text", () => {
   assert.doesNotMatch(JSON.stringify(state), /SECRET-REVIEW-TEXT/);
   assert.equal(state.diffstat, "a.js +1 -2");
   assert.equal(truncated, true);
+  const many = Array.from({ length: 301 }, (_, i) => ({ path: `f${i}`, added: 1, removed: 0 }));
+  assert.equal(buildGateState({ body: "x", outputs: [] }, { diffstat: many }).truncated, true);
+  assert.equal(buildGateState({ body: "x", outputs: [] }, { diffstat: many.slice(0, 300) }).truncated, false);
   for (const q of Object.values(QUESTIONS)) assert.doesNotMatch(q.instructions, /review|finding/i);
 });
 
@@ -94,6 +104,7 @@ test("scoring: calls avoided, missed findings and skip agreement per arm; best z
   assert.equal(s.medianLensCostUsd, 0.06);
   assert.deepEqual(s.baseline, { gatedOut: 4, missedFindings: 1, missedCaseIds: ["found"], agreeSkip: 2, disagreeSkip: 3 });
   assert.equal(s.jevCases, 4);
+  assert.deepEqual(s.baselineOnJevCases, { gatedOut: 3, missedFindings: 1, missedCaseIds: ["found"], agreeSkip: 1, disagreeSkip: 3 });
   const at = (t) => s.jev.find((j) => j.threshold === t);
   assert.deepEqual(at(0.15), { threshold: 0.15, gatedOut: 2, missedFindings: 0, missedCaseIds: [], agreeSkip: 4, disagreeSkip: 0 });
   assert.equal(at(0.4).missedFindings, 1);

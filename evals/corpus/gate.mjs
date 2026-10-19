@@ -51,9 +51,11 @@ export function readPlan(work) {
 export async function call(work, { key = process.env.OPENROUTER_API_KEY, log = console.log, ...transport } = {}) {
   const plan = readPlan(work);
   if (!key) throw new Error("OPENROUTER_API_KEY required for the call phase");
-  const started = join(work, ".started");
-  if (existsSync(started)) throw new Error("Refusing to repeat a paid run; compose a new --work directory");
-  writeFileSync(started, "");
+  try { writeFileSync(join(work, ".started"), "", { flag: "wx" }); }
+  catch (error) {
+    if (error.code === "EEXIST") throw new Error("Refusing to repeat a paid run; compose a new --work directory");
+    throw error;
+  }
   for (const c of plan.cases) {
     const record = await screenCase(c.state, plan.questions, { key, title: "eval-corpus-lens-gate", parse: parseGateAnswers, ...transport });
     writeFileSync(join(work, `${safe(c.caseId)}.result.json`), JSON.stringify(record, null, 2) + "\n");

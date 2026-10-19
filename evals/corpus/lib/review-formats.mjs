@@ -185,20 +185,21 @@ export function lensTable(body) {
   return rows;
 }
 
-const EMPTY_ITEM = /^(none|n\/a|nothing( blocking)?|no (must fix |blocking )?(findings|issues)|-)\b/i;
+const EMPTY_ITEM = /^(none|n\/a|nothing( blocking)?|no ([\w-]+ ){0,2}(findings|issues)|-)\b/i;
 const plain = (line) => line.replace(/^\s*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+|>\s*)/, "").replace(/[*_`]/g, "").trim();
 
 /**
- * Items under every MUST FIX heading. A section runs until the next heading at
- * the same or a higher level, so findings written as sub-headings or bold
- * paragraphs count; "none"-style placeholders do not. Returns null when there
- * is no MUST FIX heading at all.
+ * Items under every heading named by `heading` (MUST FIX by default). A section
+ * runs until the next heading at the same or a higher level, so findings
+ * written as sub-headings or bold paragraphs count; "none"-style placeholders
+ * do not. Returns null when there is no such heading at all.
  */
-export function mustFixItems(body) {
+export function mustFixItems(body, heading = "MUST FIX") {
   const lines = body.split("\n");
+  const re = new RegExp(`^(#{1,6})\\s*(?:\\*\\*)?(?:${heading})\\b`, "i");
   let items = null;
   for (let i = 0; i < lines.length; i++) {
-    const h = lines[i].match(/^(#{1,6})\s*(?:\*\*)?MUST FIX\b/i);
+    const h = lines[i].match(re);
     if (!h) continue;
     items ??= [];
     let current = null;

@@ -11,7 +11,7 @@
 // text: its state is the PR body and diffstat only, so it cannot read the label.
 
 import { createHash } from "node:crypto";
-import { extractLensJson } from "./review-formats.mjs";
+import { extractLensJson, mustFixItems } from "./review-formats.mjs";
 
 export const GATED = Object.freeze({
   red_team: /^(?:red[ _]team|viper)\b|\(viper\)/i,
@@ -64,10 +64,12 @@ export function buildGateState(round, decision) {
   return { state: { prBody, diffstat: shown.join("\n") }, truncated: prBody !== body || omitted > 0 };
 }
 
-// A self-skip summary leads with it ("Skipped — no web/HTTP surface", "Viper
-// skipped — …"); a finding that merely mentions skipping does not.
-const SKIP = /^\W*(?:[\w&-]+\s+){0,3}skipped\b|\bself-skip/i;
+// A self-skip summary leads with it and punctuates ("Skipped — no web/HTTP
+// surface", "Viper skipped — …"); a finding that mentions skipping does not.
+const SKIP = /^\W*(?:[\w&-]+\s+){0,3}(?:self-)?skipped\s*[—–:.(-]/i;
 const FINDING_TAG = /\[(?:MUST FIX|SHOULD FIX)\]/;
+// Hand-pasted reviews group findings under severity headings instead of tags.
+const FINDING_HEADINGS = "MUST FIX|SHOULD FIX|BLOCK|WARN";
 const PLACEHOLDER = /^\s*See the review summary\.?\s*$/i;
 const COST = /\|\s*Cost:\s*\$([0-9]+(?:\.[0-9]+)?)/;
 
@@ -84,7 +86,7 @@ function hasFinding(output) {
   if ((output.findings ?? []).some((f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX")) return true;
   const json = extractLensJson(output.body ?? "");
   if ((json?.findings ?? []).some((f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX")) return true;
-  return FINDING_TAG.test(output.body ?? "");
+  return FINDING_TAG.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
 }
 
 /**

@@ -31,6 +31,9 @@ test("labels: findings come from verdict, severity fields, contract JSON or tags
   assert.equal(one(piJson("Red Team", "Chain found.", [{ severity: "SHOULD FIX" }])), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Minor only.", [{ severity: "NITPICK" }])), LABELS.NO_FINDINGS);
   assert.equal(one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body: "## Review\n- [SHOULD FIX] x" }), LABELS.WITH_FINDINGS);
+  const pasted = (body) => one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body });
+  assert.equal(pasted("## Review: Red Team\n### SHOULD FIX\n- `auth.py:12` token reused across tenants"), LABELS.WITH_FINDINGS);
+  assert.equal(pasted("## Review: Red Team\n### BLOCK (must fix before merge)\nNo BLOCK findings.\n### WARN\nNone."), LABELS.NO_FINDINGS);
 });
 
 test("labels: only a leading skip in the summary is a self-skip, not a finding that mentions skipping", () => {
@@ -38,6 +41,8 @@ test("labels: only a leading skip in the summary is a self-skip, not a finding t
   assert.equal(one("Skipped — no auth surface."), LABELS.SKIPPED);
   assert.equal(one("Red Team skipped — no auth surface."), LABELS.SKIPPED);
   assert.equal(one("Attackers can skip token validation on this path."), LABELS.NO_FINDINGS);
+  assert.equal(one("The self-skip check can hide an authentication bypass."), LABELS.NO_FINDINGS);
+  assert.equal(labelRound({ outputs: [lensReview("Red Team", "The self-skip check can hide an auth bypass.", "- [MUST FIX] `a.js:1` bypass")] }).red_team, LABELS.WITH_FINDINGS);
 });
 
 test("labels: a skip and a finding for the same lens in one round is a conflict", () => {

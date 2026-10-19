@@ -24,10 +24,10 @@ test("labels: self-skip, findings, no findings, placeholders and absent lenses",
   assert.deepEqual(labelRound({ outputs: [inline("Red Team", null)] }), { red_team: null, owasp_web: null, owasp_llm: null });
 });
 
-test("labels: findings come from verdict, severity fields, contract JSON or tags; NITPICK alone is not a finding", () => {
+test("labels: findings come from contract JSON, tagged entries or severity headings; NITPICK alone and tag mentions are not findings", () => {
   const one = (o) => labelRound({ outputs: [o] }).red_team;
-  assert.equal(one({ ...lensReview("Red Team", "Chain found."), verdict: "BLOCK" }), LABELS.WITH_FINDINGS);
   assert.equal(one(inline("Red Team", "MUST FIX", "[MUST FIX] token replay")), LABELS.WITH_FINDINGS);
+  assert.equal(one({ ...lensReview("Red Team", "No [MUST FIX] or [SHOULD FIX] findings."), verdict: "BLOCK", severity: "MUST FIX" }), LABELS.NO_FINDINGS);
   assert.equal(one(piJson("Red Team", "Chain found.", [{ severity: "SHOULD FIX" }])), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Minor only.", [{ severity: "NITPICK" }])), LABELS.NO_FINDINGS);
   assert.equal(one({ ...piJson("Red Team", "No [MUST FIX] or [SHOULD FIX] findings."), severity: "MUST FIX", verdict: "BLOCK" }), LABELS.NO_FINDINGS);
@@ -109,6 +109,7 @@ test("scoring: calls avoided, missed findings and skip agreement per arm; best z
   assert.deepEqual(s.labels, { skipped: 3, noFindings: 1, withFindings: 1 });
   assert.equal(s.excludedConflicts, 1);
   assert.equal(s.medianLensCostUsd, 0.06);
+  assert.equal(scoreGate([row("a", LABELS.SKIPPED, 0.5, true), { ...row("b", LABELS.SKIPPED, 0.5, true), lensCosts: { red_team: 0.1 } }]).red_team.medianLensCostUsd, 0.08);
   assert.deepEqual(s.baseline, { gatedOut: 4, missedFindings: 1, missedCaseIds: ["found"], agreeSkip: 2, disagreeSkip: 3 });
   assert.equal(s.jevCases, 4);
   assert.deepEqual(s.baselineOnJevCases, { gatedOut: 3, missedFindings: 1, missedCaseIds: ["found"], agreeSkip: 1, disagreeSkip: 3 });
@@ -125,6 +126,7 @@ test("adjudication: off_surface findings stop counting as misses; invalid entrie
   assert.equal(applyAdjudications(rows, { found: { red_team: "real" } })[0].labels.red_team, LABELS.WITH_FINDINGS);
   assert.throws(() => applyAdjudications(rows, { found: { red_team: "maybe" } }), /invalid adjudication/);
   assert.throws(() => applyAdjudications(rows, { found: { cold_read: "real" } }), /invalid adjudication/);
+  assert.throws(() => applyAdjudications(rows, { fuond: { red_team: "real" } }), /unknown case fuond/);
   assert.throws(() => applyAdjudications([row("quiet", LABELS.NO_FINDINGS, 0.5, true)], { quiet: { red_team: "real" } }), /label is no_findings/);
 });
 

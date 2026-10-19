@@ -73,7 +73,9 @@ const ADJUDICATED = new Set(["real", "off_surface"]);
  */
 export function applyAdjudications(rows, adjudications) {
   if (!adjudications) return rows;
+  const known = new Set(rows.map((r) => r.caseId));
   for (const [caseId, byLens] of Object.entries(adjudications)) {
+    if (!known.has(caseId)) throw new Error(`adjudication for unknown case ${caseId}`);
     for (const [lens, verdict] of Object.entries(byLens)) {
       if (!(lens in GATED) || !ADJUDICATED.has(verdict)) throw new Error(`invalid adjudication ${caseId}/${lens}: ${verdict}`);
     }

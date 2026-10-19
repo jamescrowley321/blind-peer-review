@@ -67,7 +67,9 @@ export function buildGateState(round, decision) {
 // A self-skip summary leads with it and punctuates ("Skipped — no web/HTTP
 // surface", "Viper skipped — …"); a finding that mentions skipping does not.
 const SKIP = /^\W*(?:[\w&-]+\s+){0,5}(?:self-)?skipped\s*[—–:.(-]/i;
-const FINDING_TAG = /\[(?:MUST FIX|SHOULD FIX)\]/;
+// A finding entry starts its line with the tag ("[SHOULD FIX] …", "- [MUST FIX] …");
+// a summary that mentions a tag ("no [MUST FIX] findings") is not one.
+const FINDING_ENTRY = /^\s*(?:[-*]\s+|\d+[.)]\s+)?\[(?:MUST FIX|SHOULD FIX)\]/m;
 // Hand-pasted reviews group findings under severity headings instead of tags.
 const FINDING_HEADINGS = "MUST FIX|SHOULD FIX|BLOCK|WARN";
 const PLACEHOLDER = /^\s*See the review summary\.?\s*$/i;
@@ -82,14 +84,13 @@ export function lensSummary(body) {
 
 const serious = (f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX";
 
-// A structured findings array decides when present. The harvester infers
-// verdict and severity from text, which a summary like "no [MUST FIX]
-// findings" fools, so those and text matching are only the fallback.
+// A structured findings array decides when present. Otherwise only finding
+// entries count: the harvester's verdict and severity are inferred from any
+// tag in the text, which a summary like "no [MUST FIX] findings" fools.
 function hasFinding(output) {
   const findings = Array.isArray(output.findings) ? output.findings : extractLensJson(output.body ?? "")?.findings;
   if (Array.isArray(findings)) return findings.some(serious);
-  if (output.verdict === "BLOCK" || serious(output)) return true;
-  return FINDING_TAG.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
+  return FINDING_ENTRY.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
 }
 
 /**
@@ -132,6 +133,13 @@ export function parseGateAnswers(answers, questions = QUESTIONS) {
   return out;
 }
 
+function median(values) {
+  if (!values.length) return null;
+  const v = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
 export const THRESHOLDS = Object.freeze([0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5]);
 const SCORED = new Set([LABELS.SKIPPED, LABELS.NO_FINDINGS, LABELS.WITH_FINDINGS]);
 
@@ -165,7 +173,7 @@ export function scoreGate(rows) {
       cases: scored.length,
       labels: { skipped: count(LABELS.SKIPPED), noFindings: count(LABELS.NO_FINDINGS), withFindings: count(LABELS.WITH_FINDINGS) },
       excludedConflicts: rows.filter((r) => r.labels[lens] === LABELS.CONFLICT).length,
-      medianLensCostUsd: costs.length ? costs.sort((a, b) => a - b)[Math.floor(costs.length / 2)] : null,
+      medianLensCostUsd: median(costs),
       baseline: tallyGate(scored, lens, (r) => !r.baseline[lens]),
       jevCases: withJev.length,
       // Same rows Jev answered, so a failed Jev call cannot flatter either arm.

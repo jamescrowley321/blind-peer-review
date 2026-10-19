@@ -66,7 +66,7 @@ export function buildGateState(round, decision) {
 
 // A self-skip summary leads with it and punctuates ("Skipped — no web/HTTP
 // surface", "Viper skipped — …"); a finding that mentions skipping does not.
-const SKIP = /^\W*(?:[\w&-]+\s+){0,3}(?:self-)?skipped\s*[—–:.(-]/i;
+const SKIP = /^\W*(?:[\w&-]+\s+){0,5}(?:self-)?skipped\s*[—–:.(-]/i;
 const FINDING_TAG = /\[(?:MUST FIX|SHOULD FIX)\]/;
 // Hand-pasted reviews group findings under severity headings instead of tags.
 const FINDING_HEADINGS = "MUST FIX|SHOULD FIX|BLOCK|WARN";
@@ -82,13 +82,13 @@ export function lensSummary(body) {
 
 const serious = (f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX";
 
-// Structured fields decide when present; text matching is only the fallback
-// for outputs that carry none (a summary can say "no [MUST FIX] findings").
+// A structured findings array decides when present. The harvester infers
+// verdict and severity from text, which a summary like "no [MUST FIX]
+// findings" fools, so those and text matching are only the fallback.
 function hasFinding(output) {
-  if (output.verdict === "BLOCK") return true;
-  if (serious(output)) return true;
   const findings = Array.isArray(output.findings) ? output.findings : extractLensJson(output.body ?? "")?.findings;
   if (Array.isArray(findings)) return findings.some(serious);
+  if (output.verdict === "BLOCK" || serious(output)) return true;
   return FINDING_TAG.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
 }
 

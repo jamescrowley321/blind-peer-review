@@ -30,7 +30,7 @@ test("labels: findings come from verdict, severity fields, contract JSON or tags
   assert.equal(one(inline("Red Team", "MUST FIX", "[MUST FIX] token replay")), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Chain found.", [{ severity: "SHOULD FIX" }])), LABELS.WITH_FINDINGS);
   assert.equal(one(piJson("Red Team", "Minor only.", [{ severity: "NITPICK" }])), LABELS.NO_FINDINGS);
-  assert.equal(one(piJson("Red Team", "No [MUST FIX] or [SHOULD FIX] findings.")), LABELS.NO_FINDINGS);
+  assert.equal(one({ ...piJson("Red Team", "No [MUST FIX] or [SHOULD FIX] findings."), severity: "MUST FIX", verdict: "BLOCK" }), LABELS.NO_FINDINGS);
   assert.equal(one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body: "## Review\n- [SHOULD FIX] x" }), LABELS.WITH_FINDINGS);
   const pasted = (body) => one({ pipeline: "ralph-bmad-lens-paste", lens: "Red Team (Viper)", body });
   assert.equal(pasted("## Review: Red Team\n### SHOULD FIX\n- `auth.py:12` token reused across tenants"), LABELS.WITH_FINDINGS);
@@ -41,6 +41,7 @@ test("labels: only a leading skip in the summary is a self-skip, not a finding t
   const one = (summary) => labelRound({ outputs: [lensReview("Red Team", summary)] }).red_team;
   assert.equal(one("Skipped — no auth surface."), LABELS.SKIPPED);
   assert.equal(one("Red Team skipped — no auth surface."), LABELS.SKIPPED);
+  assert.equal(labelRound({ outputs: [lensReview("OWASP Web Top 10", "OWASP Web Top 10 skipped — no HTTP surface.")] }).owasp_web, LABELS.SKIPPED);
   assert.equal(one("Attackers can skip token validation on this path."), LABELS.NO_FINDINGS);
   assert.equal(one("The self-skip check can hide an authentication bypass."), LABELS.NO_FINDINGS);
   assert.equal(labelRound({ outputs: [lensReview("Red Team", "The self-skip check can hide an auth bypass.", "- [MUST FIX] `a.js:1` bypass")] }).red_team, LABELS.WITH_FINDINGS);
@@ -178,9 +179,11 @@ test("compose → call → score: rounds with no gated lens are dropped; reruns 
   assert.throws(() => score(work), /Questions changed/);
 });
 
-test("score: a null result file counts as a failed call, with usage unknown", async () => {
+test("score: a null result file or one without valid probabilities counts as a failed call, with usage unknown", async () => {
   const { harvest, decisions, work } = fixtureCorpus();
   compose({ harvest, decisions, work });
+  writeFileSync(join(work, "r-1@a1.result.json"), JSON.stringify({ probabilities: {}, usage: null }));
+  assert.equal(score(work).failedCalls, 1);
   writeFileSync(join(work, "r-1@a1.result.json"), "null");
   const summary = score(work);
   assert.equal(summary.failedCalls, 1);

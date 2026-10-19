@@ -18,6 +18,8 @@ export async function screenCase(state, questions, {
   timeoutMs = 30_000,
   retries = 2,
   sleep = sleepMs,
+  title = "eval-corpus-screening",
+  parse = parseAnswers,
 } = {}) {
   if (!key) throw new Error("OPENROUTER_API_KEY required");
   const started = Date.now();
@@ -30,7 +32,7 @@ export async function screenCase(state, questions, {
         response = await fetchImpl(ENDPOINT, {
           method: "POST",
           signal: AbortSignal.timeout(timeoutMs),
-          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Title": "eval-corpus-screening" },
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Title": title },
           body: JSON.stringify({ model: MODEL, state, questions }),
         });
       } catch {
@@ -58,7 +60,7 @@ export async function screenCase(state, questions, {
       record.usage = body.usage ?? null;
       record.model = body.model ?? null;
       try {
-        record.probabilities = parseAnswers(body.answers, questions);
+        record.probabilities = parse(body.answers, questions);
       } catch (error) {
         record.error = error.message;
       }

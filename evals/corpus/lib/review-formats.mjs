@@ -194,9 +194,11 @@ const plain = (line) => line.replace(/^\s*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+|>\s*)/
  * written as sub-headings or bold paragraphs count; "none"-style placeholders
  * do not. Returns null when there is no such heading at all.
  */
-export function mustFixItems(body, heading = "MUST FIX") {
+export const MUST_FIX_HEADING = /^(#{1,6})\s*(?:\*\*)?(?:MUST FIX)\b/i;
+export const SEVERITY_HEADING = /^(#{1,6})\s*(?:\*\*)?(?:MUST FIX|SHOULD FIX|BLOCK|WARN)\b/i;
+
+export function mustFixItems(body, re = MUST_FIX_HEADING) {
   const lines = body.split("\n");
-  const re = new RegExp(`^(#{1,6})\\s*(?:\\*\\*)?(?:${heading})\\b`, "i");
   let items = null;
   for (let i = 0; i < lines.length; i++) {
     const h = lines[i].match(re);

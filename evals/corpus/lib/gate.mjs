@@ -11,7 +11,7 @@
 // text: its state is the PR body and diffstat only, so it cannot read the label.
 
 import { createHash } from "node:crypto";
-import { extractLensJson, mustFixItems } from "./review-formats.mjs";
+import { SEVERITY_HEADING, extractLensJson, mustFixItems } from "./review-formats.mjs";
 
 export const GATED = Object.freeze({
   red_team: /^(?:red[ _]team|viper)\b|\(viper\)/i,
@@ -70,8 +70,6 @@ const SKIP = /^\W*(?:[\w&-]+\s+){0,5}(?:self-)?skipped\s*[—–:.(-]/i;
 // A finding entry starts its line with the tag ("[SHOULD FIX] …", "- [MUST FIX] …");
 // a summary that mentions a tag ("no [MUST FIX] findings") is not one.
 const FINDING_ENTRY = /^\s*(?:[-*]\s+|\d+[.)]\s+)?\[(?:MUST FIX|SHOULD FIX)\]/m;
-// Hand-pasted reviews group findings under severity headings instead of tags.
-const FINDING_HEADINGS = "MUST FIX|SHOULD FIX|BLOCK|WARN";
 const PLACEHOLDER = /^\s*See the review summary\.?\s*$/i;
 const COST = /\|\s*Cost:\s*\$([0-9]+(?:\.[0-9]+)?)/;
 
@@ -90,7 +88,7 @@ const serious = (f) => f?.severity === "MUST FIX" || f?.severity === "SHOULD FIX
 function hasFinding(output) {
   const findings = Array.isArray(output.findings) ? output.findings : extractLensJson(output.body ?? "")?.findings;
   if (Array.isArray(findings)) return findings.some(serious);
-  return FINDING_ENTRY.test(output.body ?? "") || (mustFixItems(output.body ?? "", FINDING_HEADINGS)?.length ?? 0) > 0;
+  return FINDING_ENTRY.test(output.body ?? "") || (mustFixItems(output.body ?? "", SEVERITY_HEADING)?.length ?? 0) > 0;
 }
 
 /**

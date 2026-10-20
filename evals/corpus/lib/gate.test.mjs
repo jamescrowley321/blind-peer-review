@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { LABELS, QUESTIONS, THRESHOLDS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, parseGateAnswers, scoreGate } from "./gate.mjs";
-import { applyAdjudications, call, compose, score } from "../gate.mjs";
+import { LABELS, QUESTIONS, THRESHOLDS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, offSurface, parseGateAnswers, scoreGate } from "./gate.mjs";
+import { applyAdjudications, call, compose, score, worksheet } from "../gate.mjs";
 
 const FOOTER = "\n---\n[View action run](https://github.com/o/r/actions/runs/1) | Model: m | Tokens: 12.1K | Cost: $0.02 | Pi SDK v0.82.1";
 const piJson = (lens, summary, findings = []) => ({ pipeline: "pi-lens-json-comment", lens, verdict: "PASS", body: `${JSON.stringify({ lens, summary, findings })}${FOOTER}` });
@@ -191,4 +191,64 @@ test("score: a null result file or one without valid probabilities counts as a f
   assert.equal(summary.failedCalls, 1);
   assert.equal(summary.usage.costUsd, null);
   assert.equal(summary.raw.red_team.jevCases, 0);
+});
+
+test("off-surface: candidate rate among findings; precision and recall only against human adjudications", () => {
+  const rows = [
+    row("noise", LABELS.WITH_FINDINGS, 0.01, false),
+    row("real-low", LABELS.WITH_FINDINGS, 0.08, false),
+    row("unjudged", LABELS.WITH_FINDINGS, 0.03, false),
+    row("noise-high", LABELS.WITH_FINDINGS, 0.4, true),
+    row("skip", LABELS.SKIPPED, 0.01, false),
+    row("failed", LABELS.WITH_FINDINGS, null, false),
+  ];
+  const at = (s, t) => s.thresholds.find((x) => x.threshold === t);
+  const raw = offSurface(rows).red_team;
+  assert.equal(raw.withFindings, 4);
+  assert.equal(raw.offSurface, null);
+  assert.deepEqual(at(raw, 0.1), { threshold: 0.1, candidates: 3, candidateRate: 0.75 });
+
+  const judged = offSurface(rows, { noise: { red_team: "off_surface" }, "real-low": { red_team: "real" }, "noise-high": { red_team: "off_surface" } }).red_team;
+  assert.equal(judged.adjudicated, 3);
+  assert.equal(judged.offSurface, 2);
+  assert.deepEqual(at(judged, 0.1), { threshold: 0.1, candidates: 3, candidateRate: 0.75, truePositives: 1, precision: 0.5, recall: 0.5 });
+  assert.deepEqual(at(judged, 0.02), { threshold: 0.02, candidates: 1, candidateRate: 0.25, truePositives: 1, precision: 1, recall: 0.5 });
+  assert.equal(offSurface(rows, {}).owasp_web.thresholds[0].precision, null);
+});
+
+test("worksheet: lists with_findings cases blind; --order p puts likely noise first without printing p", () => {
+  const dir = mkdtempSync(join(tmpdir(), "gate-ws-"));
+  const harvest = join(dir, "harvest");
+  mkdirSync(harvest);
+  const many = Array.from({ length: 5 }, (_, i) => `- [SHOULD FIX] finding ${i} in a1`).join("\n");
+  const rounds = [
+    { headSha: "a1", body: "Change", outputs: [lensReview("Red Team", "Five gaps.", many)] },
+    { headSha: "c3", body: "Change", outputs: [lensReview("Red Team", "No [MUST FIX] findings.", "### SHOULD FIX\n- session not rotated")] },
+    { headSha: "b2", body: "Change", outputs: [piJson("Viper", "One gap.", [{ severity: "MUST FIX", location: "auth.js:4", detail: "token replay" }, { severity: "NITPICK", detail: "style" }])] },
+  ];
+  writeFileSync(join(harvest, "r-1.json"), JSON.stringify({ title: "feat: thing", rounds }));
+  const decisions = join(dir, "decisions.jsonl");
+  writeFileSync(decisions, ["a1", "b2", "c3"].map((h) => JSON.stringify({ caseId: `r-1@${h}`, snapshotId: "r-1", headSha: h, accepted: true, flags: [], diffstat: [{ path: `${h}.js`, added: 1, removed: 0 }] })).join("\n") + "\n");
+  const work = join(dir, "work");
+  compose({ harvest, decisions, work });
+  const result = (p) => JSON.stringify({ probabilities: { red_team: p, owasp_web: 0.5, owasp_llm: 0.5 }, usage: null });
+  writeFileSync(join(work, "r-1@a1.result.json"), result(0.9));
+  writeFileSync(join(work, "r-1@b2.result.json"), result(0.04));
+
+  writeFileSync(join(work, "r-1@c3.result.json"), result(0.5));
+  assert.deepEqual(worksheet({ harvest, decisions, work }), { items: 3 });
+  const byCase = readFileSync(join(work, "adjudication-worksheet.md"), "utf8");
+  assert.ok(byCase.indexOf("r-1@a1") < byCase.indexOf("r-1@b2"));
+  assert.match(byCase, /- \[SHOULD FIX\] finding 4 in a1/);
+  assert.match(byCase, /- \[MUST FIX\] `auth.js:4` — token replay/);
+  assert.doesNotMatch(byCase, /style/);
+  assert.match(byCase, /- session not rotated/);
+  assert.doesNotMatch(byCase, /- \[MUST FIX\] findings/);
+  assert.deepEqual(JSON.parse(readFileSync(join(work, "adjudications.template.json"), "utf8")), { "r-1@a1": { red_team: "" }, "r-1@c3": { red_team: "" }, "r-1@b2": { red_team: "" } });
+
+  worksheet({ harvest, decisions, work, order: "p" });
+  const byP = readFileSync(join(work, "adjudication-worksheet.md"), "utf8");
+  assert.ok(byP.indexOf("r-1@b2") < byP.indexOf("r-1@a1"));
+  assert.doesNotMatch(byP, /0\.04|0\.9/);
+  assert.throws(() => worksheet({ harvest, decisions, work, order: "random" }), /--order/);
 });

@@ -182,3 +182,32 @@ export function scoreGate(rows) {
   }
   return out;
 }
+
+/**
+ * Off-surface candidates (#170): a finding from a lens Jev rated off its own
+ * surface (p < t) is likely noise. Per lens and threshold, the candidate rate
+ * among with_findings cases, and when human adjudications exist, how well the
+ * candidates match the off_surface verdicts. Jev only proposes; humans label.
+ */
+export function offSurface(rows, adjudications = null) {
+  const out = {};
+  for (const lens of Object.keys(GATED)) {
+    const found = rows.filter((r) => r.labels[lens] === LABELS.WITH_FINDINGS && r.probabilities);
+    const judged = adjudications ? found.filter((r) => adjudications[r.caseId]?.[lens]) : [];
+    const offSurfaceCount = judged.filter((r) => adjudications[r.caseId][lens] === "off_surface").length;
+    out[lens] = {
+      withFindings: found.length,
+      adjudicated: judged.length,
+      offSurface: adjudications ? offSurfaceCount : null,
+      thresholds: THRESHOLDS.map((threshold) => {
+        const candidate = (r) => r.probabilities[lens] < threshold;
+        const t = { threshold, candidates: found.filter(candidate).length, candidateRate: found.length ? found.filter(candidate).length / found.length : null };
+        if (!adjudications) return t;
+        const tp = judged.filter((r) => candidate(r) && adjudications[r.caseId][lens] === "off_surface").length;
+        const flagged = judged.filter(candidate).length;
+        return { ...t, truePositives: tp, precision: flagged ? tp / flagged : null, recall: offSurfaceCount ? tp / offSurfaceCount : null };
+      }),
+    };
+  }
+  return out;
+}

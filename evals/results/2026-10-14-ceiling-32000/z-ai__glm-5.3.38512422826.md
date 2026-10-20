@@ -81,7 +81,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_absent_claim_buried_in_noise` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) as it actually was: 5,855 insertions, almost all lockfile churn, with the real change near the end. The Auditor reported the implementation 'missing'. Diff volume is the suspected trigger, so this keeps the real change and buries it the way production did. Non-smoke: it is large. Ported from #29.
+> Guards: Incident (a private downstream repository) as it actually was: 5,855 insertions, almost all lockfile churn, with the real change near the end. The Auditor reported the implementation 'missing'. Diff volume is the suspected trigger, so this keeps the real change and buries it the way production did. Non-smoke: it is large. Ported from #29.
 
 - 1/3 rep(s) failed UPSTREAM at the provider after retries — infrastructure, not a lens result. Re-run.
 - Severities across reps: {"NITPICK":5,"SHOULD FIX":2}

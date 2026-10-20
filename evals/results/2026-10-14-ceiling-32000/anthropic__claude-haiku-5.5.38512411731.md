@@ -103,7 +103,7 @@ _Finding text is printed for diagnosis only — it is never asserted on._
 
 ### `acceptance_requirement_invented` · `acceptance`
 
-> Guards: Incident (healthcloud-console-web#58) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
+> Guards: Incident (a private downstream repository) — the Auditor blocked claiming the config 'requires Chromium, Firefox and WebKit', citing unnamed previous reviews. The config declares exactly one project, chromium. Ported from #29.
 
 - 1/3 rep(s) produced output the action could not accept
 - Severities across reps: {"NITPICK":5}

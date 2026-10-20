@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.11.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.10.0...v3.11.0) (2026-10-20)
+
+
+### Features
+
+* **corpus:** Jev off-surface finding detector and worksheet phase ([#174](https://github.com/jamescrowley321/blind-peer-review/issues/174)) ([49a74d6](https://github.com/jamescrowley321/blind-peer-review/commit/49a74d6cca7f677101c7da9d1aa26eeac7ddbbd9))
+
 ## [3.10.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.9.0...v3.10.0) (2026-10-20)
 
 

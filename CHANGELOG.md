@@ -11,6 +11,18 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.10.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.9.0...v3.10.0) (2026-10-20)
+
+
+### Features
+
+* **corpus:** measure Jev as a pre-gate for the conditional lenses ([#168](https://github.com/jamescrowley321/blind-peer-review/issues/168)) ([5d4ea59](https://github.com/jamescrowley321/blind-peer-review/commit/5d4ea59ef3524136fb00d41fba0ad24398276a0e))
+
+
+### Documentation
+
+* remove remaining references to a private downstream repository ([#167](https://github.com/jamescrowley321/blind-peer-review/issues/167)) ([d4a6aaa](https://github.com/jamescrowley321/blind-peer-review/commit/d4a6aaa8bd0f70e64cf2f72fb372d9c74f32f8e5))
+
 ## [3.9.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.8.0...v3.9.0) (2026-10-17)
 
 

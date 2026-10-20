@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { LABELS, QUESTIONS, THRESHOLDS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, offSurface, parseGateAnswers, scoreGate } from "./gate.mjs";
+import { LABELS, QUESTIONS, STATE_VARIANTS, THRESHOLDS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, offSurface, parseGateAnswers, questionSha256, scoreGate, timeSplit } from "./gate.mjs";
 import { applyAdjudications, call, compose, score, worksheet } from "../gate.mjs";
 
 const FOOTER = "\n---\n[View action run](https://github.com/o/r/actions/runs/1) | Model: m | Tokens: 12.1K | Cost: $0.02 | Pi SDK v0.82.1";
@@ -251,4 +251,59 @@ test("worksheet: lists with_findings cases blind; --order p puts likely noise fi
   assert.ok(byP.indexOf("r-1@b2") < byP.indexOf("r-1@a1"));
   assert.doesNotMatch(byP, /0\.04|0\.9/);
   assert.throws(() => worksheet({ harvest, decisions, work, order: "random" }), /--order/);
+});
+
+test("diffstat variant: state and questions carry no PR body; full stays the frozen default", () => {
+  const round = { body: "BODY-SENTINEL-7f3a", outputs: [] };
+  const { state } = buildGateState(round, { diffstat: [{ path: "prompt.md", added: 1, removed: 0 }] }, "diffstat");
+  assert.deepEqual(state, { diffstat: "prompt.md +1 -0" });
+  for (const q of Object.values(STATE_VARIANTS.diffstat)) assert.doesNotMatch(q.instructions, /prBody/);
+  assert.equal(QUESTIONS, STATE_VARIANTS.full);
+  assert.notEqual(questionSha256(STATE_VARIANTS.diffstat), questionSha256(QUESTIONS));
+});
+
+test("combined arm gates out only when the baseline and Jev both say no surface", () => {
+  const rows = [
+    row("both-no", LABELS.SKIPPED, 0.01, false),
+    row("baseline-yes", LABELS.WITH_FINDINGS, 0.01, true),
+    row("jev-yes", LABELS.NO_FINDINGS, 0.9, false),
+  ];
+  const at = scoreGate(rows).red_team.combined.find((c) => c.threshold === 0.1);
+  assert.deepEqual(at, { threshold: 0.1, gatedOut: 1, missedFindings: 0, missedCaseIds: [], agreeSkip: 3, disagreeSkip: 0 });
+});
+
+test("time split: threshold chosen on earlier rows is frozen and reported on later rows", () => {
+  const dated = (r, reviewedAt) => ({ ...r, reviewedAt });
+  const rows = [
+    dated(row("old-skip", LABELS.SKIPPED, 0.01, false), "2026-05-01T00:00:00Z"),
+    dated(row("old-found", LABELS.WITH_FINDINGS, 0.25, true), "2026-05-02T00:00:00Z"),
+    dated(row("new-skip", LABELS.SKIPPED, 0.1, false), "2026-09-01T00:00:00Z"),
+    dated(row("new-found", LABELS.WITH_FINDINGS, 0.15, false), "2026-09-02T00:00:00Z"),
+  ];
+  const s = timeSplit(rows, "2026-08-01T00:00:00Z").red_team;
+  assert.equal(s.trainCases, 2);
+  assert.equal(s.testCases, 2);
+  assert.equal(s.jev.threshold, 0.2);
+  assert.deepEqual(s.jev.test, { gatedOut: 2, missedFindings: 1, missedCaseIds: ["new-found"], agreeSkip: 1, disagreeSkip: 1 });
+  assert.equal(s.combined.threshold, 0.5);
+  assert.equal(s.combined.test.missedFindings, 1);
+  assert.equal(timeSplit([dated(row("f", LABELS.WITH_FINDINGS, 0.01, false), "2026-05-01T00:00:00Z")], "2026-08-01T00:00:00Z").red_team.jev.threshold, null);
+  const noTrain = timeSplit([dated(row("late", LABELS.SKIPPED, 0.01, false), "2026-09-01T00:00:00Z")], "2026-08-01T00:00:00Z").red_team;
+  assert.deepEqual([noTrain.trainCases, noTrain.jev.threshold, noTrain.combined.threshold], [0, null, null]);
+  const offset = timeSplit([dated(row("utc-late", LABELS.SKIPPED, 0.01, false), "2026-07-31T23:30:00Z")], "2026-08-01T01:00:00+02:00").red_team;
+  assert.equal(offset.testCases, 1);
+  assert.throws(() => timeSplit(rows, "not a date"), /splitAt/);
+  assert.throws(() => timeSplit([row("undated", LABELS.SKIPPED, 0.1, false)], "2026-08-01T00:00:00Z"), /reviewedAt/);
+});
+
+test("compose --state diffstat: plan records the variant, sends no PR body, and readPlan checks its own questions", async () => {
+  const { harvest, decisions, work } = fixtureCorpus();
+  const plan = compose({ harvest, decisions, work, stateVariant: "diffstat" });
+  assert.equal(plan.stateVariant, "diffstat");
+  assert.deepEqual(Object.keys(plan.cases[0].state), ["diffstat"]);
+  assert.equal(typeof plan.cases[0].reviewedAt, "object");
+  const fetchImpl = async () => new Response(JSON.stringify({ model: "typesafe/jev-1.13-x", answers, usage: { cost: 0.0001 } }), { status: 200 });
+  await call(work, { key: "k", log: () => {}, fetchImpl });
+  assert.equal(score(work).stateVariant, "diffstat");
+  assert.throws(() => compose({ harvest, decisions, work: join(work, "x"), stateVariant: "body" }), /state variant/);
 });

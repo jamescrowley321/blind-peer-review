@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.12.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.11.0...v3.12.0) (2026-10-21)
+
+
+### Features
+
+* **corpus:** diffstat-only state, combined rule and time split for the lens gate ([#177](https://github.com/jamescrowley321/blind-peer-review/issues/177)) ([d6d4ff3](https://github.com/jamescrowley321/blind-peer-review/commit/d6d4ff37057a24aa77d8f2d8413cdbedaa48252c)), closes [#169](https://github.com/jamescrowley321/blind-peer-review/issues/169)
+
 ## [3.11.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.10.0...v3.11.0) (2026-10-20)
 
 

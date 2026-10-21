@@ -2,9 +2,9 @@
 // Jev as a pre-gate for the conditional lenses (#166).
 //
 // Usage:
-//   node evals/corpus/gate.mjs --phase compose --harvest <dir> --decisions <decisions.jsonl> --work <new-dir> [--limit N]
+//   node evals/corpus/gate.mjs --phase compose --harvest <dir> --decisions <decisions.jsonl> --work <new-dir> [--limit N] [--state full|diffstat]
 //   OPENROUTER_API_KEY=… node evals/corpus/gate.mjs --phase call --work <dir>
-//   node evals/corpus/gate.mjs --phase score --work <dir> [--adjudications <file.json>]
+//   node evals/corpus/gate.mjs --phase score --work <dir> [--adjudications <file.json>] [--split-at <ISO date>]
 //   node evals/corpus/gate.mjs --phase worksheet --harvest <dir> --decisions <decisions.jsonl> --work <dir> [--order case|p]
 //
 // compose freezes questions, baseline, labels and every case's state; call
@@ -21,14 +21,15 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { BASELINE, GATED, LABELS, QUESTIONS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, offSurface, parseGateAnswers, questionSha256, scoreGate } from "./lib/gate.mjs";
+import { BASELINE, GATED, LABELS, baselineRuns, buildGateState, labelRound, lensCosts, lensSummary, offSurface, parseGateAnswers, questionSha256, questionsFor, scoreGate, timeSplit } from "./lib/gate.mjs";
 import { FATAL, MODEL, screenCase } from "./lib/jev.mjs";
 import { SEVERITY_HEADING, extractLensJson, mustFixItems } from "./lib/review-formats.mjs";
 
 const safe = (caseId) => caseId.replace(/[^\w.@-]/g, "_");
 const baselineSource = () => Object.fromEntries(Object.entries(BASELINE).map(([k, re]) => [k, re.source]));
 
-export function compose({ harvest, decisions, work, limit = null }) {
+export function compose({ harvest, decisions, work, limit = null, stateVariant = "full" }) {
+  const questions = questionsFor(stateVariant);
   const planPath = join(work, "plan.json");
   if (existsSync(planPath)) throw new Error("Refusing to overwrite an existing plan; use a new --work directory");
   const accepted = readFileSync(decisions, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((d) => d.accepted);
@@ -39,11 +40,11 @@ export function compose({ harvest, decisions, work, limit = null }) {
     if (!round) throw new Error(`round for ${d.caseId} not found in harvest`);
     const labels = labelRound(round);
     if (Object.values(labels).every((l) => l === null)) continue;
-    const { state, truncated } = buildGateState(round, d);
-    cases.push({ caseId: d.caseId, flags: d.flags, labels, baseline: baselineRuns(snapshot.title, d.diffstat), lensCosts: lensCosts(round), truncated, state });
+    const { state, truncated } = buildGateState(round, d, stateVariant);
+    cases.push({ caseId: d.caseId, reviewedAt: round.reviewedAt ?? null, flags: d.flags, labels, baseline: baselineRuns(snapshot.title, d.diffstat), lensCosts: lensCosts(round), truncated, state });
     if (limit !== null && cases.length >= limit) break;
   }
-  const plan = { schemaVersion: 1, model: MODEL, questionSha256: questionSha256(), questions: QUESTIONS, baseline: baselineSource(), cases };
+  const plan = { schemaVersion: 1, model: MODEL, stateVariant, questionSha256: questionSha256(questions), questions, baseline: baselineSource(), cases };
   mkdirSync(work, { recursive: true });
   writeFileSync(planPath, JSON.stringify(plan, null, 2) + "\n");
   return plan;
@@ -51,7 +52,8 @@ export function compose({ harvest, decisions, work, limit = null }) {
 
 export function readPlan(work) {
   const plan = JSON.parse(readFileSync(join(work, "plan.json"), "utf8"));
-  if (plan.questionSha256 !== questionSha256() || plan.questionSha256 !== questionSha256(plan.questions)) {
+  const expected = questionsFor(plan.stateVariant ?? "full");
+  if (plan.questionSha256 !== questionSha256(expected) || plan.questionSha256 !== questionSha256(plan.questions)) {
     throw new Error("Questions changed since compose; compose a new run");
   }
   if (JSON.stringify(plan.baseline) !== JSON.stringify(baselineSource())) throw new Error("Baseline changed since compose; compose a new run");
@@ -101,7 +103,7 @@ export function applyAdjudications(rows, adjudications) {
   });
 }
 
-export function score(work, { adjudications = null } = {}) {
+export function score(work, { adjudications = null, splitAt = null } = {}) {
   const plan = readPlan(work);
   const rows = plan.cases.map((c) => {
     let result;
@@ -112,11 +114,12 @@ export function score(work, { adjudications = null } = {}) {
       try { parseGateAnswers(Object.fromEntries(Object.entries(result.probabilities ?? {}).map(([k, p]) => [k, { type: "noul", noul: p }])), plan.questions); }
       catch { result = { ...result, error: "malformed_result" }; }
     }
-    return { caseId: c.caseId, flags: c.flags, labels: c.labels, baseline: c.baseline, lensCosts: c.lensCosts, truncated: c.truncated, probabilities: result.error ? null : result.probabilities, error: result.error ?? null, usage: result.usage ?? null };
+    return { caseId: c.caseId, reviewedAt: c.reviewedAt ?? null, flags: c.flags, labels: c.labels, baseline: c.baseline, lensCosts: c.lensCosts, truncated: c.truncated, probabilities: result.error ? null : result.probabilities, error: result.error ?? null, usage: result.usage ?? null };
   });
   const costs = rows.map((r) => r.usage?.cost).filter((x) => typeof x === "number" && Number.isFinite(x) && x >= 0);
   const summary = {
     model: plan.model,
+    stateVariant: plan.stateVariant ?? "full",
     questionSha256: plan.questionSha256,
     cases: rows.length,
     failedCalls: rows.filter((r) => r.error).length,
@@ -124,6 +127,7 @@ export function score(work, { adjudications = null } = {}) {
     raw: scoreGate(rows),
     adjudicated: adjudications ? scoreGate(applyAdjudications(rows, adjudications)) : "none: with_findings counts every reported finding as real",
     offSurface: offSurface(rows, adjudications),
+    timeSplit: splitAt ? { splitAt, raw: timeSplit(rows, splitAt), adjudicated: adjudications ? timeSplit(applyAdjudications(rows, adjudications), splitAt) : null } : null,
     usage: { reportedCostUsd: costs.reduce((a, b) => a + b, 0), missingUsageCalls: rows.length - costs.length, costUsd: costs.length === rows.length ? costs.reduce((a, b) => a + b, 0) : null },
   };
   writeFileSync(join(work, "gate.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""));
@@ -198,13 +202,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!flag("--harvest") || !flag("--decisions")) throw new Error("compose needs --harvest and --decisions");
     const limit = flag("--limit") ? Number(flag("--limit")) : null;
     if (limit !== null && !(Number.isSafeInteger(limit) && limit > 0)) throw new Error("--limit must be a positive integer");
-    const plan = compose({ harvest: resolve(flag("--harvest")), decisions: resolve(flag("--decisions")), work, limit });
+    const plan = compose({ harvest: resolve(flag("--harvest")), decisions: resolve(flag("--decisions")), work, limit, stateVariant: flag("--state") ?? "full" });
     console.log(`Composed ${plan.cases.length} cases (${plan.cases.filter((c) => c.truncated).length} truncated); no credits spent.`);
   } else if (phase === "call") {
     await call(work);
   } else if (phase === "score") {
     const adjudications = flag("--adjudications") ? JSON.parse(readFileSync(resolve(flag("--adjudications")), "utf8")) : null;
-    console.log(JSON.stringify(score(work, { adjudications }), null, 2));
+    console.log(JSON.stringify(score(work, { adjudications, splitAt: flag("--split-at") ?? null }), null, 2));
   } else if (phase === "worksheet") {
     if (!flag("--harvest") || !flag("--decisions")) throw new Error("worksheet needs --harvest and --decisions");
     const { items } = worksheet({ harvest: resolve(flag("--harvest")), decisions: resolve(flag("--decisions")), work, order: flag("--order") ?? "case" });

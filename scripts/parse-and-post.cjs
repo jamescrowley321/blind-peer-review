@@ -197,12 +197,12 @@ async function run({ core, github, context, env }) {
   const body = renderReview(lensName, summary, findings);
   const event = findings.some((f) => f.severity === "MUST FIX") ? "REQUEST_CHANGES" : "COMMENT";
 
-  // ── 4. Build the inline-comment anchor. The GitHub review API requires
-  //    a non-empty comments array. Anchor one comment on the first changed
-  //    file/line of the diff (deterministic — we compute it, not the
-  //    model), plus per-finding comments whose location maps to a real
-  //    diff line. Every path MUST come from the actual PR files; an
-  //    invented path would 422 the whole review. ──
+  // ── 4. Build the inline comments: one per finding whose location maps to
+  //    a real diff line (computed here, not by the model). Every path MUST
+  //    come from the actual PR files; an invented path would 422 the whole
+  //    review. A lens with no mappable finding posts no inline comment: the
+  //    review API takes an empty comments array, and a placeholder thread
+  //    would block a branch that requires conversation resolution. ──
   const files = await github.paginate(github.rest.pulls.listFiles, {
     owner, repo, pull_number: prNumber, per_page: 100,
   });
@@ -240,17 +240,6 @@ async function run({ core, github, context, env }) {
     // Unresolved IDs match the citation pattern, so they carry no markup.
     const cited = renderCitations(resolveCitations([f.detail]), String);
     comments.push({ path: loc.path, line: loc.line, body: `[${f.severity}] ${f.detail}\n\nFix: ${f.recommendation}` + (cited.length ? `\n\n${cited.join("\n")}` : "") });
-  }
-  // Fallback anchor: first changed file's first changed line, body="See the review summary."
-  if (!comments.length) {
-    for (const [path, lines2] of changedLinesByPath) {
-      const firstLine = Math.min(...lines2);
-      comments.push({ path, line: firstLine, body: "See the review summary." });
-      break;
-    }
-  }
-  if (!comments.length) {
-    return fail("PR has no changed files to anchor an inline comment on (empty diff?). Cannot post review.");
   }
 
   // ── 5. Post the review via Octokit (deterministic). ──

@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.12.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.12.0...v3.12.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **post:** stop posting the "See the review summary." placeholder thread ([#182](https://github.com/jamescrowley321/blind-peer-review/issues/182)) ([74972be](https://github.com/jamescrowley321/blind-peer-review/commit/74972be26f877b9e86162f58b85df60b7bdf5034))
+
 ## [3.12.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.11.0...v3.12.0) (2026-10-21)
 
 

@@ -197,6 +197,26 @@ describe("JSON output contract", () => {
     assert.equal(r.comments.length, 2);
   });
 
+  // A placeholder thread blocks every merge on a branch that requires
+  // conversation resolution, so a review with nothing to anchor posts none.
+  test("a clean review posts no inline comment", async () => {
+    const r = await runParseStep({ lensName: "Security Review", agentResponse: emit("Security Review") });
+    assert.equal(r.failed, null);
+    assert.equal(r.event, "COMMENT");
+    assert.deepEqual(r.comments, []);
+  });
+
+  test("a finding off the diff stays in the body and posts no inline comment", async () => {
+    const r = await runParseStep({
+      lensName: "Security Review",
+      agentResponse: emit("Security Review", [finding({ location: "src/app.js:999" })]),
+    });
+    assert.equal(r.failed, null);
+    assert.equal(r.event, "REQUEST_CHANGES");
+    assert.deepEqual(r.comments, []);
+    assert.match(r.github.created[0].body, /MUST FIX/);
+  });
+
   test("a `{` inside a string value does not fool the brace walk", async () => {
     const r = await runParseStep({
       lensName: "Security Review",

@@ -22,13 +22,10 @@ name: Self Review
 
 on:
   pull_request:
-    # `edited` matters when the `policy` lens is enabled: it blocks on PR-BODY
-    # content (AI-provenance disclosure, the human-accountability attestation),
-    # and the fix for those findings is editing the description — which changes no
-    # SHA and fires no other trigger. Without `edited`, the one action that clears
-    # the finding cannot re-run the check. The concurrency group above keeps the
-    # cost bounded: a burst of edits cancels its own superseded runs.
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    # No `edited`: re-running every paid lens on each title or body edit cost more
+    # than it bought. After fixing a policy finding in the PR description (which
+    # changes no SHA), re-run this workflow by hand.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
 
 # A new push cancels the in-progress review for this branch. cancel-in-progress
@@ -54,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event.pull_request.head.repo.fork == false &&
-      github.actor != 'dependabot[bot]'
+      !(endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) && !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner)
     permissions:
       actions: write
     steps:
@@ -128,7 +125,7 @@ jobs:
     if: >-
       vars.RUN_LENSES == 'true' &&
       github.event.pull_request.head.repo.fork == false &&
-      github.actor != 'dependabot[bot]'
+      !(endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) && !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner)
     strategy:
       fail-fast: false
       # Full parallel: all lenses run in one wave so the whole review lands well
@@ -194,8 +191,8 @@ jobs:
       pull-requests: read
     steps:
       - name: Record exempt PR
-        if: github.event.pull_request.head.repo.fork == true || github.actor == 'dependabot[bot]'
-        run: echo "Adversarial review is intentionally exempt for fork and Dependabot PRs."
+        if: github.event.pull_request.head.repo.fork == true || (endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) || (startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner)
+        run: echo "Adversarial review is intentionally exempt for fork, bot and release PRs."
       - name: Record paused review
         if: vars.RUN_LENSES != 'true'
         run: |
@@ -210,7 +207,7 @@ jobs:
         if: >-
           vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
-          github.actor != 'dependabot[bot]' &&
+          !(endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) && !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner) &&
           (needs.config.result != 'success' || needs.review.result != 'success')
         env:
           CONFIG_RESULT: ${{ needs.config.result }}
@@ -222,13 +219,13 @@ jobs:
         if: >-
           vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
-          github.actor != 'dependabot[bot]' &&
+          !(endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) && !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner) &&
           needs.config.result == 'success' && needs.review.result == 'success'
       - name: Adjudicate lenses
         if: >-
           vars.RUN_LENSES == 'true' &&
           github.event.pull_request.head.repo.fork == false &&
-          github.actor != 'dependabot[bot]' &&
+          !(endsWith(github.event.pull_request.user.login, '[bot]') && endsWith(github.actor, '[bot]')) && !(startsWith(github.head_ref, 'release-please--') && github.event.pull_request.user.login == github.repository_owner) &&
           needs.config.result == 'success' && needs.review.result == 'success'
         uses: ./
         with:

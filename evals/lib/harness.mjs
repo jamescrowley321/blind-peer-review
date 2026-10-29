@@ -15,6 +15,7 @@ const parseModule = require_("../../scripts/parse-and-post.cjs");
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { extractStepScript, runGithubScript } from "./action-script.mjs";
 
 export const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
@@ -56,19 +57,45 @@ export function makeContext({ headSha = HEAD_SHA, dispatch = false } = {}) {
  * Reviews created during the run are appended, so the post step's own
  * "did it land on head?" verification sees them — exactly as in production.
  */
-export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false, checkRuns = [], headSha = HEAD_SHA } = {}) {
+export function makeGithub({ files = [], reviews = [], reviewComments = [], issueComments = [], failIssueList = false, checkRuns = [], headSha = HEAD_SHA, sourceFiles } = {}) {
   const created = [];
   const dismissed = [];
   const minimized = [];
   const deletedComments = [];
   const state = { reviews: [...reviews] };
   let nextId = 9000;
+  const sources = sourceFiles || Object.fromEntries(files.filter(f => f.status !== 'removed').map(file => {
+    const lines = []; let line = 0;
+    for (const part of (file.patch || '').split('\n')) {
+      const hunk = part.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+      if (hunk) { line = Number(hunk[1]); continue; }
+      if (!line || part.startsWith('+++') || part.startsWith('---')) continue;
+      if (part.startsWith('+') || part.startsWith(' ')) {
+        while (lines.length < line - 1) lines.push('// fixture context');
+        lines[line++ - 1] = part.slice(1);
+      }
+    }
+    return [file.filename, lines.join('\n') + (lines.length ? '\n' : '')];
+  }));
+  const blobs = Object.entries(sources).map(([path, text]) => {
+    const bytes = Buffer.from(text);
+    const sha = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    return { path, bytes, sha };
+  });
 
   const gh = {
     created, dismissed, minimized, deletedComments, state, pullsGetCalls: [],
     paginate: async (fn, params) => fn(params).then((r) => r.data),
     graphql: async (_q, vars) => { minimized.push(vars.id); return { minimizeComment: { minimizedComment: { isMinimized: true } } }; },
     rest: {
+      git: {
+        getTree: async () => ({ data: { truncated: false, tree: blobs.map(b => ({ path: b.path, sha: b.sha, size: b.bytes.length, type: 'blob', mode: '100644' })) } }),
+        getBlob: async ({ file_sha }) => {
+          const blob = blobs.find(b => b.sha === file_sha);
+          if (!blob) throw new Error('Unknown synthetic blob');
+          return { data: { sha: blob.sha, size: blob.bytes.length, encoding: 'base64', content: blob.bytes.toString('base64') } };
+        },
+      },
       pulls: {
         // What the action falls back to when there is no event payload.
         get: async (p) => {

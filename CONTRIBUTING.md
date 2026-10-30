@@ -42,9 +42,9 @@ To exercise the personas against a real diff without opening a PR:
 node scripts/run-local.mjs --base origin/main
 ```
 
-(Needs the `pi` CLI and `OPENROUTER_API_KEY`.) The end-to-end path — the action
-posting real PR reviews — is covered by the **self-review** workflow, which runs
-this action on its own pull requests.
+(Needs the `pi` CLI and `OPENROUTER_API_KEY`.) Pull requests here are reviewed
+by `@claude` (`.github/workflows/claude.yml`) running the plugin, not by this
+action.
 
 ## Making changes
 

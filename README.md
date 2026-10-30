@@ -38,6 +38,10 @@ templates for **Codex** and **Cursor**. Tune a lens once; every harness picks it
 up. [`adapters/README.md`](adapters/README.md) compares them, including what each
 one does *not* give you.
 
+An optional [Codex decision advisor](docs/codex-decisions.md) can observe
+consequential ambiguity and exploratory intent before a turn. It is experimental,
+defaults to observation only, and does not replace the review gate.
+
 ## The lenses
 
 Five adversarial defect-hunters, plus optional Policy & Provenance and OWASP lenses — all

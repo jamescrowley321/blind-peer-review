@@ -123,11 +123,10 @@ all contributions regardless of how they were authored.
   This is enforced by the **Policy & Provenance** lens — a PR flagged AI-assisted that
   omits the harness or model **fails review**. See
   [`.github/pull_request_template.md`](.github/pull_request_template.md).
-- **A human is accountable.** A named human must review the change and attest to
-  it. The submitter is responsible for the correctness, security, and quality of
+- **The submitter is responsible** for the correctness, security, and quality of
   the code regardless of whether it was AI-generated.
 - **Advisory-only AI.** AI output — including this project's own review lenses —
-  is advisory until a human attests. Do not treat a green gate as sign-off.
+  is advisory. Do not treat a green gate as sign-off.
 
 ### What we look for
 

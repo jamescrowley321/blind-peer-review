@@ -17,7 +17,6 @@ this: a PR flagged AI-assisted that omits the harness or model lines fails.
 - [ ] This PR was AI-assisted
 - Harness/agent:
 - Model(s):
-- [ ] A human has reviewed this change and is accountable for it
 
 ## Checklist
 

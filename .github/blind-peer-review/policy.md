@@ -3,8 +3,7 @@ Project-specific Compliance-lens rules for THIS repository — REFERENCE ONLY.
 
 As of the injection-safe change, the Action no longer reads any rules file out of
 the PR checkout, so this file is NOT auto-loaded in CI (CI enforces only the
-built-in baseline: AI-provenance disclosure, human accountability, no committed
-secrets). It documents this repo's policy and can be used as a LOCAL override by
+built-in baseline: AI-provenance disclosure, no committed secrets). It documents this repo's policy and can be used as a LOCAL override by
 committing an equivalent full persona at `.blind-peer-review/lenses/policy.md`.
 Keep rules concrete and checkable; give each a severity (MUST FIX / SHOULD FIX / NITPICK).
 -->

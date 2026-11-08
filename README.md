@@ -50,7 +50,7 @@ run in parallel:
 | **Acceptance Criteria** | Whether every acceptance criterion in the PR body is implemented *and* tested | Unmet / partial ACs |
 | **Security Review** | Exploitable vulnerabilities (OWASP-aligned), concrete attack scenario required | Confirmed/likely exploits |
 | **Red Team** | Red-team attack paths — only active when auth/crypto/middleware/infra changes | Critical/high exploit chains |
-| **Policy & Provenance** | Policy: AI-provenance disclosure, human accountability, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
+| **Policy & Provenance** | Policy: AI-provenance disclosure, no secrets — plus your own rules | Undisclosed AI PRs, policy violations |
 | **OWASP Web Top 10** | The OWASP Top 10:2025 web risks, each finding cited by category — only active when the diff has web/HTTP surface | Exploitable A0x issues |
 | **OWASP LLM Top 10** | The GenAI LLM Top 10 2026 and, for agents, the Agentic Top 10 2026; activates only on AI/LLM code | Exploitable LLM/ASI issues |
 
@@ -194,8 +194,7 @@ The **Policy & Provenance** lens is a review agent for governance rather than de
 reads the PR and enforces a built-in baseline:
 
 - **AI-provenance disclosure** — an AI-assisted PR must state the **harness/agent**
-  and **model(s)** used; a human must attest accountability.
-- **Human accountability** — a named human is responsible for the change.
+  and **model(s)** used.
 - **No committed secrets or private data.**
 
 In CI the Policy & Provenance lens enforces this trusted baseline by default.
@@ -214,7 +213,7 @@ lenses it runs on pi and needs the provider secret, so it can't run on fork PRs.
 > [!IMPORTANT]
 > **Enabling this lens? Add `edited` to your workflow's `types`.** It is the only
 > lens that blocks on the PR *body* rather than the diff, so the fix for its
-> findings — writing the provenance block, ticking the accountability box — changes
+> findings — writing the provenance block — changes
 > no SHA and fires none of the other triggers. Without `edited`, the one action
 > that clears the finding cannot re-run the check that is blocking you:
 >

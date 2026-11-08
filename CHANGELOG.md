@@ -11,6 +11,13 @@ previous release and can be curated in the release PR before it is merged. See
 [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release) for the flow. `[1.4.1]` and
 the older sections below it predate the automation and were written by hand.
 
+## [3.13.0](https://github.com/jamescrowley321/blind-peer-review/compare/v3.12.1...v3.13.0) (2026-11-08)
+
+
+### Features
+
+* **policy:** drop the human-accountability rule ([#192](https://github.com/jamescrowley321/blind-peer-review/issues/192)) ([78abab7](https://github.com/jamescrowley321/blind-peer-review/commit/78abab77a60ef912830d07c24d3a0e991afd9f5b))
+
 ## [3.12.1](https://github.com/jamescrowley321/blind-peer-review/compare/v3.12.0...v3.12.1) (2026-10-24)
 
 

@@ -39,8 +39,8 @@ Defense-in-depth; assume the instruction boundary *will* be bypassed.
 
 **Residual risk:** a successful injection can still make one lens *under-report*
 (a false negative). This is mitigated, not eliminated, by running several
-independent lenses and by treating all AI output as **advisory until a human
-attests** — never as sign-off. LLM01 is intrinsic to current models.
+independent lenses and by treating all AI output as **advisory**: a human
+decides what merges, and a green gate is never sign-off. LLM01 is intrinsic to current models.
 
 ### What if the code under review *contains* prompt-injection payloads?
 
@@ -56,7 +56,7 @@ This is the normal case, not the exception — the diff **is** untrusted input
    shell, no file/env read, no push — so it cannot exfiltrate the provider key or
    change the repo. The worst it can do is make **that one lens** under-report or
    post the wrong event; the deterministic gate (C5) and the other independent
-   lenses still stand, and all output is advisory until a human attests.
+   lenses still stand, and all output is advisory: a human decides what merges.
 3. **Benign injection-looking content** (this repo's own persona files, security
    test fixtures, docs about prompt injection) can trip false positives. That is
    accepted noise for a security tool; tune it per-repo via the Compliance lens

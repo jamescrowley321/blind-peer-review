@@ -456,8 +456,8 @@ describe("merge gate", () => {
 // commit therefore both stood.
 //
 // That is not a corner case — it is the normal way a blocking finding gets
-// cleared. The Policy lens blocks on PR-BODY content (missing provenance, an
-// unchecked accountability box), and the fix for that is editing the body, which
+// cleared. The Policy lens blocks on PR-BODY content (missing provenance), and
+// the fix for that is editing the body, which
 // changes no SHA. The author edits, re-runs, the lens now passes and posts
 // COMMENTED — and the old CHANGES_REQUESTED from the same SHA is still live, so
 // GitHub's aggregate reviewDecision stays CHANGES_REQUESTED and the PR stays

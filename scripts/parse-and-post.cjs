@@ -281,8 +281,7 @@ async function run({ core, github, context, env }) {
   //    failure here never fails the lens, and the gate already scopes
   //    adjudication to the head SHA.
   //    Superseding is NOT limited to earlier commits. A lens that blocks on
-  //    PR-body content (Policy & Provenance: provenance disclosure, the
-  //    accountability attestation) is cleared by editing the body, which
+  //    PR-body content (Policy & Provenance: provenance disclosure) is cleared by editing the body, which
   //    changes no SHA — so the clearing re-run lands on the same commit as
   //    the review it supersedes. Skipping those left the old
   //    CHANGES_REQUESTED live, and GitHub's aggregate reviewDecision kept

@@ -14,7 +14,7 @@ name: Blind Peer Review
 on:
   pull_request:
     # `edited` matters when the `policy` lens is enabled: it blocks on PR-BODY
-    # content (AI-provenance disclosure, the human-accountability attestation),
+    # content (AI-provenance disclosure),
     # and the fix for those findings is editing the description — which changes no
     # SHA and fires no other trigger. Without `edited`, the one action that clears
     # the finding cannot re-run the check. The concurrency group above keeps the

@@ -43,7 +43,7 @@
       "name": "Policy & Provenance",
       "activation": "always",
       "default_enabled": true,
-      "summary": "AI-provenance disclosure, human accountability, no committed secrets."
+      "summary": "AI-provenance disclosure, no committed secrets."
     },
     {
       "key": "owasp_web",

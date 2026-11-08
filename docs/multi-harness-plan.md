@@ -223,8 +223,8 @@ class of failure, and it is the strongest technical argument for the branch exis
 ## 6. Plan
 
 Small PRs, each green before the next, each through the adversarial gate. Note the gate's own
-provenance rule: **the PR body must name the AI harness and model plus a human-accountability
-line**, or the Compliance lens blocks the merge.
+provenance rule: **the PR body must name the AI harness and model**, or the Compliance lens
+blocks the merge. (The human-accountability line it also required was dropped in #192.)
 
 ### W0 — Get the revived branch green *(blocking, small)*
 

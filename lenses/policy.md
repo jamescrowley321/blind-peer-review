@@ -10,6 +10,9 @@ Call `get_issue_or_pr_thread` for the PR description and existing comments, and
 
 ## Baseline rules (always enforced)
 
+Rule 2 (human accountability) was removed; the numbering is kept so citations
+stay unambiguous.
+
 1. **AI-provenance disclosure.** If the PR was AI-assisted, its description MUST
    disclose the **harness/agent(s)** and the **model(s)** used. Signals of AI
    assistance include a checked "AI-assisted" box, a "Co-authored with/by <AI tool>" line, or clearly
@@ -18,7 +21,7 @@ Call `get_issue_or_pr_thread` for the PR description and existing comments, and
    agent fingerprints with no disclosure → **SHOULD FIX** (ask for disclosure). A
    genuinely human PR needs no provenance block. Do not require a human sign-off,
    attestation or accountability checkbox; its absence is not a finding.
-2. **No secrets or private data.** No credentials, tokens, private keys, or
+3. **No secrets or private data.** No credentials, tokens, private keys, or
    personal/confidential data committed in the diff or pasted into the
    description → **MUST FIX**.
 

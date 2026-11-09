@@ -115,6 +115,26 @@ merge is blocked until the MUST FIX findings are resolved.
   jobs. The older final-message JSON contract still works and is the documented
   fallback; set `submit_findings_tool: false` to run message-only.
 
+### Repository location evidence
+
+Before posting, the action checks finding locations against immutable Git tree
+and blob objects at the reviewed head. Only regular files in the PR's file list
+are eligible. Real context lines are valid source locations, while inline
+comments additionally require an actual added diff line.
+
+Missing, malformed, out-of-range, unsupported or unavailable locations are
+marked **UNVERIFIED LOCATION** in the finding detail and review summary. The
+annotation survives combined findings reports. Findings and their original
+severity/text remain visible; location uncertainty does not turn a `MUST FIX`
+into a pass, or establish that the model's reasoning is correct.
+
+Source reads use the existing `contents: read` permission. Per review, checks
+are capped at one complete tree, 100 blob requests, 1 MiB per file and 8 MiB of
+verified source. Truncated trees, missing access, API errors, binary data and
+exhausted limits leave locations unverified; no URL supplied by the model is
+fetched and no source text is logged or sent to a model. Successful posting is
+not evidence of reviewer activation or complete analysis.
+
 ## Inputs
 
 | Input | Default | Notes |

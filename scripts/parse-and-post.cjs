@@ -15,6 +15,7 @@
 const { renderReview } = require(__dirname + "/findings-report.cjs");
 const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
 const { resolveCitations, renderCitations } = require(__dirname + "/citations.cjs");
+const { inspectLocations, locationWarning } = require(__dirname + "/location-evidence.cjs");
 
 // ── Lens identity ──
 //
@@ -194,7 +195,6 @@ async function run({ core, github, context, env }) {
   core.info(`Parsed ${findings.length} finding(s) for "${lensName}".`);
 
   // ── 3. Render the review body: `## <Lens Name>` + summary + bullets. ──
-  const body = renderReview(lensName, summary, findings);
   const event = findings.some((f) => f.severity === "MUST FIX") ? "REQUEST_CHANGES" : "COMMENT";
 
   // ── 4. Build the inline comments: one per finding whose location maps to
@@ -206,6 +206,15 @@ async function run({ core, github, context, env }) {
   const files = await github.paginate(github.rest.pulls.listFiles, {
     owner, repo, pull_number: prNumber, per_page: 100,
   });
+  const evidence = await inspectLocations({ github, owner, repo, headSha, files, findings });
+  const warning = locationWarning(evidence);
+  if (warning) core.warning(`${evidence.filter(item => item.state !== 'verified').length} findings have unverified repository locations.`);
+  // Keep model findings/severity unchanged. Location uncertainty is visible,
+  // including in combined reports that parse finding details but not summaries.
+  const displayed = findings.map((finding, index) => evidence[index].state === 'verified' ? finding : {
+    ...finding, detail: `[UNVERIFIED LOCATION: ${evidence[index].reason}] ${finding.detail}`,
+  });
+  const body = renderReview(lensName, [summary, warning].filter(Boolean).join('\n'), displayed);
   // Map of path -> Set of changed line numbers (from unified-diff hunks).
   // Only count real added lines (`+`, not the `+++ ` file header) so the
   // anchor line is always a valid new-file line number >= 1.
@@ -229,7 +238,8 @@ async function run({ core, github, context, env }) {
   };
   const comments = [];
   const used = new Set();
-  for (const f of findings) {
+  for (const [index, f] of findings.entries()) {
+    if (evidence[index].state !== 'verified') continue;
     const loc = parseLoc(f.location);
     if (!loc) continue;
     const set = changedLinesByPath.get(loc.path);

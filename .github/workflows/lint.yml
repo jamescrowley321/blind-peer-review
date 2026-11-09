@@ -294,7 +294,7 @@ jobs:
         run: node --test scripts/dispatch.test.mjs
 
       - name: Unit-test combined findings reports (local and gate)
-        run: node --test scripts/findings-report.test.mjs
+        run: node --test scripts/findings-report.test.mjs scripts/location-evidence.test.mjs
 
       # Citation IDs are rendered as links from citations/, never from model
       # text; these pin the catalogues' shape and the posted-review round trip.

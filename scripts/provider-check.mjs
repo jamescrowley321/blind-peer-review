@@ -127,10 +127,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) { console.error("provider-check: OPENROUTER_API_KEY is not set"); process.exit(1); }
   if (!model) { console.error("provider-check: LENS_MODEL is not set"); process.exit(1); }
+  const strict = process.env.REQUIRE_SUCCESSFUL_PROBE || "false";
+  if (!["true", "false"].includes(strict)) {
+    console.error("provider-check: require_successful_probe must be true or false");
+    process.exit(3);
+  }
   const r = await probe({ model, key, modelsConfig: process.env.MODELS_CONFIG || "",
     allowUnflooredModel: process.env.ALLOW_UNFLOORED_MODEL === "true" });
   if (r.ok) { console.log(`provider-check: ${model} reachable`); process.exit(0); }
-  if (r.fatal) {
+  if (r.fatal || strict === "true") {
     console.error(
       `::error::Provider unavailable for "${model}": ${r.reason}. ` +
       `No lens can run, so this is NOT a review result and re-running will not help. ` +

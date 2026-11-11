@@ -160,3 +160,15 @@ for (const modelsConfig of ["not JSON", JSON.stringify({ providers: { openrouter
     assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET));
   });
 }
+
+test("strict pilot refuses an unknown output reservation without a model call", async () => {
+  const { spawnSync } = await import("node:child_process");
+  for (const [strict, code] of [["true", 3], ["false", 0], ["tru", 3]]) {
+    const result = spawnSync(process.execPath, [new URL("../../scripts/provider-check.mjs", import.meta.url).pathname], {
+      env: { ...process.env, LENS_MODEL: "synthetic-unknown-model", OPENROUTER_API_KEY: SECRET, REQUIRE_SUCCESSFUL_PROBE: strict },
+      encoding: "utf8", timeout: 5000,
+    });
+    assert.equal(result.status, code, result.stderr);
+    assert.doesNotMatch(result.stdout + result.stderr, new RegExp(SECRET));
+  }
+});

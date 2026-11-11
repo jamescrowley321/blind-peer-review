@@ -323,6 +323,8 @@ runs:
       env:
         OPENROUTER_API_KEY: ${{ inputs.api_key }}
         LENS_MODEL: ${{ inputs.model }}
+        MODELS_CONFIG: ${{ inputs.models_config }}
+        ALLOW_UNFLOORED_MODEL: ${{ inputs.allow_unfloored_model }}
       run: node "${{ github.action_path }}/scripts/provider-check.mjs"
 
     - name: Run adversarial lens

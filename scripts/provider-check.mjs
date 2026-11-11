@@ -16,6 +16,7 @@
 // gate has been answering wrongly.
 
 import { readFileSync } from "node:fs";
+import { validateModelsConfig, complianceFloorGap } from "./models-config.mjs";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const limits = JSON.parse(readFileSync(new URL("./pi-openrouter-limits.json", import.meta.url), "utf8"));
@@ -54,7 +55,17 @@ function errorVerdict(status, payload) {
   return { ok: false, status, ...classifyStatus(status, payload?.error?.metadata?.limit_source), detail: "" };
 }
 
-export async function probe({ model, key, fetchImpl = fetch, timeoutMs = 20_000 }) {
+export async function probe({ model, key, modelsConfig = "", allowUnflooredModel = false, fetchImpl = fetch, timeoutMs = 20_000 }) {
+  let routing;
+  try {
+    if (modelsConfig.trim()) {
+      const config = validateModelsConfig(modelsConfig);
+      if (!allowUnflooredModel && complianceFloorGap(config, model)) throw Error("missing routing floor");
+      routing = config.providers?.openrouter?.modelOverrides?.[model]?.compat?.openRouterRouting;
+    }
+  } catch {
+    return { ok: false, fatal: true, reason: "provider routing configuration could not be verified" };
+  }
   const maxTokens = requestBudget(model);
   if (!maxTokens) return { ok: false, fatal: false, reason: "the model has no verified output budget in the pinned SDK snapshot — affordability was not checked" };
   const controller = new AbortController();
@@ -67,7 +78,7 @@ export async function probe({ model, key, fetchImpl = fetch, timeoutMs = 20_000 
       signal: controller.signal,
       // Ask for a tiny answer, disable reasoning, and cancel on the first answer
       // chunk. The reservation must be large; the generated answer need not be.
-      body: JSON.stringify({ model, max_tokens: maxTokens, stream: true, reasoning: { enabled: false }, messages: [{ role: "user", content: "Reply exactly: ok" }] }),
+      body: JSON.stringify({ model, ...(routing ? { provider: routing } : {}), max_tokens: maxTokens, stream: true, reasoning: { enabled: false }, messages: [{ role: "user", content: "Reply exactly: ok" }] }),
     });
     if (!res.ok) {
       let payload;
@@ -116,9 +127,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) { console.error("provider-check: OPENROUTER_API_KEY is not set"); process.exit(1); }
   if (!model) { console.error("provider-check: LENS_MODEL is not set"); process.exit(1); }
-  const r = await probe({ model, key });
+  const strict = process.env.REQUIRE_SUCCESSFUL_PROBE || "false";
+  if (!["true", "false"].includes(strict)) {
+    console.error("provider-check: require_successful_probe must be true or false");
+    process.exit(3);
+  }
+  const r = await probe({ model, key, modelsConfig: process.env.MODELS_CONFIG || "",
+    allowUnflooredModel: process.env.ALLOW_UNFLOORED_MODEL === "true" });
   if (r.ok) { console.log(`provider-check: ${model} reachable`); process.exit(0); }
-  if (r.fatal) {
+  if (r.fatal || strict === "true") {
     console.error(
       `::error::Provider unavailable for "${model}": ${r.reason}. ` +
       `No lens can run, so this is NOT a review result and re-running will not help. ` +

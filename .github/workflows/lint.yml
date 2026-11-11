@@ -270,6 +270,9 @@ jobs:
       - name: Unit-test head-SHA resolution (the workflow_dispatch path)
         run: node --test scripts/head-sha.test.mjs
 
+      - name: Advisory review posting contracts
+        run: node --test scripts/advisory-review.test.mjs
+
       - name: Unit-test trusted base lens overrides (immutable base, fail closed)
         run: node --test scripts/trusted-lens.test.mjs
 

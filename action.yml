@@ -156,6 +156,11 @@ inputs:
     required: false
     default: 'true'
 
+  require_successful_probe:
+    description: "mode=lens: require the provider probe to confirm availability before spending on the agent. Unknown budgets, transient/malformed responses and timeouts stop the lens instead of letting the agent retry. Default false preserves existing transient retry behavior."
+    required: false
+    default: 'false'
+
   advisory_only:
     description: "mode=lens: true posts COMMENT reviews with findings in the body and no inline threads. Never requests changes or dismisses prior reviews. Omit mode=gate for a report-only pilot; this input does not change a separately configured gate. Invalid values fail before posting."
     required: false
@@ -323,6 +328,7 @@ runs:
       env:
         OPENROUTER_API_KEY: ${{ inputs.api_key }}
         LENS_MODEL: ${{ inputs.model }}
+        REQUIRE_SUCCESSFUL_PROBE: ${{ inputs.require_successful_probe }}
         MODELS_CONFIG: ${{ inputs.models_config }}
         ALLOW_UNFLOORED_MODEL: ${{ inputs.allow_unfloored_model }}
       run: node "${{ github.action_path }}/scripts/provider-check.mjs"

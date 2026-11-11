@@ -131,3 +131,32 @@ test("probe limits response bytes, empty streams, unknown models and unsafe exce
   assert.match(r.reason, /no verified output budget.*affordability was not checked/);
   assert.equal(requestBudget("__proto__"), null);
 });
+
+test("the affordability probe carries the lens's validated routing policy", async () => {
+  const routing = { zdr: true, data_collection: "deny", ignore: ["siliconflow"], sort: "price" };
+  const modelsConfig = JSON.stringify({ providers: { openrouter: { modelOverrides: {
+    [MODEL]: { compat: { openRouterRouting: routing } },
+  } } } });
+  let calls = 0;
+  const result = await probe({ ...args, modelsConfig, fetchImpl: async (_url, options) => {
+    calls++;
+    assert.deepEqual(JSON.parse(options.body).provider, routing);
+    return new Response(answer);
+  } });
+  assert.equal(result.ok, true);
+  assert.equal(calls, 1);
+});
+
+for (const modelsConfig of ["not JSON", JSON.stringify({ providers: { openrouter: { apiKey: SECRET } } }),
+  JSON.stringify({ providers: { openrouter: { modelOverrides: {
+    other: { compat: { openRouterRouting: { zdr: true, data_collection: "deny" } } },
+  } } } })]) {
+  test("invalid or inapplicable floors stop the probe before network access", async () => {
+    let calls = 0;
+    const result = await probe({ ...args, modelsConfig, fetchImpl: async () => { calls++; throw Error(SECRET); } });
+    assert.equal(result.ok, false);
+    assert.equal(result.fatal, true);
+    assert.equal(calls, 0);
+    assert.doesNotMatch(JSON.stringify(result), new RegExp(SECRET));
+  });
+}

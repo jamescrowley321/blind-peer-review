@@ -16,6 +16,7 @@
 // gate has been answering wrongly.
 
 import { readFileSync } from "node:fs";
+import { validateModelsConfig, complianceFloorGap } from "./models-config.mjs";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const limits = JSON.parse(readFileSync(new URL("./pi-openrouter-limits.json", import.meta.url), "utf8"));
@@ -54,7 +55,23 @@ function errorVerdict(status, payload) {
   return { ok: false, status, ...classifyStatus(status, payload?.error?.metadata?.limit_source), detail: "" };
 }
 
-export async function probe({ model, key, fetchImpl = fetch, timeoutMs = 20_000 }) {
+export async function probe({ model, key, provider = "openrouter", modelsConfig = "", allowUnflooredModel = false, fetchImpl = fetch, timeoutMs = 20_000 }) {
+  let routing;
+  try {
+    if (modelsConfig.trim()) {
+      const config = validateModelsConfig(modelsConfig);
+      if (!allowUnflooredModel && complianceFloorGap(config, model)) throw Error("missing routing floor");
+      // Read the provider the lens actually runs. complianceFloorGap accepts an
+      // entry under ANY provider key, but neither this probe nor the lens applies
+      // one filed under a different provider — so that case fails closed here.
+      const entries = Object.entries(config.providers || {}).filter(([, p]) => p?.modelOverrides?.[model]);
+      const active = config.providers?.[provider]?.modelOverrides?.[model];
+      if (!allowUnflooredModel && !active && entries.length) throw Error("routing filed under another provider");
+      routing = active?.compat?.openRouterRouting;
+    }
+  } catch {
+    return { ok: false, fatal: true, reason: "provider routing configuration could not be verified" };
+  }
   const maxTokens = requestBudget(model);
   if (!maxTokens) return { ok: false, fatal: false, reason: "the model has no verified output budget in the pinned SDK snapshot — affordability was not checked" };
   const controller = new AbortController();
@@ -67,7 +84,7 @@ export async function probe({ model, key, fetchImpl = fetch, timeoutMs = 20_000 
       signal: controller.signal,
       // Ask for a tiny answer, disable reasoning, and cancel on the first answer
       // chunk. The reservation must be large; the generated answer need not be.
-      body: JSON.stringify({ model, max_tokens: maxTokens, stream: true, reasoning: { enabled: false }, messages: [{ role: "user", content: "Reply exactly: ok" }] }),
+      body: JSON.stringify({ model, ...(routing ? { provider: routing } : {}), max_tokens: maxTokens, stream: true, reasoning: { enabled: false }, messages: [{ role: "user", content: "Reply exactly: ok" }] }),
     });
     if (!res.ok) {
       let payload;
@@ -111,21 +128,46 @@ export async function probe({ model, key, fetchImpl = fetch, timeoutMs = 20_000 
   }
 }
 
+/**
+ * What the CLI reports and exits with for a probe result. Strict mode
+ * (`require_successful_probe: true`) stops the lens on ANY non-success, but only
+ * a fatal result is an account condition a re-run cannot fix — a timeout, 5xx
+ * or malformed stream may well pass next time, and saying otherwise sends the
+ * operator after the wrong problem.
+ */
+export function probeOutcome(r, model, strict) {
+  if (r.ok) return { exit: 0, message: `provider-check: ${model} reachable` };
+  const why = `${r.reason || "non-fatal provider response"}${r.status ? ` (${r.status})` : ""}`;
+  if (r.fatal) {
+    return { exit: 3, message:
+      `::error::Provider unavailable for "${model}": ${why}. ` +
+      `No lens can run, so this is NOT a review result and re-running will not help. ` +
+      `Fix the account condition, then re-run.` };
+  }
+  if (strict === "true") {
+    return { exit: 3, message:
+      `::error::Provider probe for "${model}" did not succeed: ${why}. ` +
+      `require_successful_probe is true, so the lens stops here; this is NOT a review result. ` +
+      `This may be transient — re-run the failed job.` };
+  }
+  // Transient: say so and let the agent try — it has its own retries.
+  return { exit: 0, message: `provider-check: ${why} — continuing; the agent retries.` };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const model = process.env.LENS_MODEL;
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) { console.error("provider-check: OPENROUTER_API_KEY is not set"); process.exit(1); }
   if (!model) { console.error("provider-check: LENS_MODEL is not set"); process.exit(1); }
-  const r = await probe({ model, key });
-  if (r.ok) { console.log(`provider-check: ${model} reachable`); process.exit(0); }
-  if (r.fatal) {
-    console.error(
-      `::error::Provider unavailable for "${model}": ${r.reason}. ` +
-      `No lens can run, so this is NOT a review result and re-running will not help. ` +
-      `Fix the account condition, then re-run.`,
-    );
+  const strict = process.env.REQUIRE_SUCCESSFUL_PROBE || "false";
+  if (!["true", "false"].includes(strict)) {
+    console.error("provider-check: require_successful_probe must be true or false");
     process.exit(3);
   }
-  // Transient: say so and let the agent try — it has its own retries.
-  console.log(`provider-check: ${r.reason || "non-fatal provider response"}${r.status ? ` (${r.status})` : ""} — continuing; the agent retries.`);
+  const r = await probe({ model, key, provider: process.env.LENS_PROVIDER || "openrouter",
+    modelsConfig: process.env.MODELS_CONFIG || "",
+    allowUnflooredModel: process.env.ALLOW_UNFLOORED_MODEL === "true" });
+  const { exit, message } = probeOutcome(r, model, strict);
+  (exit ? console.error : console.log)(message);
+  if (exit) process.exit(exit);
 }

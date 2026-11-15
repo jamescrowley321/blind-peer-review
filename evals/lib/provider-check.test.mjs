@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { probe, requestBudget, classifyStatus } from "../../scripts/provider-check.mjs";
+import { probe, requestBudget, classifyStatus, probeOutcome } from "../../scripts/provider-check.mjs";
 
 const MODEL = "google/gemini-2.5-pro";
 const SECRET = "account-state-and-secret-key";
@@ -171,4 +171,47 @@ test("strict pilot refuses an unknown output reservation without a model call", 
     assert.equal(result.status, code, result.stderr);
     assert.doesNotMatch(result.stdout + result.stderr, new RegExp(SECRET));
   }
+});
+
+test("the probe reads routing from the provider the lens runs, and fails closed when the floor is filed elsewhere", async () => {
+  const routing = { zdr: true, data_collection: "deny" };
+  const under = (provider) => JSON.stringify({ providers: { [provider]: { modelOverrides: { [MODEL]: { compat: { openRouterRouting: routing } } } } } });
+  let sent;
+  const ok = await probe({ ...args, provider: "custom", modelsConfig: under("custom"), fetchImpl: async (_u, o) => { sent = JSON.parse(o.body).provider; return new Response(answer); } });
+  assert.equal(ok.ok, true);
+  assert.deepEqual(sent, routing, "routing under the active provider was not sent");
+  let calls = 0;
+  const gap = await probe({ ...args, provider: "openrouter", modelsConfig: under("custom"), fetchImpl: async () => { calls++; return new Response(answer); } });
+  assert.equal(gap.ok, false);
+  assert.equal(gap.fatal, true);
+  assert.equal(calls, 0, "probe went out without the floor written for this model");
+  const allowed = await probe({ ...args, provider: "openrouter", modelsConfig: under("custom"), allowUnflooredModel: true, fetchImpl: async () => new Response(answer) });
+  assert.equal(allowed.ok, true, "allow_unfloored_model no longer opts out");
+});
+
+test("strict mode fails every non-success, but only a fatal result says re-running will not help", () => {
+  const fatal = probeOutcome({ ok: false, fatal: true, reason: "credit exhausted" }, "m", "true");
+  assert.equal(fatal.exit, 3);
+  assert.match(fatal.message, /re-running will not help/);
+  for (const r of [
+    { ok: false, fatal: false, status: 503, reason: "provider error" },
+    { ok: false, fatal: false, reason: "malformed stream" },
+    { ok: false, fatal: false, reason: "timed out" },
+    { ok: false, fatal: false, reason: "the model has no verified output budget" },
+  ]) {
+    const strict = probeOutcome(r, "m", "true");
+    assert.equal(strict.exit, 3, r.reason);
+    assert.doesNotMatch(strict.message, /re-running will not help/, r.reason);
+    assert.match(strict.message, new RegExp(r.reason), "the strict message hides the reason");
+    assert.match(strict.message, /require_successful_probe/);
+    const lenient = probeOutcome(r, "m", "false");
+    assert.equal(lenient.exit, 0, r.reason);
+  }
+  assert.deepEqual(probeOutcome({ ok: true }, "m", "true").exit, 0);
+});
+
+test("the action passes the lens's provider to the probe", () => {
+  const action = readFileSync(new URL("../../action.yml", import.meta.url), "utf8");
+  const step = action.split("- name: Check the provider can be reached")[1].split("\n    - name:")[0];
+  assert.match(step, /LENS_PROVIDER: \$\{\{ inputs\.provider \}\}/);
 });

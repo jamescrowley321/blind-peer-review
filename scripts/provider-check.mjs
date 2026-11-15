@@ -55,13 +55,19 @@ function errorVerdict(status, payload) {
   return { ok: false, status, ...classifyStatus(status, payload?.error?.metadata?.limit_source), detail: "" };
 }
 
-export async function probe({ model, key, modelsConfig = "", allowUnflooredModel = false, fetchImpl = fetch, timeoutMs = 20_000 }) {
+export async function probe({ model, key, provider = "openrouter", modelsConfig = "", allowUnflooredModel = false, fetchImpl = fetch, timeoutMs = 20_000 }) {
   let routing;
   try {
     if (modelsConfig.trim()) {
       const config = validateModelsConfig(modelsConfig);
       if (!allowUnflooredModel && complianceFloorGap(config, model)) throw Error("missing routing floor");
-      routing = config.providers?.openrouter?.modelOverrides?.[model]?.compat?.openRouterRouting;
+      // Read the provider the lens actually runs. complianceFloorGap accepts an
+      // entry under ANY provider key, but neither this probe nor the lens applies
+      // one filed under a different provider — so that case fails closed here.
+      const entries = Object.entries(config.providers || {}).filter(([, p]) => p?.modelOverrides?.[model]);
+      const active = config.providers?.[provider]?.modelOverrides?.[model];
+      if (!allowUnflooredModel && !active && entries.length) throw Error("routing filed under another provider");
+      routing = active?.compat?.openRouterRouting;
     }
   } catch {
     return { ok: false, fatal: true, reason: "provider routing configuration could not be verified" };
@@ -122,6 +128,32 @@ export async function probe({ model, key, modelsConfig = "", allowUnflooredModel
   }
 }
 
+/**
+ * What the CLI reports and exits with for a probe result. Strict mode
+ * (`require_successful_probe: true`) stops the lens on ANY non-success, but only
+ * a fatal result is an account condition a re-run cannot fix — a timeout, 5xx
+ * or malformed stream may well pass next time, and saying otherwise sends the
+ * operator after the wrong problem.
+ */
+export function probeOutcome(r, model, strict) {
+  if (r.ok) return { exit: 0, message: `provider-check: ${model} reachable` };
+  const why = `${r.reason || "non-fatal provider response"}${r.status ? ` (${r.status})` : ""}`;
+  if (r.fatal) {
+    return { exit: 3, message:
+      `::error::Provider unavailable for "${model}": ${why}. ` +
+      `No lens can run, so this is NOT a review result and re-running will not help. ` +
+      `Fix the account condition, then re-run.` };
+  }
+  if (strict === "true") {
+    return { exit: 3, message:
+      `::error::Provider probe for "${model}" did not succeed: ${why}. ` +
+      `require_successful_probe is true, so the lens stops here; this is NOT a review result. ` +
+      `This may be transient — re-run the failed job.` };
+  }
+  // Transient: say so and let the agent try — it has its own retries.
+  return { exit: 0, message: `provider-check: ${why} — continuing; the agent retries.` };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const model = process.env.LENS_MODEL;
   const key = process.env.OPENROUTER_API_KEY;
@@ -132,17 +164,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("provider-check: require_successful_probe must be true or false");
     process.exit(3);
   }
-  const r = await probe({ model, key, modelsConfig: process.env.MODELS_CONFIG || "",
+  const r = await probe({ model, key, provider: process.env.LENS_PROVIDER || "openrouter",
+    modelsConfig: process.env.MODELS_CONFIG || "",
     allowUnflooredModel: process.env.ALLOW_UNFLOORED_MODEL === "true" });
-  if (r.ok) { console.log(`provider-check: ${model} reachable`); process.exit(0); }
-  if (r.fatal || strict === "true") {
-    console.error(
-      `::error::Provider unavailable for "${model}": ${r.reason}. ` +
-      `No lens can run, so this is NOT a review result and re-running will not help. ` +
-      `Fix the account condition, then re-run.`,
-    );
-    process.exit(3);
-  }
-  // Transient: say so and let the agent try — it has its own retries.
-  console.log(`provider-check: ${r.reason || "non-fatal provider response"}${r.status ? ` (${r.status})` : ""} — continuing; the agent retries.`);
+  const { exit, message } = probeOutcome(r, model, strict);
+  (exit ? console.error : console.log)(message);
+  if (exit) process.exit(exit);
 }

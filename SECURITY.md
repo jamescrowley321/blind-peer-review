@@ -57,7 +57,9 @@ already close the main abuse paths; the rest is your repo/provider configuration
   prompt-injected PR diff cannot exfiltrate the key or mutate the repo (OWASP
   LLM01). Don't broaden `loaded_tools` unless you accept that tradeoff.
 - **Fork PRs get no key.** Secrets are withheld from fork pull requests by
-  default, and the example caller also guards on `head.repo.fork == false`. Keep
+  default, and the example caller also skips any PR whose head repository is not
+  this one (`head.repo.full_name == github.repository`; not `head.repo.fork`,
+  which is true for same-repo PRs when your repository is itself a fork). Keep
   **Settings → Actions → Fork pull request workflows → Require approval for all
   outside collaborators** enabled so a fork PR can't even start a workflow without
   a maintainer's approval.

@@ -73,7 +73,10 @@ jobs:
 
   # Deterministic gate: the paid lenses (review) `needs:` this, so they never run
   # unless the cheap checks pass first. The fork/bot gate lives here and cascades.
-  # Don't spend on fork PRs (they get no secret anyway) or Dependabot. Outside
+  # Don't spend on fork PRs (they get no secret anyway) or Dependabot. "Fork PR"
+  # is tested by name — head repo != this repo — NOT `head.repo.fork`, which is
+  # true for every same-repo PR when this repository is itself a fork, and would
+  # exempt all of them from review (#178). Outside
   # contributors are gated by the repo setting "Require approval for all outside
   # collaborators" — NOT by author_association (the event reports CONTRIBUTOR for
   # org members, which would wrongly skip their PRs).
@@ -82,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     if: >-
-      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]'
     permissions:
       checks: read
@@ -162,11 +165,11 @@ jobs:
       pull-requests: read
     steps:
       - name: Record exempt PR
-        if: github.event.pull_request.head.repo.fork == true || github.actor == 'dependabot[bot]'
+        if: github.event.pull_request.head.repo.full_name != github.repository || github.actor == 'dependabot[bot]'
         run: echo "Blind peer review is intentionally exempt for fork and Dependabot PRs."
       - name: Fail closed when prerequisites did not succeed
         if: >-
-          github.event.pull_request.head.repo.fork == false &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
           github.actor != 'dependabot[bot]' &&
           (needs.config.result != 'success' || needs.preflight.result != 'success' || needs.review.result != 'success')
         env:
@@ -178,7 +181,7 @@ jobs:
           exit 1
       - name: Adjudicate lenses
         if: >-
-          github.event.pull_request.head.repo.fork == false &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
           github.actor != 'dependabot[bot]' &&
           needs.config.result == 'success' && needs.preflight.result == 'success' && needs.review.result == 'success'
         uses: jamescrowley321/blind-peer-review@v3

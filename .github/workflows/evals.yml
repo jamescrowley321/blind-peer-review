@@ -111,6 +111,12 @@ jobs:
           # local and need no credentials.
           persist-credentials: false
 
+      # Pin the Node major instead of inheriting the runner image's default,
+      # which changes underneath us. Keep in step with package.json `engines`.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
       - name: Syntax-check the harness
         run: |
           set -euo pipefail
@@ -189,6 +195,12 @@ jobs:
           exit 1
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Pin the Node major instead of inheriting the runner image's default,
+      # which changes underneath us. Keep in step with package.json `engines`.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
 
       - name: Check the provider key is available
         id: key

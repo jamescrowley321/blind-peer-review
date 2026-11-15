@@ -202,6 +202,12 @@ jobs:
           path: .review-plugin
           persist-credentials: false
 
+      # Pin the Node major instead of inheriting the runner image's default,
+      # which changes underneath us. Keep in step with package.json `engines`.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
       # When the review started: the check after the action looks only at
       # comments from then on.
       - id: started

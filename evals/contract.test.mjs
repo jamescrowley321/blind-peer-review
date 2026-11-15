@@ -2465,6 +2465,37 @@ describe("the GitHub/Claude adapter pins a usable lens library", () => {
   });
 });
 
+// ─────────────── one Node major, pinned, and never 20 ───────────────
+// A job that runs `node` without setup-node gets whatever the runner image
+// ships that month, so "supported" and "tested" drift apart silently.
+
+describe("Node is pinned to the supported major in every job that runs it", () => {
+  const engines = JSON.parse(rf(pjoin(REPO_ROOT, "package.json"), "utf8")).engines.node;
+  const major = Number((engines.match(/^>=(\d+)/) || [])[1]);
+  const dir = pjoin(REPO_ROOT, ".github/workflows");
+
+  test("engines names a floor of Node 24 or later", () => {
+    assert.ok(major >= 24, `engines.node is "${engines}" — Node 20/22 are not supported here`);
+  });
+
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".yml"))) {
+    const text = rf(pjoin(dir, file), "utf8");
+    const body = text.split(/\njobs:\n/)[1] || "";
+    const marks = [...body.matchAll(/^ {2}([A-Za-z_][\w-]*):$/gm)];
+    marks.forEach((m, i) => {
+      const job = body.slice(m.index, i + 1 < marks.length ? marks[i + 1].index : body.length);
+      const code = job.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+      // `(node` catches allowlist grants like Bash(node scripts/x.mjs:*).
+      if (!/(^|[\s(])node(\s|$)|shell: node/m.test(code)) return;
+      test(`${file} › ${m[1]}: pins setup-node to Node ${major}`, () => {
+        const pin = code.match(/uses: actions\/setup-node@[0-9a-f]{40}[^\n]*\n\s*with:\n\s*node-version: (\S+)/);
+        assert.ok(pin, "runs node without a SHA-pinned actions/setup-node step");
+        assert.equal(pin[1], String(major), "CI tests a different Node major than engines declares");
+      });
+    });
+  }
+});
+
 describe("gh in a checkout-less job must name its repo", () => {
   // `gh` infers the repository from the git remote. A job with no
   // actions/checkout has no remote, so every gh call there dies with

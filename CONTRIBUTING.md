@@ -26,7 +26,7 @@ together.
 
 ## Local development
 
-No build step. Use Node 20 or newer (see `package.json`). Start with the offline
+No build step. Use Node 24 or newer (see `package.json`; CI pins Node 24). Start with the offline
 checks that CI runs:
 
 ```bash

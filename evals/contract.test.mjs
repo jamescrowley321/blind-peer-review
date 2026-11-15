@@ -2421,7 +2421,7 @@ describe("the example caller's triggers and gate", () => {
   test("only a run Dependabot both authored and triggered is exempt", () => {
     // Author alone: a human push to a dependabot/* branch would skip review.
     // Actor alone: anyone who can make Dependabot act could exempt any PR.
-    // Requiring both errs toward reviewing (a maintainer's re-run is reviewed).
+    // Requiring both errs toward reviewing.
     const exempt = "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'";
     const notExempt = "(github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]')";
     assert.ok(job("preflight").includes(notExempt), "preflight's Dependabot skip is not author AND actor");
@@ -2436,6 +2436,7 @@ describe("the example caller's triggers and gate", () => {
 
   test("drafts run no paid lens", () => {
     assert.match(job("preflight"), /github\.event\.pull_request\.draft == false/, "preflight (and so every lens) runs on drafts");
+    assert.match(job("review"), /needs: \[[^\]]*preflight/, "the lenses no longer cascade from preflight's draft skip");
     assert.match(wf, /types: \[[^\]]*ready_for_review/, "nothing re-triggers when a draft is marked ready");
   });
 
@@ -2446,6 +2447,10 @@ describe("the example caller's triggers and gate", () => {
     const draft = step(gate, "Record draft PR");
     assert.match(draft, /draft == true/);
     assert.match(draft, /exit 1/, "a draft's gate passes — it must fail until a ready run adjudicates");
+    // Marking a draft ready cancels its in-progress run. With an implicit
+    // success() this step would skip, every step would skip, and the gate
+    // would finish green.
+    assert.match(draft, /if: >-\n\s*always\(\) &&/, "the draft step skips in a cancelled run");
     for (const name of ["Fail closed when prerequisites did not succeed", "Adjudicate lenses"]) {
       assert.match(step(gate, name), /github\.event\.pull_request\.draft == false/, `"${name}" also fires on drafts`);
     }
@@ -2460,6 +2465,11 @@ describe("the example caller's triggers and gate", () => {
     // is false once the run is cancelled — the fail-closed step needs its own.
     assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /if: >-\n\s*always\(\) &&/);
     assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /cancelled or timed out/);
+  });
+
+  test("the no-retry decision is documented where the gate is", () => {
+    assert.match(wf, /never retries a lens/);
+    assert.match(wf, /"Re-run failed jobs" re-runs just that lens/);
   });
 
   test("the edited trigger's comment does not promise a narrowed re-run", () => {

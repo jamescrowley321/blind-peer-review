@@ -89,8 +89,9 @@ jobs:
   # true for every same-repo PR when this repository is itself a fork, and would
   # exempt all of them from review (#178). "Dependabot PR" means Dependabot
   # opened it AND triggered this run: by author alone, a human push to a
-  # dependabot/* branch would skip review; a maintainer re-running Dependabot's
-  # PR is reviewed, which costs a run but cannot let code through. Outside
+  # dependabot/* branch would skip review. A re-run keeps the original
+  # run's actor and commit, so re-running a Dependabot-triggered run stays
+  # exempt — it carries no new code. Outside
   # contributors are gated by the repo setting "Require approval for all outside
   # collaborators" — NOT by author_association (the event reports CONTRIBUTOR for
   # org members, which would wrongly skip their PRs).
@@ -195,9 +196,12 @@ jobs:
       # gate gets no check run until its lenses finish, so a passing draft gate
       # would be the only Merge Gate on the commit for those minutes — long
       # enough to mark ready and merge through. Re-running an old draft run
-      # replays `draft == true`, so it fails too.
+      # replays `draft == true`, so it fails too. always(): marking a draft
+      # ready cancels its in-progress run, and with an implicit success() every
+      # gate step would skip and the gate would finish green.
       - name: Record draft PR
         if: >-
+          always() &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
           github.event.pull_request.draft == true

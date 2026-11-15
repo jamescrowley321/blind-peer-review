@@ -2422,16 +2422,19 @@ describe("the example caller's triggers and gate", () => {
     // Author alone: a human push to a dependabot/* branch would skip review.
     // Actor alone: anyone who can make Dependabot act could exempt any PR.
     // Requiring both errs toward reviewing.
-    const exempt = "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'";
-    const notExempt = "(github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]')";
+    // Never on `edited`: a human commit may be at head by then.
+    const exempt = "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]' && github.event.action != 'edited'";
+    const notExempt = "(github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited')";
     assert.ok(job("preflight").includes(notExempt), "preflight's Dependabot skip is not author AND actor");
     const gate = job("gate");
     assert.ok(step(gate, "Record exempt PR").includes(exempt), "the exempt step does not require author AND actor");
-    for (const name of ["Record draft PR", "Fail closed when prerequisites did not succeed", "Adjudicate lenses"]) {
+    const names = ["Record draft PR", "Fail closed when prerequisites did not succeed", "Adjudicate lenses", "Fail unless the lenses were adjudicated"];
+    for (const name of names) {
       assert.ok(step(gate, name).includes(notExempt), `"${name}" does not use the author-AND-actor exemption`);
     }
-    // No other Dependabot test may creep back in alongside.
-    assert.equal((code.match(/dependabot\[bot\]/g) || []).length, 10, "an extra or missing Dependabot condition");
+    // No other Dependabot test may creep back in alongside: preflight + the
+    // exempt step + each named step, two mentions apiece.
+    assert.equal((code.match(/dependabot\[bot\]/g) || []).length, 2 * (2 + names.length), "an extra or missing Dependabot condition");
   });
 
   test("drafts run no paid lens", () => {
@@ -2465,6 +2468,18 @@ describe("the example caller's triggers and gate", () => {
     // is false once the run is cancelled — the fail-closed step needs its own.
     assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /if: >-\n\s*always\(\) &&/);
     assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /cancelled or timed out/);
+  });
+
+  test("a non-exempt ready PR cannot pass the gate unless Adjudicate passed", () => {
+    // Backstop for the implicit success() that skips steps in a cancelled run.
+    const gate = job("gate");
+    assert.match(step(gate, "Adjudicate lenses"), /(^|\n)\s*id: adjudicate\n/);
+    const last = step(gate, "Fail unless the lenses were adjudicated");
+    assert.match(last, /if: >-\n\s*always\(\) &&/);
+    assert.match(last, /steps\.adjudicate\.outcome != 'success'/);
+    assert.match(last, /draft == false/);
+    assert.match(last, /exit 1/);
+    assert.ok(gate.trimEnd().endsWith(last.trimEnd()), "the backstop must be the gate's last step");
   });
 
   test("the no-retry decision is documented where the gate is", () => {

@@ -89,7 +89,9 @@ jobs:
   # true for every same-repo PR when this repository is itself a fork, and would
   # exempt all of them from review (#178). "Dependabot PR" means Dependabot
   # opened it AND triggered this run: by author alone, a human push to a
-  # dependabot/* branch would skip review. A re-run keeps the original
+  # dependabot/* branch would skip review. Never on `edited`: by then a human
+  # commit may sit at head, and an edit carries no code of Dependabot's own.
+  # A re-run keeps the original
   # run's actor and commit, so re-running a Dependabot-triggered run stays
   # exempt — it carries no new code. Outside
   # contributors are gated by the repo setting "Require approval for all outside
@@ -101,7 +103,7 @@ jobs:
     timeout-minutes: 12
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
+      (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited') &&
       github.event.pull_request.draft == false
     permissions:
       checks: read
@@ -190,7 +192,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Record exempt PR
-        if: github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]')
+        if: github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]' && github.event.action != 'edited')
         run: echo "Blind peer review is intentionally exempt for fork and Dependabot PRs."
       # A draft FAILS the gate rather than passing it. The ready_for_review run's
       # gate gets no check run until its lenses finish, so a passing draft gate
@@ -203,7 +205,7 @@ jobs:
         if: >-
           always() &&
           github.event.pull_request.head.repo.full_name == github.repository &&
-          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited') &&
           github.event.pull_request.draft == true
         run: |
           echo "::error::Draft PR — not reviewed. Lenses run when it is marked ready for review."
@@ -215,7 +217,7 @@ jobs:
         if: >-
           always() &&
           github.event.pull_request.head.repo.full_name == github.repository &&
-          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited') &&
           github.event.pull_request.draft == false &&
           (needs.config.result != 'success' || needs.preflight.result != 'success' || needs.review.result != 'success')
         env:
@@ -231,9 +233,10 @@ jobs:
           esac
           exit 1
       - name: Adjudicate lenses
+        id: adjudicate
         if: >-
           github.event.pull_request.head.repo.full_name == github.repository &&
-          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited') &&
           github.event.pull_request.draft == false &&
           needs.config.result == 'success' && needs.preflight.result == 'success' && needs.review.result == 'success'
         uses: jamescrowley321/blind-peer-review@v3
@@ -243,3 +246,20 @@ jobs:
           # jobs that ran are then one thing, not two kept in sync by hand.
           lenses: ${{ needs.config.outputs.matrix }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      # The backstop. Every path above is guarded on its own, but a step whose
+      # `if:` has no status function gets an implicit success(), and in a
+      # cancelled run that skips it — twice now a new path finished green with
+      # every step skipped. So: a non-exempt, ready PR fails here unless
+      # Adjudicate actually ran and passed, whatever skipped above.
+      - name: Fail unless the lenses were adjudicated
+        if: >-
+          always() &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]' || github.event.action == 'edited') &&
+          github.event.pull_request.draft == false &&
+          steps.adjudicate.outcome != 'success'
+        env:
+          OUTCOME: ${{ steps.adjudicate.outcome }}
+        run: |
+          echo "::error::Merge Gate did not adjudicate a pass (adjudicate=${OUTCOME:-not run}). A cancelled, skipped or failed review is not a clean one."
+          exit 1

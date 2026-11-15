@@ -13,12 +13,22 @@ name: Blind Peer Review
 
 on:
   pull_request:
-    # `edited` matters when the `policy` lens is enabled: it blocks on PR-BODY
-    # content (AI-provenance disclosure),
-    # and the fix for those findings is editing the description — which changes no
+    # `edited` matters when the `policy` or `acceptance` lens is enabled: both
+    # judge PR-BODY content (AI-provenance disclosure, acceptance criteria), and
+    # the fix for those findings is editing the description — which changes no
     # SHA and fires no other trigger. Without `edited`, the one action that clears
-    # the finding cannot re-run the check. The concurrency group above keeps the
-    # cost bounded: a burst of edits cancels its own superseded runs.
+    # the finding cannot re-run the check.
+    #
+    # Cost: an edit re-runs EVERY enabled lens, not just the body-reading ones —
+    # about the price of a push. That is deliberate. Narrowing the matrix on
+    # `edited` would let the newest Merge Gate pass on two lenses while ignoring
+    # the rest, and skipping the run for a title-only edit would leave a SKIPPED
+    # Merge Gate, which branch protection counts as passing. The concurrency group
+    # below bounds a burst of edits: each cancels its superseded run. Drop
+    # `edited` if you enable neither body-reading lens.
+    #
+    # Drafts: `opened` and `synchronize` fire on drafts too. The preflight `if:`
+    # skips them, so a draft spends nothing; `ready_for_review` runs the full set.
     types: [opened, synchronize, reopened, ready_for_review, edited]
     branches: [main]
 
@@ -86,7 +96,8 @@ jobs:
     timeout-minutes: 12
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]'
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.draft == false
     permissions:
       checks: read
       contents: read
@@ -154,6 +165,15 @@ jobs:
               }
             }
 
+  # `always()`, not `!cancelled()`: a skipped job reports as SUCCESS to branch
+  # protection, so a gate that skipped itself on cancellation would turn a
+  # cancelled run into a passing Merge Gate. A run superseded by a newer push or
+  # edit therefore shows a failing gate, which names the cancellation; the newer
+  # run's gate replaces it on the same check.
+  #
+  # One lens failing on a transient error fails the gate, by design: the action
+  # never retries a lens (a lens job fails only on errors, never on findings), and
+  # "Re-run failed jobs" re-runs just that lens and this gate.
   gate:
     name: Merge Gate
     needs: [config, preflight, review]
@@ -165,24 +185,39 @@ jobs:
       pull-requests: read
     steps:
       - name: Record exempt PR
-        if: github.event.pull_request.head.repo.full_name != github.repository || github.actor == 'dependabot[bot]'
+        if: github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]'
         run: echo "Blind peer review is intentionally exempt for fork and Dependabot PRs."
+      # A draft cannot be merged, and marking it ready fires `ready_for_review`,
+      # whose gate replaces this one on the same head commit.
+      - name: Record draft PR
+        if: >-
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          github.event.pull_request.draft == true
+        run: echo "Draft PR — no lens runs until it is marked ready for review."
       - name: Fail closed when prerequisites did not succeed
         if: >-
           github.event.pull_request.head.repo.full_name == github.repository &&
-          github.actor != 'dependabot[bot]' &&
+          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          github.event.pull_request.draft == false &&
           (needs.config.result != 'success' || needs.preflight.result != 'success' || needs.review.result != 'success')
         env:
           CONFIG_RESULT: ${{ needs.config.result }}
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           REVIEW_RESULT: ${{ needs.review.result }}
         run: |
-          echo "::error::Blind peer review prerequisites did not succeed (config=$CONFIG_RESULT, preflight=$PREFLIGHT_RESULT, review=$REVIEW_RESULT)."
+          case " $CONFIG_RESULT $PREFLIGHT_RESULT $REVIEW_RESULT " in
+            *" cancelled "*)
+              echo "::error::This run was cancelled — usually superseded by a newer push or edit, whose Merge Gate replaces this one. If nothing newer is running, re-run this workflow." ;;
+            *)
+              echo "::error::Blind peer review prerequisites did not succeed (config=$CONFIG_RESULT, preflight=$PREFLIGHT_RESULT, review=$REVIEW_RESULT)." ;;
+          esac
           exit 1
       - name: Adjudicate lenses
         if: >-
           github.event.pull_request.head.repo.full_name == github.repository &&
-          github.actor != 'dependabot[bot]' &&
+          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          github.event.pull_request.draft == false &&
           needs.config.result == 'success' && needs.preflight.result == 'success' && needs.review.result == 'success'
         uses: jamescrowley321/blind-peer-review@v3
         with:

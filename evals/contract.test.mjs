@@ -2402,6 +2402,53 @@ describe("the same-repo check compares names, not head.repo.fork", () => {
   });
 });
 
+// ─────────────── caller example: who, when, and what a skipped job means (#179) ───────────────
+
+describe("the example caller's triggers and gate", () => {
+  const wf = rf(pjoin(REPO_ROOT, "examples/caller-workflow.yml"), "utf8");
+  const code = wf.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+  const job = (name) => {
+    const m = code.match(new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  [a-z_-]+:\\n|$)`));
+    assert.ok(m, `no ${name} job`);
+    return m[1];
+  };
+  const step = (body, name) => {
+    const m = body.match(new RegExp(`- name: ${name}\\n([\\s\\S]*?)(?=\\n      - name:|$)`));
+    assert.ok(m, `no "${name}" step`);
+    return m[1];
+  };
+
+  test("Dependabot is recognised by the PR author, not the actor", () => {
+    // A maintainer pushing to or re-running a Dependabot PR is the actor.
+    assert.ok(!/github\.actor/.test(code), "github.actor is whoever triggered the run, not who opened the PR");
+    assert.match(code, /github\.event\.pull_request\.user\.login != 'dependabot\[bot\]'/);
+  });
+
+  test("drafts run no paid lens", () => {
+    assert.match(job("preflight"), /github\.event\.pull_request\.draft == false/, "preflight (and so every lens) runs on drafts");
+    assert.match(wf, /types: \[[^\]]*ready_for_review/, "nothing re-triggers when a draft is marked ready");
+  });
+
+  test("the gate never fails closed on a draft, and never passes a ready PR without adjudicating", () => {
+    const gate = job("gate");
+    assert.match(step(gate, "Record draft PR"), /draft == true/);
+    for (const name of ["Fail closed when prerequisites did not succeed", "Adjudicate lenses"]) {
+      assert.match(step(gate, name), /github\.event\.pull_request\.draft == false/, `"${name}" also fires on drafts`);
+    }
+  });
+
+  test("the gate still runs on cancellation, so a cancelled run cannot report a skipped (= passing) check", () => {
+    // A skipped required check counts as success. `!cancelled()` would turn a
+    // manually cancelled run into a passing Merge Gate.
+    assert.match(job("gate"), /if: always\(\)/);
+  });
+
+  test("the edited trigger's comment does not promise a narrowed re-run", () => {
+    assert.ok(!/re-runs? only the policy lens/i.test(wf));
+    assert.match(wf, /re-runs EVERY enabled lens/, "the comment no longer states what an edit costs");
+  });
+});
+
 describe("docs and examples agree with the shipped major", () => {
   const DOCS = ["README.md", "examples/caller-workflow.yml", "docs/model-selection.md", "docs/evals.md"];
   const read = (f) => rf(pjoin(REPO_ROOT, f), "utf8");

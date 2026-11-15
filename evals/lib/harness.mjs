@@ -145,7 +145,7 @@ export async function runParseStep({
   lensName, agentResponse, files = defaultFiles(), reviews = [], reviewComments = [],
   issueComments = [], failIssueList = false,
   dismissSuperseded = "false", cleanupAgentComments = "true", agentSuccess = "true", yml = null,
-  lensHeading = undefined, submitted = undefined, dispatch = false,
+  lensHeading = undefined, submitted = undefined, dispatch = false, alterGithub = () => {},
 }) {
   // Dual path, and the asymmetry is deliberate.
   //
@@ -160,6 +160,7 @@ export async function runParseStep({
   // copy of this logic and no step-name coupling.
   const core = makeCore();
   const github = makeGithub({ files, reviews, reviewComments, issueComments, failIssueList });
+  alterGithub(github); // lets a test fail or reshape one API call
   // `submitted` stands in for the file submit_findings writes. A string is
   // written verbatim (so a corrupt file can be exercised); an object is
   // serialised. `undefined` means the tool never ran — the message-only path.

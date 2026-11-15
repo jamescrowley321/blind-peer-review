@@ -152,3 +152,40 @@ test('oversized source is not downloaded and aggregate source bytes are bounded'
   assert.equal(result.calls.blobs.length, 8);
   assert.equal(result.evidence.at(-1).reason, 'source-budget');
 });
+
+test('a file in the PR but absent from the head tree is path-not-at-reviewed-head, with no blob read', async () => {
+  const files = [...defaultFiles(), { filename: 'ghost.js', status: 'added', patch: '@@ -0,0 +1 @@\n+x' }];
+  const sourceFiles = { 'src/app.js': 'a\nb\nc\nd\n' };
+  const { evidence, calls } = await inspect(['ghost.js:1'], { files, sourceFiles });
+  assert.equal(evidence[0].state, 'unverified');
+  assert.equal(evidence[0].reason, 'path-not-at-reviewed-head');
+  assert.equal(calls.blobs.length, 0);
+});
+
+test('a location that could not be CHECKED keeps its inline comment on a real added line', async () => {
+  // Tree/blob trouble says nothing about the finding. The added-line test
+  // already proves the anchor; dropping the comment only hides real findings.
+  for (const kind of ['error', 'truncated']) {
+    const result = await runParseStep({
+      lensName: 'Security Review', agentResponse: response('src/app.js:2', 'MUST FIX'),
+      alterGithub(github) {
+        const original = github.rest.git.getTree;
+        github.rest.git.getTree = async args => {
+          if (kind === 'error') throw new Error('transient');
+          const r = await original(args); r.data.truncated = true; return r;
+        };
+      },
+    });
+    assert.equal(result.failed, null, kind);
+    assert.equal(result.event, 'REQUEST_CHANGES', kind);
+    assert.equal(result.comments.length, 1, `${kind}: the inline comment on a real added line was dropped`);
+    assert.match(parseReview(result.body)[0].detail, /^\[UNVERIFIED LOCATION: source-unavailable\] Synthetic issue$/, kind);
+    assert.match(result.body, /could not be checked/, `${kind}: "could not be checked" reads the same as "probably wrong"`);
+  }
+});
+
+test('a location shown to be wrong still gets no inline comment', async () => {
+  const result = await runParseStep({ lensName: 'Security Review', agentResponse: response('src/app.js:999') });
+  assert.equal(result.comments.length, 0);
+  assert.doesNotMatch(result.body, /could not be checked/);
+});

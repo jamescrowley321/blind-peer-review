@@ -15,7 +15,7 @@
 const { renderReview } = require(__dirname + "/findings-report.cjs");
 const { headSha: resolveHeadSha } = require(__dirname + "/head-sha.cjs");
 const { resolveCitations, renderCitations } = require(__dirname + "/citations.cjs");
-const { inspectLocations, locationWarning } = require(__dirname + "/location-evidence.cjs");
+const { inspectLocations, locationWarning, mayAnchorInline } = require(__dirname + "/location-evidence.cjs");
 
 // ── Lens identity ──
 //
@@ -239,7 +239,7 @@ async function run({ core, github, context, env }) {
   const comments = [];
   const used = new Set();
   for (const [index, f] of findings.entries()) {
-    if (evidence[index].state !== 'verified') continue;
+    if (!mayAnchorInline(evidence[index])) continue; // shown wrong, not merely unchecked
     const loc = parseLoc(f.location);
     if (!loc) continue;
     const set = changedLinesByPath.get(loc.path);

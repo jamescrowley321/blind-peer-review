@@ -6,6 +6,16 @@ const MAX_TOTAL_BYTES = 8 * 1024 * 1024;
 const MAX_BLOBS = 100;
 const SHA = /^[a-f0-9]{40}$/i;
 const unverified = reason => ({ state: 'unverified', reason });
+// Reasons that mean the source could not be CHECKED — tree/blob trouble, a
+// budget, an unsupported file — as opposed to the location being shown wrong.
+const UNCHECKED = new Set(['source-unavailable', 'source-budget', 'unsupported-source']);
+
+// May a finding carry an inline comment? Verified, or merely unchecked: the
+// caller still requires the line to be a real added line in the PR's patch,
+// which is the anchor GitHub needs. Only a location shown to be wrong loses it.
+function mayAnchorInline(entry) {
+  return entry.state === 'verified' || UNCHECKED.has(entry.reason);
+}
 
 function parseLocation(value) {
   const match = typeof value === 'string' && value.match(/^(.+):([1-9]\d*)$/);
@@ -75,8 +85,9 @@ async function inspectLocations({ github, owner, repo, headSha, files, findings 
 }
 
 function locationWarning(evidence) {
-  const missing = evidence.flatMap((entry, i) => entry.state === 'verified' ? [] : [`#${i + 1} (${entry.reason})`]);
+  const missing = evidence.flatMap((entry, i) => entry.state === 'verified' ? [] :
+    [`#${i + 1} (${entry.reason}${UNCHECKED.has(entry.reason) ? ' — could not be checked, not shown wrong' : ''})`]);
   return missing.length ? `Unverified repository locations: ${missing.join(', ')}. These locations are not established as source evidence.` : '';
 }
 
-module.exports = { inspectLocations, locationWarning, parseLocation };
+module.exports = { inspectLocations, locationWarning, parseLocation, mayAnchorInline };

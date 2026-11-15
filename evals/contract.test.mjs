@@ -2465,6 +2465,39 @@ describe("the GitHub/Claude adapter pins a usable lens library", () => {
   });
 });
 
+describe("claude.yml: Write plus a by-path node grant needs a locked path (#189)", () => {
+  // The session may Write, and may run plugin scripts through node by path.
+  // Unless those paths are unwritable, a prompt-injected diff can rewrite a
+  // script and run it — an interpreter the allowlist claims to exclude.
+  const wf = rf(pjoin(REPO_ROOT, ".github/workflows/claude.yml"), "utf8");
+  const allowed = (wf.match(/--allowedTools "([^"]+)"/) || [])[1] || "";
+  const nodeGrants = [...allowed.matchAll(/Bash\(node ([^:)]+)/g)].map((m) => m[1]);
+  const steps = wf.split(/\n      - /);
+  const lockIdx = steps.findIndex((s) => /name: Lock the review tooling/.test(s));
+  const claudeIdx = steps.findIndex((s) => /uses: anthropics\/claude-code-action@/.test(s));
+
+  test("there is no bare node grant", () => {
+    assert.ok(!/Bash\(node:\*\)/.test(allowed), "node:* is an interpreter grant");
+  });
+
+  test("every node grant runs a script inside the locked plugin checkout", () => {
+    for (const script of nodeGrants) {
+      assert.match(script, /^\.review-plugin\//, `${script} is outside .review-plugin, which is the only locked tree`);
+    }
+  });
+
+  test("the lock runs before the session and makes the plugin and user config read-only", () => {
+    if (!allowed.includes("Write") || !nodeGrants.length) return;
+    assert.ok(lockIdx > 0, "no lock step, yet the session holds Write and node grants");
+    assert.ok(claudeIdx > lockIdx, "the lock step must run before claude-code-action");
+    const lock = steps[lockIdx];
+    assert.match(lock, /chmod -R a-w \.review-plugin/, "the plugin checkout is not made read-only");
+    assert.match(lock, /blind-peer-review"\n/, "dispatch.mjs's user-config directory is not locked");
+    assert.match(lock, /id -u/, "the lock does not refuse to run as root");
+    assert.match(lock, /exit 1/, "the lock cannot fail");
+  });
+});
+
 describe("gh in a checkout-less job must name its repo", () => {
   // `gh` infers the repository from the git remote. A job with no
   // actions/checkout has no remote, so every gh call there dies with

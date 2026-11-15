@@ -117,7 +117,7 @@ export function makeGithub({ files = [], reviews = [], reviewComments = [], issu
 export async function runParseStep({
   lensName, agentResponse, files = defaultFiles(), reviews = [], reviewComments = [],
   issueComments = [], failIssueList = false,
-  dismissSuperseded = "false", cleanupAgentComments = "true", agentSuccess = "true", yml = null,
+  advisoryOnly = undefined, dismissSuperseded = "false", cleanupAgentComments = "true", agentSuccess = "true", yml = null,
   lensHeading = undefined, submitted = undefined, dispatch = false,
 }) {
   // Dual path, and the asymmetry is deliberate.
@@ -144,6 +144,7 @@ export async function runParseStep({
     PR_NUMBER: String(PR_NUMBER),
     AGENT_RESPONSE: agentResponse,
     AGENT_SUCCESS: agentSuccess,
+    ADVISORY_ONLY: advisoryOnly,
     DISMISS_SUPERSEDED: dismissSuperseded,
     CLEANUP_AGENT_COMMENTS: cleanupAgentComments,
     FINDINGS_PATH: findingsPath,

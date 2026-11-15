@@ -97,6 +97,12 @@ function makeLensMatcher(lensName, rawHeading) {
 }
 
 async function run({ core, github, context, env }) {
+  const rawAdvisory = String(env.ADVISORY_ONLY ?? "false").trim().toLowerCase();
+  if (!["true", "false"].includes(rawAdvisory)) {
+    core.setFailed("advisory_only must be true or false; no review was posted.");
+    return;
+  }
+  const advisory = rawAdvisory === "true";
   const fs = require("fs");
   const lensName = env.LENS_NAME;
   const prNumber = Number(env.PR_NUMBER);
@@ -194,8 +200,8 @@ async function run({ core, github, context, env }) {
   core.info(`Parsed ${findings.length} finding(s) for "${lensName}".`);
 
   // ── 3. Render the review body: `## <Lens Name>` + summary + bullets. ──
-  const body = renderReview(lensName, summary, findings);
-  const event = findings.some((f) => f.severity === "MUST FIX") ? "REQUEST_CHANGES" : "COMMENT";
+  const body = renderReview(lensName, summary, findings) + (advisory ? "\n\nAdvisory only: findings retain their severity; this review does not request changes or create inline threads." : "");
+  const event = !advisory && findings.some((f) => f.severity === "MUST FIX") ? "REQUEST_CHANGES" : "COMMENT";
 
   // ── 4. Build the inline comments: one per finding whose location maps to
   //    a real diff line (computed here, not by the model). Every path MUST
@@ -241,6 +247,10 @@ async function run({ core, github, context, env }) {
     const cited = renderCitations(resolveCitations([f.detail]), String);
     comments.push({ path: loc.path, line: loc.line, body: `[${f.severity}] ${f.detail}\n\nFix: ${f.recommendation}` + (cited.length ? `\n\n${cited.join("\n")}` : "") });
   }
+
+  // Advisory findings remain in the body. Inline threads can independently
+  // block branches requiring conversation resolution, even on COMMENT reviews.
+  if (advisory) comments.length = 0;
 
   // ── 5. Post the review via Octokit (deterministic). ──
   core.info(`Posting review: event=${event}, ${comments.length} inline comment(s), body ${body.length} chars.`);
@@ -297,7 +307,7 @@ async function run({ core, github, context, env }) {
   const rawDismiss = String(env.DISMISS_SUPERSEDED ?? "true").trim().toLowerCase();
   const TRUTHY = new Set(["true", "1", "yes", "on"]);
   const FALSY = new Set(["false", "0", "no", "off", ""]);
-  const dismissOn = TRUTHY.has(rawDismiss);
+  const dismissOn = !advisory && TRUTHY.has(rawDismiss);
   if (!TRUTHY.has(rawDismiss) && !FALSY.has(rawDismiss)) {
     core.warning(`Unrecognized dismiss_superseded value "${env.DISMISS_SUPERSEDED}" — treating as disabled (expected true/false).`);
   }

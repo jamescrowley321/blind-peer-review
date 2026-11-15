@@ -2366,6 +2366,37 @@ describe("provider pre-check", () => {
 // Gate fails closed on every pull request with nothing in the logs naming the
 // cause.
 
+// ─────────────── "same repository" means same name, not "not a fork" (#178) ───────────────
+// `head.repo.fork` describes the HEAD REPOSITORY, not the relationship between
+// head and base. In a consumer repo that is itself a fork, every same-repo PR
+// reports `head.repo.fork == true`: preflight is skipped, the gate records the
+// PR as exempt, no lens runs and Merge Gate passes. Fail-open.
+
+describe("the same-repo check compares names, not head.repo.fork", () => {
+  const listYml = (dir) => {
+    const abs = pjoin(REPO_ROOT, dir);
+    return readdirSync(abs, { recursive: true }).filter((f) => /\.ya?ml$/.test(f)).map((f) => pjoin(dir, f));
+  };
+  const FILES = [...listYml("examples"), ...listYml("adapters"), ...listYml(".github/workflows"), "action.yml"];
+
+  for (const f of FILES) {
+    test(`${f}: no head.repo.fork condition`, () => {
+      // Comments may name it (to explain why it is wrong); conditions may not.
+      const code = rf(pjoin(REPO_ROOT, f), "utf8").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+      assert.ok(!/head\.repo\.fork/.test(code),
+        "head.repo.fork is true for same-repo PRs in a forked consumer repo — compare head.repo.full_name with github.repository");
+    });
+  }
+
+  test("the example caller gates preflight and the merge gate on full_name", () => {
+    const wf = rf(pjoin(REPO_ROOT, "examples/caller-workflow.yml"), "utf8");
+    const same = wf.match(/github\.event\.pull_request\.head\.repo\.full_name == github\.repository/g) || [];
+    const diff = wf.match(/github\.event\.pull_request\.head\.repo\.full_name != github\.repository/g) || [];
+    assert.ok(same.length >= 3, `expected the same-repo test on preflight, fail-closed and adjudicate; found ${same.length}`);
+    assert.ok(diff.length >= 1, "the exempt step no longer recognises cross-repo PRs by name");
+  });
+});
+
 describe("docs and examples agree with the shipped major", () => {
   const DOCS = ["README.md", "examples/caller-workflow.yml", "docs/model-selection.md", "docs/evals.md"];
   const read = (f) => rf(pjoin(REPO_ROOT, f), "utf8");

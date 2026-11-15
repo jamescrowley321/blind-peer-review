@@ -2472,6 +2472,17 @@ describe("claude.yml: Write plus a by-path node grant needs a locked path (#189)
   const wf = rf(pjoin(REPO_ROOT, ".github/workflows/claude.yml"), "utf8");
   const allowed = (wf.match(/--allowedTools "([^"]+)"/) || [])[1] || "";
   const nodeGrants = [...allowed.matchAll(/Bash\(node ([^:)]+)/g)].map((m) => m[1]);
+  const ABS = "${{ github.workspace }}/.review-plugin/scripts/";
+
+  test("the allowlist was found and still holds Write", () => {
+    // If the format changes so the regex misses, every test below would pass
+    // vacuously. Fail loudly instead.
+    assert.ok(allowed.includes("Write"), "could not read the --allowedTools list, or Write is gone (then revisit these tests)");
+  });
+
+  test("no other JS runtime is granted", () => {
+    assert.ok(!/Bash\((nodejs|npx|deno|bun|npm)\b/.test(allowed), "a second JS runtime would bypass the node-grant checks");
+  });
   const steps = wf.split(/\n      - /);
   const lockIdx = steps.findIndex((s) => /name: Lock the review tooling/.test(s));
   const claudeIdx = steps.findIndex((s) => /uses: anthropics\/claude-code-action@/.test(s));
@@ -2480,10 +2491,33 @@ describe("claude.yml: Write plus a by-path node grant needs a locked path (#189)
     assert.ok(!/Bash\(node:\*\)/.test(allowed), "node:* is an interpreter grant");
   });
 
-  test("every node grant runs a script inside the locked plugin checkout", () => {
-    for (const script of nodeGrants) {
-      assert.match(script, /^\.review-plugin\//, `${script} is outside .review-plugin, which is the only locked tree`);
+  test("every node grant is an absolute path to a script in the locked checkout", () => {
+    // Relative grants resolve against the session's cwd: a session could build
+    // its own x/.review-plugin/scripts/ and cd into x.
+    assert.ok(nodeGrants.length > 0);
+    for (const grant of nodeGrants) {
+      const script = grant.replace(/ --print-reviewer$/, ""); // the path itself contains spaces
+      assert.ok(script.startsWith(ABS), `${script} is not an absolute path under the locked checkout`);
+      assert.match(script.slice(ABS.length), /^[\w-]+\.mjs$/, `${script} escapes the scripts directory`);
     }
+  });
+
+  test("dispatch.mjs is granted only to print the reviewer", () => {
+    const d = nodeGrants.filter((g) => g.includes("dispatch.mjs"));
+    assert.deepEqual(d, [`${ABS}dispatch.mjs --print-reviewer`], "dispatch.mjs can run a reviewer from CI");
+  });
+
+  test("the session is told to call the scripts by that absolute path", () => {
+    assert.ok(wf.includes(`node ${ABS}scope-diff.mjs`) && /never \\\$\{CLAUDE_PLUGIN_ROOT\}/.test(wf),
+      "the system prompt no longer pins the script path the grants expect");
+  });
+
+  test("git config cannot name a program the allowed commands would run", () => {
+    for (const line of ["GIT_CONFIG_NOSYSTEM: \"1\"", "GIT_CONFIG_GLOBAL: /dev/null",
+      "GIT_CONFIG_KEY_0: core.fsmonitor", "GIT_CONFIG_KEY_1: core.hooksPath", "GIT_CONFIG_KEY_2: core.pager"]) {
+      assert.ok(wf.includes(line), `missing ${line}`);
+    }
+    assert.match(wf, /GIT_CONFIG_COUNT: "3"/);
   });
 
   test("the lock runs before the session and makes the plugin and user config read-only", () => {
@@ -2492,7 +2526,9 @@ describe("claude.yml: Write plus a by-path node grant needs a locked path (#189)
     assert.ok(claudeIdx > lockIdx, "the lock step must run before claude-code-action");
     const lock = steps[lockIdx];
     assert.match(lock, /chmod -R a-w \.review-plugin/, "the plugin checkout is not made read-only");
-    assert.match(lock, /blind-peer-review"\n/, "dispatch.mjs's user-config directory is not locked");
+    assert.match(lock, /chmod -R a-w \.review-plugin "\$cfg"/, "dispatch.mjs's user-config directory is not locked");
+    assert.match(lock, /ls -A "\$cfg"/, "a pre-existing user config is not refused");
+    assert.match(lock, /if \[ -w "\$p" \]/, "the lock does not verify it took effect");
     assert.match(lock, /id -u/, "the lock does not refuse to run as root");
     assert.match(lock, /exit 1/, "the lock cannot fail");
   });

@@ -24,7 +24,7 @@ import { bailoutSample, shouldBailOut, bailoutMessage, BAILOUT_SAMPLE, BAILOUT_T
 import { chat, ModelError } from "./lib/openrouter.mjs";
 import { classifyStatus, probe, requestBudget } from "../scripts/provider-check.mjs";
 import "./lib/provider-check.test.mjs";
-import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline } from "./collect.mjs";
+import { classify, upstreamFixtures, violationsFromCard, VALIDITY, loadRound, containedJoin, safeSlug, scrubProviderDetail, scrubBaseline, runIdFor } from "./collect.mjs";
 import { createSubmissionTracker, NUDGE_MESSAGE } from "../extensions/lib/submission-state.mjs";
 import { attachNudge } from "../extensions/lib/nudge.mjs";
 import { ROOT as REPO_ROOT } from "./lib/harness.mjs";
@@ -2281,6 +2281,30 @@ describe("results store — path containment", () => {
     assert.equal(safeSlug("google/gemini-3.8-flash"), "google__gemini-3.8-flash");
     assert.equal(safeSlug("z-ai/glm-5.2"), "z-ai__glm-5.2");
     assert.equal(safeSlug("openai/gpt-5.6-luna-pro"), "openai__gpt-5.6-luna-pro");
+  });
+});
+
+// #142: the run id was the first 6+ digit run anywhere in the FULL path, so an
+// ingest root under a digit-bearing path (a UUID temp dir) stamped every
+// scorecard with the same wrong id.
+describe("ingest run id comes from below the ingest root", () => {
+  test("digits in the ingest root are ignored", () => {
+    const root = "/tmp/claude-1000/0b5e1234-5678-4abc-9def-123456789012/artifacts";
+    assert.equal(runIdFor(root, `${root}/eval-results-19283746`, 0), "19283746");
+    assert.equal(runIdFor(root, `${root}/eval-results-55501234`, 1), "55501234");
+  });
+
+  test("a baseline nested below its run directory keeps the run's id", () => {
+    assert.equal(runIdFor("/in", "/in/eval-results-19283746/scorecard", 0), "19283746");
+  });
+
+  test("the innermost id-bearing directory wins", () => {
+    assert.equal(runIdFor("/in", "/in/batch-111111/run-222222", 0), "222222");
+  });
+
+  test("no id below the root falls back to the counter, never to the root's digits", () => {
+    assert.equal(runIdFor("/data/2026111501", "/data/2026111501/results", 3), "3");
+    assert.equal(runIdFor("/in", "/in", 4), "4");
   });
 });
 

@@ -20,7 +20,7 @@
 // them; they are printed under a heading that says what they are.
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname, resolve, sep } from "node:path";
+import { join, dirname, resolve, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -177,6 +177,22 @@ function render(round, rows) {
   return out.join("\n");
 }
 
+/**
+ * The run id for a baseline found in `dir` while ingesting `root`: the 6+ digit
+ * run in the innermost directory BELOW the root that has one, else `fallback`.
+ * Never the root's own path — a UUID temp dir above the artifacts would
+ * otherwise stamp every scorecard with the same wrong id (#142).
+ */
+export function runIdFor(root, dir, fallback) {
+  const rel = relative(resolve(root), resolve(dir));
+  const segments = rel ? rel.split(sep) : [];
+  for (const s of segments.reverse()) {
+    const m = s.match(/(\d{6,})/);
+    if (m) return m[1];
+  }
+  return String(fallback);
+}
+
 // ───────────────────────────────── cli ─────────────────────────────────
 
 function ingest(srcDir, round) {
@@ -202,7 +218,7 @@ function ingest(srcDir, round) {
       }
       baseline.validity = classify(upstreamFixtures(baseline), (baseline.fixtures || []).length);
       baseline = scrubBaseline(baseline);
-      const runId = (d.match(/(\d{6,})/) || [])[1] || String(n);
+      const runId = runIdFor(srcDir, d, n);
       let slug;
       try {
         slug = `${safeSlug(baseline.meta.model)}.${runId}`;

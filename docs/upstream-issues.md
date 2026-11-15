@@ -4,33 +4,47 @@ Defects found in the agent action this project pins, each with the workaround
 that is live in this repo. **Nothing here has been filed upstream.** These are
 written up so a human can send them; do not auto-file them.
 
-Pinned engine: `shaftoe/pi-coding-agent-action@381f578da466b8d2ef48f0fdb8a940f276fe4c3c` (v2.30.1).
+Pinned engine: `shaftoe/pi-coding-agent-action@c9c89dcabbf612ab2a528acfad8785a8075e22f3` (v2.30.2).
 Re-check all three when that pin moves — a fixed upstream defect means a
 workaround here can be retired, and a workaround nobody retires becomes folklore.
 
 ## Re-check log
 
-**2026-11-15 — v2.30.0 → v2.30.1. All three defects still present; every
+**2026-11-15 — v2.30.0 → v2.30.2. All three defects still present; every
 workaround still required.**
 
-Both source files are byte-identical at the new SHA: `pr-diff.ts` 4072 B
+Both source files are byte-identical at v2.30.1 and v2.30.2: `pr-diff.ts` 4072 B
 (`2f5263ad…7b0634f`) and `get-pr-diff.ts` 11334 B (`e30f1c70…d44e4d50a`), so the
 diff port needs only its provenance header updated. The unanchored split,
 unfloored byte budget and unescaped triple-backtick wrapper are unchanged.
 
-The lockfile now resolves the pi SDK to **1.3.0**. `pi/agent.ts` changed only to
-record whether a run was aborted; it still supplies no output-token override.
-`pi-ai`'s `dist/api/simple-options.js` is byte-identical between 1.0.4 and
-1.3.0, so the budget rule is unchanged. `scripts/pi-openrouter-limits.json` was
-regenerated from `@earendil-works/pi-ai@1.3.0/dist/providers/data/openrouter.json`
-with a generator first checked to reproduce the 1.0.4 snapshot byte-for-byte:
-396 models (17 added, 19 removed, 31 output limits and 25 context windows
-changed). The shipped default `google/gemini-3.8-flash` and the example
-`anthropic/claude-sonnet-5` are unchanged; `z-ai/glm-5.2` rose from 131072 to
-943718 output tokens, and the test that pins it was updated to match.
+The lockfile now resolves the pi SDK to **1.5.2** (from 1.0.4, via 1.3.0).
+`pi/agent.ts` changed only to record whether a run was aborted; it still
+supplies no output-token override. **`pi-ai`'s budget rule changed in 1.5.x**:
+the context margin is now `max(4096, ceil(15% of estimated input))`, and when
+that leaves under 32768 tokens of output the fixed 4096 margin is used with
+output capped at 32768. The provider preflight's `requestBudget` still computes
+`min(maxTokens, contextWindow - 4096)`, which is exactly the new rule at
+near-zero input (the probe's own size) and an upper bound for any real prompt,
+which now reserves the same or less. So it stays a conservative affordability
+check, and no code change is needed.
 
-Sources: [engine comparison](https://github.com/shaftoe/pi-coding-agent-action/compare/f7496a9aea9798c5d52d39096d98d5c5b16559b3...381f578da466b8d2ef48f0fdb8a940f276fe4c3c),
-[`pi-ai@1.3.0`](https://www.npmjs.com/package/@earendil-works/pi-ai/v/1.3.0).
+`scripts/pi-openrouter-limits.json` was regenerated from
+`@earendil-works/pi-ai@1.5.2/dist/providers/data/openrouter.json` with a generator
+first checked to reproduce the 1.0.4 snapshot byte-for-byte: 403 models. The
+shipped default `google/gemini-3.8-flash` and the example
+`anthropic/claude-sonnet-5` are unchanged. `z-ai/glm-5.2` rose from 131072 to
+943718 (in 1.3.0); `openai/gpt-3.5-turbo` left the catalog, so the small-model
+test now uses `openai/gpt-3.5-turbo-16k` (same 4096 budget).
+
+The release's built `dist/index.js` was diffed against v2.30.0 for new attack
+surface: no new `INPUT_*` reads, no new `child_process`/exec/spawn, the same
+`fetch(` count. New URLs are SDK provider endpoints and library links; new
+environment reads are terminal/SDK settings (`PI_SELF_UPDATE_COMMAND` is the pi
+CLI's self-update hook, unset in the action).
+
+Sources: [engine comparison](https://github.com/shaftoe/pi-coding-agent-action/compare/f7496a9aea9798c5d52d39096d98d5c5b16559b3...c9c89dcabbf612ab2a528acfad8785a8075e22f3),
+[`pi-ai@1.5.2`](https://www.npmjs.com/package/@earendil-works/pi-ai/v/1.5.2).
 No paid provider calls were used for validation.
 
 **2026-10-16 — v2.28.1 → v2.30.0. All three defects still present; every

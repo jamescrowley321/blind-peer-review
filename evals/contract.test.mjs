@@ -2379,6 +2379,11 @@ describe("the same-repo check compares names, not head.repo.fork", () => {
   };
   const FILES = [...listYml("examples"), ...listYml("adapters"), ...listYml(".github/workflows"), "action.yml"];
 
+  test("the file walk reaches nested adapters", () => {
+    // `recursive` is silently ignored before Node 20.1; engines allows 20.0.
+    assert.ok(FILES.includes(pjoin("adapters", "github-claude", "lens-review.yml")), "nested adapter workflows are not being checked");
+  });
+
   for (const f of FILES) {
     test(`${f}: no head.repo.fork condition`, () => {
       // Comments may name it (to explain why it is wrong); conditions may not.

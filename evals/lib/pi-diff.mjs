@@ -3,7 +3,7 @@
 //
 // Ported from shaftoe/pi-coding-agent-action, the engine action.yml pins:
 //   packages/pi-orchestrator/src/pi/tools/get-pr-diff.ts
-//   @ f7496a9aea9798c5d52d39096d98d5c5b16559b3  (v2.30.0 — the pinned SHA)
+//   @ 381f578da466b8d2ef48f0fdb8a940f276fe4c3c  (v2.30.1 — the pinned SHA)
 //
 // Why a port and not a call: `get_pr_diff` only exists inside a live agent
 // session with a GitHub provider attached. The harness has neither, so the only

@@ -4,11 +4,34 @@ Defects found in the agent action this project pins, each with the workaround
 that is live in this repo. **Nothing here has been filed upstream.** These are
 written up so a human can send them; do not auto-file them.
 
-Pinned engine: `shaftoe/pi-coding-agent-action@f7496a9aea9798c5d52d39096d98d5c5b16559b3` (v2.30.0).
+Pinned engine: `shaftoe/pi-coding-agent-action@381f578da466b8d2ef48f0fdb8a940f276fe4c3c` (v2.30.1).
 Re-check all three when that pin moves — a fixed upstream defect means a
 workaround here can be retired, and a workaround nobody retires becomes folklore.
 
 ## Re-check log
+
+**2026-11-15 — v2.30.0 → v2.30.1. All three defects still present; every
+workaround still required.**
+
+Both source files are byte-identical at the new SHA: `pr-diff.ts` 4072 B
+(`2f5263ad…7b0634f`) and `get-pr-diff.ts` 11334 B (`e30f1c70…d44e4d50a`), so the
+diff port needs only its provenance header updated. The unanchored split,
+unfloored byte budget and unescaped triple-backtick wrapper are unchanged.
+
+The lockfile now resolves the pi SDK to **1.3.0**. `pi/agent.ts` changed only to
+record whether a run was aborted; it still supplies no output-token override.
+`pi-ai`'s `dist/api/simple-options.js` is byte-identical between 1.0.4 and
+1.3.0, so the budget rule is unchanged. `scripts/pi-openrouter-limits.json` was
+regenerated from `@earendil-works/pi-ai@1.3.0/dist/providers/data/openrouter.json`
+with a generator first checked to reproduce the 1.0.4 snapshot byte-for-byte:
+396 models (17 added, 19 removed, 31 output limits and 25 context windows
+changed). The shipped default `google/gemini-3.8-flash` and the example
+`anthropic/claude-sonnet-5` are unchanged; `z-ai/glm-5.2` rose from 131072 to
+943718 output tokens, and the test that pins it was updated to match.
+
+Sources: [engine comparison](https://github.com/shaftoe/pi-coding-agent-action/compare/f7496a9aea9798c5d52d39096d98d5c5b16559b3...381f578da466b8d2ef48f0fdb8a940f276fe4c3c),
+[`pi-ai@1.3.0`](https://www.npmjs.com/package/@earendil-works/pi-ai/v/1.3.0).
+No paid provider calls were used for validation.
 
 **2026-10-16 — v2.28.1 → v2.30.0. All three defects still present; every
 workaround still required.**

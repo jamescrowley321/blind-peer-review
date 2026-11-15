@@ -2418,10 +2418,20 @@ describe("the example caller's triggers and gate", () => {
     return m[1];
   };
 
-  test("Dependabot is recognised by the PR author, not the actor", () => {
-    // A maintainer pushing to or re-running a Dependabot PR is the actor.
-    assert.ok(!/github\.actor/.test(code), "github.actor is whoever triggered the run, not who opened the PR");
-    assert.match(code, /github\.event\.pull_request\.user\.login != 'dependabot\[bot\]'/);
+  test("only a run Dependabot both authored and triggered is exempt", () => {
+    // Author alone: a human push to a dependabot/* branch would skip review.
+    // Actor alone: anyone who can make Dependabot act could exempt any PR.
+    // Requiring both errs toward reviewing (a maintainer's re-run is reviewed).
+    const exempt = "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'";
+    const notExempt = "(github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]')";
+    assert.ok(job("preflight").includes(notExempt), "preflight's Dependabot skip is not author AND actor");
+    const gate = job("gate");
+    assert.ok(step(gate, "Record exempt PR").includes(exempt), "the exempt step does not require author AND actor");
+    for (const name of ["Record draft PR", "Fail closed when prerequisites did not succeed", "Adjudicate lenses"]) {
+      assert.ok(step(gate, name).includes(notExempt), `"${name}" does not use the author-AND-actor exemption`);
+    }
+    // No other Dependabot test may creep back in alongside.
+    assert.equal((code.match(/dependabot\[bot\]/g) || []).length, 10, "an extra or missing Dependabot condition");
   });
 
   test("drafts run no paid lens", () => {
@@ -2429,9 +2439,13 @@ describe("the example caller's triggers and gate", () => {
     assert.match(wf, /types: \[[^\]]*ready_for_review/, "nothing re-triggers when a draft is marked ready");
   });
 
-  test("the gate never fails closed on a draft, and never passes a ready PR without adjudicating", () => {
+  test("a draft leaves a FAILING gate, and a ready PR is always adjudicated", () => {
+    // A passing draft gate is the only Merge Gate on the commit until the
+    // ready_for_review run's gate starts — long enough to merge through.
     const gate = job("gate");
-    assert.match(step(gate, "Record draft PR"), /draft == true/);
+    const draft = step(gate, "Record draft PR");
+    assert.match(draft, /draft == true/);
+    assert.match(draft, /exit 1/, "a draft's gate passes — it must fail until a ready run adjudicates");
     for (const name of ["Fail closed when prerequisites did not succeed", "Adjudicate lenses"]) {
       assert.match(step(gate, name), /github\.event\.pull_request\.draft == false/, `"${name}" also fires on drafts`);
     }
@@ -2440,7 +2454,12 @@ describe("the example caller's triggers and gate", () => {
   test("the gate still runs on cancellation, so a cancelled run cannot report a skipped (= passing) check", () => {
     // A skipped required check counts as success. `!cancelled()` would turn a
     // manually cancelled run into a passing Merge Gate.
-    assert.match(job("gate"), /if: always\(\)/);
+    const gate = job("gate");
+    assert.match(gate, /if: always\(\)/);
+    // A step `if:` without a status function gets an implicit success(), which
+    // is false once the run is cancelled — the fail-closed step needs its own.
+    assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /if: >-\n\s*always\(\) &&/);
+    assert.match(step(gate, "Fail closed when prerequisites did not succeed"), /cancelled or timed out/);
   });
 
   test("the edited trigger's comment does not promise a narrowed re-run", () => {

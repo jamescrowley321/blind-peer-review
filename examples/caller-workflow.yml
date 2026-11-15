@@ -28,7 +28,8 @@ on:
     # `edited` if you enable neither body-reading lens.
     #
     # Drafts: `opened` and `synchronize` fire on drafts too. The preflight `if:`
-    # skips them, so a draft spends nothing; `ready_for_review` runs the full set.
+    # skips them, so a draft spends nothing and its Merge Gate FAILS (see the
+    # gate); `ready_for_review` runs the full set.
     types: [opened, synchronize, reopened, ready_for_review, edited]
     branches: [main]
 
@@ -86,7 +87,10 @@ jobs:
   # Don't spend on fork PRs (they get no secret anyway) or Dependabot. "Fork PR"
   # is tested by name — head repo != this repo — NOT `head.repo.fork`, which is
   # true for every same-repo PR when this repository is itself a fork, and would
-  # exempt all of them from review (#178). Outside
+  # exempt all of them from review (#178). "Dependabot PR" means Dependabot
+  # opened it AND triggered this run: by author alone, a human push to a
+  # dependabot/* branch would skip review; a maintainer re-running Dependabot's
+  # PR is reviewed, which costs a run but cannot let code through. Outside
   # contributors are gated by the repo setting "Require approval for all outside
   # collaborators" — NOT by author_association (the event reports CONTRIBUTOR for
   # org members, which would wrongly skip their PRs).
@@ -96,7 +100,7 @@ jobs:
     timeout-minutes: 12
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
       github.event.pull_request.draft == false
     permissions:
       checks: read
@@ -168,8 +172,8 @@ jobs:
   # `always()`, not `!cancelled()`: a skipped job reports as SUCCESS to branch
   # protection, so a gate that skipped itself on cancellation would turn a
   # cancelled run into a passing Merge Gate. A run superseded by a newer push or
-  # edit therefore shows a failing gate, which names the cancellation; the newer
-  # run's gate replaces it on the same check.
+  # edit, or a job that hit timeout-minutes (also reported as `cancelled`),
+  # therefore shows a failing gate that says so; a newer run's gate replaces it.
   #
   # One lens failing on a transient error fails the gate, by design: the action
   # never retries a lens (a lens job fails only on errors, never on findings), and
@@ -185,20 +189,29 @@ jobs:
       pull-requests: read
     steps:
       - name: Record exempt PR
-        if: github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]'
+        if: github.event.pull_request.head.repo.full_name != github.repository || (github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]')
         run: echo "Blind peer review is intentionally exempt for fork and Dependabot PRs."
-      # A draft cannot be merged, and marking it ready fires `ready_for_review`,
-      # whose gate replaces this one on the same head commit.
+      # A draft FAILS the gate rather than passing it. The ready_for_review run's
+      # gate gets no check run until its lenses finish, so a passing draft gate
+      # would be the only Merge Gate on the commit for those minutes — long
+      # enough to mark ready and merge through. Re-running an old draft run
+      # replays `draft == true`, so it fails too.
       - name: Record draft PR
         if: >-
           github.event.pull_request.head.repo.full_name == github.repository &&
-          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
           github.event.pull_request.draft == true
-        run: echo "Draft PR — no lens runs until it is marked ready for review."
+        run: |
+          echo "::error::Draft PR — not reviewed. Lenses run when it is marked ready for review."
+          exit 1
+      # always(): a step `if:` with no status function gets an implicit
+      # success(), which is false in a cancelled run, so this would be skipped
+      # exactly when it is needed.
       - name: Fail closed when prerequisites did not succeed
         if: >-
+          always() &&
           github.event.pull_request.head.repo.full_name == github.repository &&
-          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
           github.event.pull_request.draft == false &&
           (needs.config.result != 'success' || needs.preflight.result != 'success' || needs.review.result != 'success')
         env:
@@ -208,7 +221,7 @@ jobs:
         run: |
           case " $CONFIG_RESULT $PREFLIGHT_RESULT $REVIEW_RESULT " in
             *" cancelled "*)
-              echo "::error::This run was cancelled — usually superseded by a newer push or edit, whose Merge Gate replaces this one. If nothing newer is running, re-run this workflow." ;;
+              echo "::error::A job was cancelled or timed out (config=$CONFIG_RESULT, preflight=$PREFLIGHT_RESULT, review=$REVIEW_RESULT). If a newer push or edit superseded this run, its Merge Gate replaces this one; otherwise a job hit timeout-minutes — re-run the failed jobs." ;;
             *)
               echo "::error::Blind peer review prerequisites did not succeed (config=$CONFIG_RESULT, preflight=$PREFLIGHT_RESULT, review=$REVIEW_RESULT)." ;;
           esac
@@ -216,7 +229,7 @@ jobs:
       - name: Adjudicate lenses
         if: >-
           github.event.pull_request.head.repo.full_name == github.repository &&
-          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          (github.event.pull_request.user.login != 'dependabot[bot]' || github.actor != 'dependabot[bot]') &&
           github.event.pull_request.draft == false &&
           needs.config.result == 'success' && needs.preflight.result == 'success' && needs.review.result == 'success'
         uses: jamescrowley321/blind-peer-review@v3
